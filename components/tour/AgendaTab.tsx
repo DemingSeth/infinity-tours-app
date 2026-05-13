@@ -1,0 +1,776 @@
+"use client";
+
+import { useState, useRef, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
+import InfinityLogo from "@/components/shared/InfinityLogo";
+import TypeDot from "@/components/shared/TypeDot";
+import {
+  BRAND, ROLES, AGENDA_TYPES, TRAVEL_METHODS,
+  isDayInPast, parseAgendaDate, formatAgendaDate, suggestNextDate,
+  getMapUrl, fmt$,
+} from "@/lib/helpers";
+import type {
+  TourRow, AgendaDayWithItems, AgendaItemWithFeedback,
+  AgendaItemType, TravelMethod, MealPayType,
+} from "@/lib/types";
+
+// ── Icons ──────────────────────────────────────────────────────────────────────
+const ICONS: Record<string, string> = {
+  trash:    "M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6",
+  edit:     "M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z",
+  chevron:  "M19 9l-7 7-7-7",
+  plus:     "M12 5v14M5 12h14",
+  link:     "M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71",
+  eye:      "M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8zM12 9a3 3 0 100 6 3 3 0 000-6z",
+  feedback: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z",
+  x:        "M18 6L6 18M6 6l12 12",
+};
+
+function I({ n, s = 13, c }: { n: string; s?: number; c?: string }) {
+  return (
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c || "currentColor"} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <path d={ICONS[n] ?? ""} />
+    </svg>
+  );
+}
+
+// ── Form primitives ────────────────────────────────────────────────────────────
+const INP: React.CSSProperties = {
+  border: "1.5px solid #e2e8f0", borderRadius: 8, padding: "7px 11px",
+  fontSize: 13, fontFamily: "inherit", color: "#1e293b", background: "#fff",
+  outline: "none", width: "100%", boxSizing: "border-box",
+};
+
+function Field({ label, children, half, third }: { label: string; children: React.ReactNode; half?: boolean; third?: boolean }) {
+  const w = third ? "calc(33.33% - 7px)" : half ? "calc(50% - 5px)" : "100%";
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 4, width: w, minWidth: 0, flexShrink: 0 }}>
+      <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .8 }}>{label}</label>
+      {children}
+    </div>
+  );
+}
+
+function Inp(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  return <input {...props} style={{ ...INP, ...props.style }} />;
+}
+
+function Tex(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return <textarea {...props} style={{ ...INP, minHeight: 60, resize: "vertical", ...props.style }} />;
+}
+
+function Sel({ options, ...props }: { options: { value: string; label: string }[] } & React.SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <select {...props} style={{ ...INP, ...props.style }}>
+      {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+    </select>
+  );
+}
+
+function Btn({ children, onClick, variant, small, style }: {
+  children: React.ReactNode; onClick?: () => void;
+  variant?: "muted" | "ghost"; small?: boolean; style?: React.CSSProperties;
+}) {
+  const base: React.CSSProperties = {
+    display: "inline-flex", alignItems: "center", gap: 5, cursor: "pointer",
+    fontFamily: "inherit", fontWeight: 600, border: "none", borderRadius: 8,
+    padding: small ? "5px 11px" : "8px 16px", fontSize: small ? 11 : 12,
+    background: variant === "muted" ? "#f1f5f9" : variant === "ghost" ? "transparent" : BRAND.navy,
+    color: variant === "muted" ? "#64748b" : variant === "ghost" ? "#64748b" : "#fff",
+  };
+  return <button onClick={onClick} style={{ ...base, ...style }}>{children}</button>;
+}
+
+// ── TimePicker ─────────────────────────────────────────────────────────────────
+function TimePicker({ value, onChange, placeholder = "Pick a time" }: {
+  value: string; onChange: (v: string) => void; placeholder?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const hourRef = useRef<HTMLDivElement>(null);
+  const minRef = useRef<HTMLDivElement>(null);
+
+  const parseT = (v: string) => {
+    if (!v) return { h: 9, m: 0, ap: "AM" };
+    const match = v.match(/^(\d+):(\d{2})\s*(AM|PM)$/i);
+    return match ? { h: parseInt(match[1]), m: parseInt(match[2]), ap: match[3].toUpperCase() } : { h: 9, m: 0, ap: "AM" };
+  };
+  const { h, m, ap } = parseT(value);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    setTimeout(() => {
+      (hourRef.current?.children[h - 1] as HTMLElement)?.scrollIntoView({ block: "center" });
+      (minRef.current?.children[Math.floor(m / 5)] as HTMLElement)?.scrollIntoView({ block: "center" });
+    }, 60);
+  }, [open]);
+
+  const emit = (nh: number, nm: number, na: string) => onChange(`${nh}:${String(nm).padStart(2, "0")} ${na}`);
+  const hours = [1,2,3,4,5,6,7,8,9,10,11,12];
+  const mins  = [0,5,10,15,20,25,30,35,40,45,50,55];
+  const col: React.CSSProperties = { height: 156, overflowY: "auto", display: "flex", flexDirection: "column", gap: 1, padding: "4px 0", scrollbarWidth: "thin" };
+  const btn = (active: boolean): React.CSSProperties => ({
+    padding: "5px 0", borderRadius: 6, fontSize: 13, fontWeight: active ? 700 : 400,
+    cursor: "pointer", background: active ? BRAND.navy : "transparent",
+    color: active ? "#fff" : "#1e293b", border: "none", fontFamily: "inherit", width: "100%", textAlign: "center",
+  });
+
+  return (
+    <div ref={ref} style={{ position: "relative", width: "100%" }}>
+      <div onClick={() => setOpen(o => !o)}
+        style={{ ...INP, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", userSelect: "none" }}>
+        <span style={{ color: value ? "#1e293b" : "#94a3b8" }}>{value || placeholder}</span>
+        <span>🕐</span>
+      </div>
+      {open && (
+        <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 500, background: "#fff", borderRadius: 12, boxShadow: "0 8px 32px rgba(0,0,0,.18)", border: "1.5px solid #e2e8f0", padding: 12, width: 210 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .8, marginBottom: 8, textAlign: "center" }}>Select Time</div>
+          <div style={{ display: "flex", gap: 4 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 10, color: "#94a3b8", textAlign: "center", marginBottom: 3 }}>Hour</div>
+              <div ref={hourRef} style={col}>{hours.map(hr => <button key={hr} style={btn(hr === h)} onClick={() => emit(hr, m, ap)}>{hr}</button>)}</div>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 10, color: "#94a3b8", textAlign: "center", marginBottom: 3 }}>Min</div>
+              <div ref={minRef} style={col}>{mins.map(mn => <button key={mn} style={btn(mn === m)} onClick={() => emit(h, mn, ap)}>{String(mn).padStart(2, "0")}</button>)}</div>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 10, color: "#94a3b8", textAlign: "center", marginBottom: 3 }}>AM/PM</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, paddingTop: 4 }}>
+                {["AM", "PM"].map(a => <button key={a} style={{ ...btn(a === ap), padding: "8px 0" }} onClick={() => emit(h, m, a)}>{a}</button>)}
+              </div>
+            </div>
+          </div>
+          <div style={{ borderTop: "1px solid #f1f5f9", marginTop: 8, paddingTop: 7, textAlign: "center" }}>
+            <button onClick={() => setOpen(false)} style={{ background: BRAND.navy, color: "#fff", border: "none", borderRadius: 7, padding: "5px 20px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Done</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Modal ──────────────────────────────────────────────────────────────────────
+function Modal({ title, onClose, children, wide }: {
+  title: string; onClose: () => void; children: React.ReactNode; wide?: boolean;
+}) {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onClose]);
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "40px 16px", overflowY: "auto" }}>
+      <div style={{ background: "#fff", borderRadius: 16, padding: 24, width: "100%", maxWidth: wide ? 680 : 420, boxShadow: "0 20px 60px rgba(0,0,0,.2)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <span style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: 16, fontWeight: 700, color: BRAND.navy }}>{title}</span>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 4 }}><I n="x" s={16} /></button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ── AccessCodeManager ──────────────────────────────────────────────────────────
+const ROLES_TYPED = ROLES as Record<string, { label: string; color: string; bg: string }>;
+
+function AccessCodeManager({ tour, onTourChange }: {
+  tour: TourRow; onTourChange: (patch: Record<string, any>) => void;
+}) {
+  const codes = (tour.access_codes as unknown as Record<string, string>) || { coordinator: "", teacher: "", driver: "", student: "" };
+  const set = (role: string, val: string) => onTourChange({ access_codes: { ...codes, [role]: val } });
+  const gen = (role: string) => set(role, Math.random().toString(36).slice(2, 8).toUpperCase());
+
+  return (
+    <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 12, padding: 16, marginBottom: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: BRAND.navy, fontFamily: "'Cormorant Garamond',Georgia,serif" }}>Access Codes</span>
+        <span style={{ fontSize: 11, color: "#94a3b8" }}>Share each code with the right group</span>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
+        {Object.entries(ROLES_TYPED).map(([role, meta]) => (
+          <div key={role} style={{ background: meta.bg, border: `1.5px solid ${meta.color}22`, borderRadius: 9, padding: "10px 12px" }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: meta.color, textTransform: "uppercase", letterSpacing: .7, marginBottom: 6 }}>{meta.label}</div>
+            <div style={{ display: "flex", gap: 5 }}>
+              <input value={codes[role] || ""} onChange={e => set(role, e.target.value.toUpperCase())}
+                style={{ ...INP, fontFamily: "monospace", fontSize: 14, fontWeight: 700, letterSpacing: 2, color: meta.color, flex: 1, padding: "5px 8px" }}
+                placeholder="CODE" maxLength={12} />
+              <button onClick={() => gen(role)} style={{ background: meta.color, color: "#fff", border: "none", borderRadius: 6, padding: "5px 8px", cursor: "pointer", fontSize: 10, fontWeight: 700, fontFamily: "inherit", flexShrink: 0 }}>Gen</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Item form ──────────────────────────────────────────────────────────────────
+type ItemFormState = {
+  time: string; type: AgendaItemType; title: string; detail: string;
+  public_note: string; address: string; map_link: string; website: string;
+  travel_method: TravelMethod; contact_name: string; contact_phone: string;
+  contact_email: string; cost: string; cost_paid: boolean;
+  driver_note: string; internal_note: string;
+  meal_pay_type: MealPayType; stipend_amount: string;
+};
+
+const BLANK: ItemFormState = {
+  time: "", type: "activity", title: "", detail: "", public_note: "",
+  address: "", map_link: "", website: "", travel_method: "",
+  contact_name: "", contact_phone: "", contact_email: "",
+  cost: "", cost_paid: false, driver_note: "", internal_note: "",
+  meal_pay_type: "", stipend_amount: "",
+};
+
+const TYPE_COLORS: Record<string, string> = {
+  travel: "#3b82f6", activity: "#8b5cf6", food: "#f59e0b",
+  hotel: "#0d9488", transit: "#06b6d4", free: "#6b7280", meeting: "#ec4899",
+};
+
+function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving }: {
+  form: ItemFormState;
+  setForm: React.Dispatch<React.SetStateAction<ItemFormState>>;
+  onSave: () => void; onCancel: () => void; isEdit?: boolean; saving?: boolean;
+}) {
+  const f = (v: Partial<ItemFormState>) => setForm(p => ({ ...p, ...v }));
+
+  return (
+    <div style={{ padding: 16, background: "#f8fafc", borderTop: "1.5px solid #e2e8f0" }} onClick={e => e.stopPropagation()}>
+      <div style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: 13, fontWeight: 700, color: BRAND.navy, marginBottom: 12 }}>
+        {isEdit ? "Edit Item" : "New Agenda Item"}
+      </div>
+
+      <div style={{ marginBottom: 14 }}>
+        <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>Activity Type</label>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {AGENDA_TYPES.map(t => {
+            const bg = TYPE_COLORS[t.value] || "#6b7280";
+            const active = form.type === t.value;
+            return (
+              <button key={t.value} type="button" onClick={() => f({ type: t.value as AgendaItemType })}
+                style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 20, border: `2px solid ${active ? bg : "#e2e8f0"}`, background: active ? bg + "18" : "#fff", cursor: "pointer", fontSize: 12, fontWeight: active ? 700 : 400, color: active ? bg : "#64748b", fontFamily: "inherit" }}>
+                <span style={{ fontSize: 15 }}>{t.emoji}</span>{t.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 12 }}>
+        <Field label="Time" third>
+          <TimePicker value={form.time} onChange={v => f({ time: v })} />
+        </Field>
+        <Field label="Travel Method" third>
+          <Sel value={form.travel_method || ""} onChange={e => f({ travel_method: e.target.value as TravelMethod })}
+            options={TRAVEL_METHODS.map(m => ({ value: m.value, label: m.label }))} />
+        </Field>
+        <Field label="Title">
+          <Inp value={form.title} onChange={e => f({ title: e.target.value })} placeholder="Museum, flight, restaurant..." autoFocus={!isEdit} />
+        </Field>
+        <Field label="Details / Notes">
+          <Inp value={form.detail} onChange={e => f({ detail: e.target.value })} placeholder="Instructions, confirmation numbers..." />
+        </Field>
+        <Field label="Public Notes (visible to all roles)">
+          <Tex value={form.public_note} onChange={e => f({ public_note: e.target.value })} placeholder="Directions, dress code, what to bring..." />
+        </Field>
+
+        {form.type === "food" && (
+          <div style={{ width: "100%", background: "#fff8f0", border: "1.5px solid #fed7aa", borderRadius: 10, padding: "12px 14px", display: "flex", flexWrap: "wrap", gap: 10 }}>
+            <div style={{ width: "100%", fontSize: 11, fontWeight: 700, color: "#92400e", textTransform: "uppercase", letterSpacing: .7 }}>Meal Payment</div>
+            <Field label="How is this meal paid?" half>
+              <div style={{ display: "flex", gap: 6 }}>
+                {[{ value: "stipend", label: "Meal Stipend (Till Card)" }, { value: "group", label: "Group Meal (Tour Host pays)" }].map(opt => (
+                  <button key={opt.value} type="button" onClick={() => f({ meal_pay_type: opt.value as MealPayType })}
+                    style={{ flex: 1, padding: "6px 8px", borderRadius: 8, border: `2px solid ${form.meal_pay_type === opt.value ? "#92400e" : "#e2e8f0"}`, background: form.meal_pay_type === opt.value ? "#fef3c7" : "#fff", cursor: "pointer", fontSize: 11, fontWeight: form.meal_pay_type === opt.value ? 700 : 400, color: form.meal_pay_type === opt.value ? "#92400e" : "#64748b", fontFamily: "inherit", textAlign: "center", lineHeight: 1.3 }}>
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </Field>
+            {form.meal_pay_type === "stipend" && (
+              <Field label="Stipend Amount ($)" third>
+                <Inp type="number" value={form.stipend_amount} onChange={e => f({ stipend_amount: e.target.value })} placeholder="25" />
+              </Field>
+            )}
+          </div>
+        )}
+
+        <Field label="Address">
+          <Inp value={form.address} onChange={e => f({ address: e.target.value })} placeholder="Full street address" />
+        </Field>
+        <Field label="Google Maps Link" half>
+          <Inp value={form.map_link} onChange={e => f({ map_link: e.target.value })} placeholder="https://maps.app.goo.gl/..." />
+        </Field>
+        <Field label="Website" half>
+          <Inp value={form.website} onChange={e => f({ website: e.target.value })} placeholder="https://venue.com" />
+        </Field>
+        <Field label="Contact Name" half>
+          <Inp value={form.contact_name} onChange={e => f({ contact_name: e.target.value })} placeholder="Jane Smith" />
+        </Field>
+        <Field label="Contact Phone" half>
+          <Inp value={form.contact_phone} onChange={e => f({ contact_phone: e.target.value })} placeholder="(212) 555-0100" />
+        </Field>
+        <Field label="Contact Email">
+          <Inp value={form.contact_email} onChange={e => f({ contact_email: e.target.value })} placeholder="groups@venue.com" />
+        </Field>
+        <Field label="Cost ($)" third>
+          <Inp type="number" value={form.cost} onChange={e => f({ cost: e.target.value })} placeholder="0.00" />
+        </Field>
+        <Field label="Driver Note" half>
+          <Inp value={form.driver_note} onChange={e => f({ driver_note: e.target.value })} placeholder="Drop at main entrance..." />
+        </Field>
+        <Field label="Internal Note (Tour Host only)">
+          <Inp value={form.internal_note} onChange={e => f({ internal_note: e.target.value })} placeholder="Booking refs, reminders..." />
+        </Field>
+        <div style={{ width: "100%", display: "flex", alignItems: "center", gap: 8 }}>
+          <input type="checkbox" id="cpaid" checked={form.cost_paid} onChange={e => f({ cost_paid: e.target.checked })} style={{ accentColor: BRAND.navy }} />
+          <label htmlFor="cpaid" style={{ fontSize: 12, cursor: "pointer" }}>Cost paid / confirmed</label>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 8 }}>
+        <Btn onClick={onCancel} variant="muted" small>Cancel</Btn>
+        <Btn onClick={onSave} small>{saving ? "Saving..." : isEdit ? "Save Changes" : "Add Item"}</Btn>
+      </div>
+    </div>
+  );
+}
+
+// ── ItemRow ────────────────────────────────────────────────────────────────────
+function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onAddFeedback }: {
+  item: AgendaItemWithFeedback;
+  onEdit: () => void; onRemove: () => void; onToggleCostPaid: () => void;
+  onAddFeedback: (text: string, role: string, sentiment: string) => void;
+}) {
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [fbText, setFbText] = useState("");
+  const [fbRole, setFbRole] = useState("student");
+  const [fbSentiment, setFbSentiment] = useState("😊");
+  const travel = TRAVEL_METHODS.find(t => t.value === item.travel_method)?.label || "";
+  const mapUrl = getMapUrl(item.map_link, item.address);
+
+  return (
+    <div style={{ padding: "14px 16px", borderBottom: "1px solid #f8fafc", background: "#fff" }} onClick={e => e.stopPropagation()}>
+      <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+        <div style={{ width: 56, fontSize: 11, fontWeight: 700, color: "#94a3b8", flexShrink: 0, paddingTop: 6, textAlign: "right" }}>
+          {item.time || "-"}
+        </div>
+        <TypeDot type={item.type} size={32} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", marginBottom: 3 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: BRAND.navy }}>{item.title}</span>
+            {travel && <span style={{ fontSize: 10, background: "#eff6ff", color: "#1e40af", borderRadius: 4, padding: "1px 6px", fontWeight: 600 }}>{travel}</span>}
+          </div>
+          {item.detail && <div style={{ fontSize: 12, color: "#475569", marginBottom: 3 }}>{item.detail}</div>}
+          {item.public_note && (
+            <div style={{ fontSize: 12, background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 7, padding: "5px 10px", marginBottom: 5, color: "#0c4a6e", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
+              {item.public_note}
+            </div>
+          )}
+          {item.type === "food" && item.meal_pay_type && (
+            <div style={{ marginBottom: 4 }}>
+              {item.meal_pay_type === "stipend"
+                ? <span style={{ fontSize: 11, background: "#fef3c7", color: "#92400e", borderRadius: 6, padding: "2px 9px", fontWeight: 700 }}>
+                    Meal Stipend{item.stipend_amount ? ` - $${item.stipend_amount} on Till Card` : ""}
+                  </span>
+                : <span style={{ fontSize: 11, background: "#f0fdf4", color: "#166534", borderRadius: 6, padding: "2px 9px", fontWeight: 700 }}>Group Meal - Tour Host pays</span>
+              }
+            </div>
+          )}
+          {item.address && <div style={{ fontSize: 12, color: "#64748b", marginBottom: 3 }}>📍 {item.address}</div>}
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 4, alignItems: "center" }}>
+            {mapUrl && (
+              <a href={mapUrl} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: "#0369a1", display: "inline-flex", alignItems: "center", gap: 3, textDecoration: "none", fontWeight: 600 }}>
+                <I n="link" s={10} />Google Maps
+              </a>
+            )}
+            {item.website && (
+              <a href={item.website} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: "#5b21b6", display: "inline-flex", alignItems: "center", gap: 3, textDecoration: "none", fontWeight: 600 }}>
+                <I n="eye" s={10} />Website
+              </a>
+            )}
+            {item.contact_name && (
+              <span style={{ fontSize: 11, color: "#475569" }}>
+                📞 {item.contact_name}{item.contact_phone ? ` · ${item.contact_phone}` : ""}
+              </span>
+            )}
+            {item.cost > 0 && (
+              <span style={{ fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <span style={{ color: "#92400e", fontWeight: 700 }}>{fmt$(item.cost)}</span>
+                <button onClick={onToggleCostPaid}
+                  style={{ background: item.cost_paid ? "#dcfce7" : "#fee2e2", color: item.cost_paid ? "#166534" : "#b91c1c", border: "none", borderRadius: 4, padding: "1px 6px", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                  {item.cost_paid ? "Paid" : "Unpaid"}
+                </button>
+              </span>
+            )}
+            {item.driver_note && <span style={{ fontSize: 10, background: "#fef3c7", color: "#92400e", borderRadius: 5, padding: "1px 7px" }}>🚌 {item.driver_note}</span>}
+            {item.internal_note && <span style={{ fontSize: 10, background: "#f3e8ff", color: "#6b21a8", borderRadius: 5, padding: "1px 7px" }}>📋 {item.internal_note}</span>}
+          </div>
+
+          {item.agenda_feedback?.length > 0 && (
+            <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid #f1f5f9" }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", marginBottom: 5 }}>
+                FEEDBACK ({item.agenda_feedback.length}) - coordinator only
+              </div>
+              {item.agenda_feedback.map(fb => (
+                <div key={fb.id} style={{ fontSize: 11, color: "#475569", marginBottom: 4, display: "flex", alignItems: "flex-start", gap: 6 }}>
+                  <span style={{ fontSize: 16, lineHeight: 1, flexShrink: 0 }}>{fb.sentiment || "😐"}</span>
+                  <span>
+                    <span style={{ background: ROLES_TYPED[fb.role]?.bg || "#f1f5f9", color: ROLES_TYPED[fb.role]?.color || "#475569", borderRadius: 4, padding: "0 5px", fontSize: 10, fontWeight: 600, marginRight: 5 }}>
+                      {ROLES_TYPED[fb.role]?.label || fb.role}
+                    </span>
+                    {fb.text}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {showFeedback && (
+            <div style={{ marginTop: 8, padding: "10px 12px", background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", marginBottom: 8, textTransform: "uppercase", letterSpacing: .6 }}>Leave Feedback</div>
+              <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+                {[{ v: "😊", l: "Good" }, { v: "😐", l: "OK" }, { v: "😞", l: "Poor" }].map(opt => (
+                  <button key={opt.v} onClick={() => setFbSentiment(opt.v)}
+                    style={{ flex: 1, padding: "6px 4px", borderRadius: 8, border: `2px solid ${fbSentiment === opt.v ? "#0369a1" : "#e2e8f0"}`, background: fbSentiment === opt.v ? "#eff6ff" : "#fff", cursor: "pointer", fontSize: 22, lineHeight: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                    {opt.v}
+                    <span style={{ fontSize: 9, color: fbSentiment === opt.v ? "#0369a1" : "#94a3b8", fontWeight: 600, fontFamily: "inherit" }}>{opt.l}</span>
+                  </button>
+                ))}
+              </div>
+              <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                <Sel options={Object.entries(ROLES_TYPED).map(([v, r]) => ({ value: v, label: r.label }))} value={fbRole} onChange={e => setFbRole(e.target.value)} style={{ width: 165, padding: "4px 8px", fontSize: 11 }} />
+                <input value={fbText} onChange={e => setFbText(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter" && fbText.trim()) { onAddFeedback(fbText, fbRole, fbSentiment); setFbText(""); setShowFeedback(false); } }}
+                  placeholder="Add a comment (optional)..."
+                  style={{ ...INP, flex: 1, minWidth: 140, padding: "4px 8px", fontSize: 11 }} />
+                <Btn onClick={() => { onAddFeedback(fbText, fbRole, fbSentiment); setFbText(""); setShowFeedback(false); }} small>Submit</Btn>
+                <Btn onClick={() => setShowFeedback(false)} variant="muted" small>Cancel</Btn>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+          <button onClick={() => setShowFeedback(s => !s)} title="Leave feedback"
+            style={{ background: showFeedback ? "#eff6ff" : "none", border: "none", cursor: "pointer", color: showFeedback ? "#0369a1" : "#cbd5e1", padding: 4, borderRadius: 5 }}>
+            <I n="feedback" s={13} />
+          </button>
+          <button onClick={onEdit} style={{ background: "none", border: "none", cursor: "pointer", color: "#cbd5e1", padding: 4, borderRadius: 5 }}>
+            <I n="edit" s={13} />
+          </button>
+          <button onClick={onRemove} style={{ background: "none", border: "none", cursor: "pointer", color: "#cbd5e1", padding: 4, borderRadius: 5 }}>
+            <I n="trash" s={13} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── AgendaTab ──────────────────────────────────────────────────────────────────
+interface AgendaTabProps {
+  tour: TourRow;
+  days: AgendaDayWithItems[];
+  isOwner: boolean;
+  onDaysChange: (days: AgendaDayWithItems[]) => void;
+  onTourChange: (patch: Record<string, any>) => void;
+}
+
+export default function AgendaTab({ tour, days, onDaysChange, onTourChange }: AgendaTabProps) {
+  const [showAddDay, setShowAddDay] = useState(false);
+  const [newDayDate, setNewDayDate] = useState("");
+  const [addMultiple, setAddMultiple] = useState(false);
+  const [multiCount, setMultiCount] = useState(1);
+  const [addingItem, setAddingItem] = useState<string | null>(null);
+  const [itemForm, setItemForm] = useState<ItemFormState>(BLANK);
+  const [editCtx, setEditCtx] = useState<{ dayId: string; itemId: string } | null>(null);
+  const [editForm, setEditForm] = useState<ItemFormState>(BLANK);
+  const [showPastDays, setShowPastDays] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const pastDays = days.filter(d => isDayInPast(d.date));
+  const visibleDays = showPastDays ? days : days.filter(d => !isDayInPast(d.date));
+
+  const suggestedDate = suggestNextDate(days);
+  const suggestedDateStr = suggestedDate ? formatAgendaDate(suggestedDate) : "";
+
+  const openAddDay = () => {
+    setNewDayDate(suggestedDateStr);
+    setMultiCount(1);
+    setAddMultiple(false);
+    setShowAddDay(true);
+  };
+
+  // ── helpers ──────────────────────────────────────────────────────────────────
+  function formToInsert(f: ItemFormState, dayId: string, sortOrder: number) {
+    return {
+      day_id: dayId, tour_id: tour.id, sort_order: sortOrder,
+      time: f.time || null, type: f.type, title: f.title,
+      detail: f.detail || null, public_note: f.public_note || null,
+      address: f.address || null, map_link: f.map_link || null,
+      website: f.website || null, travel_method: f.travel_method || null,
+      contact_name: f.contact_name || null, contact_phone: f.contact_phone || null,
+      contact_email: f.contact_email || null, cost: parseFloat(f.cost) || 0,
+      cost_paid: f.cost_paid, driver_note: f.driver_note || null,
+      internal_note: f.internal_note || null,
+      meal_pay_type: f.meal_pay_type || null,
+      stipend_amount: f.stipend_amount ? parseFloat(f.stipend_amount) : null,
+      item_visibility: null,
+    };
+  }
+
+  function itemToForm(item: AgendaItemWithFeedback): ItemFormState {
+    return {
+      time: item.time || "", type: item.type, title: item.title,
+      detail: item.detail || "", public_note: item.public_note || "",
+      address: item.address || "", map_link: item.map_link || "",
+      website: item.website || "", travel_method: item.travel_method || "",
+      contact_name: item.contact_name || "", contact_phone: item.contact_phone || "",
+      contact_email: item.contact_email || "",
+      cost: item.cost > 0 ? String(item.cost) : "",
+      cost_paid: item.cost_paid, driver_note: item.driver_note || "",
+      internal_note: item.internal_note || "",
+      meal_pay_type: item.meal_pay_type || "",
+      stipend_amount: item.stipend_amount ? String(item.stipend_amount) : "",
+    };
+  }
+
+  // ── day mutations ─────────────────────────────────────────────────────────────
+  async function addDay() {
+    if (!newDayDate) return;
+    const startDate = parseAgendaDate(newDayDate);
+    if (!startDate) { alert("Please enter a valid date like Apr 14 or Apr 14, 2026"); return; }
+    const count = addMultiple ? Math.max(1, multiCount) : 1;
+    const supabase = createClient();
+    const inserts = Array.from({ length: count }, (_, i) => {
+      const d = new Date(startDate);
+      d.setDate(d.getDate() + i);
+      return { tour_id: tour.id, day_number: days.length + i + 1, date: formatAgendaDate(d), collapsed: false, sort_order: days.length + i + 1 };
+    });
+    const { data } = await supabase.from("agenda_days").insert(inserts).select();
+    if (data) onDaysChange([...days, ...data.map(r => ({ ...r, agenda_items: [] as AgendaItemWithFeedback[] }))]);
+    setNewDayDate("");
+    setShowAddDay(false);
+  }
+
+  async function removeDay(dayId: string) {
+    const supabase = createClient();
+    await supabase.from("agenda_days").delete().eq("id", dayId);
+    onDaysChange(days.filter(d => d.id !== dayId));
+  }
+
+  async function toggleCollapsed(dayId: string) {
+    const day = days.find(d => d.id === dayId);
+    if (!day) return;
+    const supabase = createClient();
+    await supabase.from("agenda_days").update({ collapsed: !day.collapsed }).eq("id", dayId);
+    onDaysChange(days.map(d => d.id === dayId ? { ...d, collapsed: !d.collapsed } : d));
+  }
+
+  // ── item mutations ────────────────────────────────────────────────────────────
+  async function saveItem(dayId: string) {
+    if (!itemForm.title.trim()) return;
+    setSaving(true);
+    const day = days.find(d => d.id === dayId);
+    const supabase = createClient();
+    const { data } = await supabase.from("agenda_items")
+      .insert(formToInsert(itemForm, dayId, (day?.agenda_items.length ?? 0) + 1))
+      .select().single();
+    if (data) onDaysChange(days.map(d => d.id === dayId ? { ...d, agenda_items: [...d.agenda_items, { ...data, agenda_feedback: [] }] } : d));
+    setItemForm(BLANK);
+    setAddingItem(null);
+    setSaving(false);
+  }
+
+  async function updateItem() {
+    if (!editCtx || !editForm.title.trim()) return;
+    setSaving(true);
+    const { day_id, tour_id, sort_order, ...patch } = formToInsert(editForm, editCtx.dayId, 0);
+    const supabase = createClient();
+    await supabase.from("agenda_items").update(patch).eq("id", editCtx.itemId);
+    onDaysChange(days.map(d => d.id === editCtx.dayId ? {
+      ...d, agenda_items: d.agenda_items.map(i => i.id === editCtx.itemId ? { ...i, ...patch } : i),
+    } : d));
+    setEditCtx(null);
+    setSaving(false);
+  }
+
+  async function removeItem(dayId: string, itemId: string) {
+    const supabase = createClient();
+    await supabase.from("agenda_items").delete().eq("id", itemId);
+    onDaysChange(days.map(d => d.id === dayId ? { ...d, agenda_items: d.agenda_items.filter(i => i.id !== itemId) } : d));
+  }
+
+  async function toggleCostPaid(dayId: string, item: AgendaItemWithFeedback) {
+    const supabase = createClient();
+    await supabase.from("agenda_items").update({ cost_paid: !item.cost_paid }).eq("id", item.id);
+    onDaysChange(days.map(d => d.id === dayId ? { ...d, agenda_items: d.agenda_items.map(i => i.id === item.id ? { ...i, cost_paid: !i.cost_paid } : i) } : d));
+  }
+
+  async function addFeedback(dayId: string, itemId: string, text: string, role: string, sentiment: string) {
+    const supabase = createClient();
+    const { data } = await supabase.from("agenda_feedback").insert({
+      item_id: itemId, tour_id: tour.id, role, sentiment, text: text || null,
+    }).select().single();
+    if (data) {
+      onDaysChange(days.map(d => d.id === dayId ? {
+        ...d, agenda_items: d.agenda_items.map(i => i.id === itemId ? { ...i, agenda_feedback: [...(i.agenda_feedback || []), data] } : i),
+      } : d));
+    }
+  }
+
+  // ── render ────────────────────────────────────────────────────────────────────
+  return (
+    <div>
+      <AccessCodeManager tour={tour} onTourChange={onTourChange} />
+
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: BRAND.navy, fontFamily: "'Cormorant Garamond',Georgia,serif" }}>
+            {days.length} day{days.length !== 1 ? "s" : ""} planned
+          </span>
+          {pastDays.length > 0 && (
+            <button onClick={() => setShowPastDays(s => !s)}
+              style={{ background: showPastDays ? "#e0f2fe" : "#f1f5f9", border: "none", borderRadius: 6, padding: "3px 10px", fontSize: 11, color: showPastDays ? "#0369a1" : "#64748b", cursor: "pointer", fontWeight: 600, fontFamily: "inherit" }}>
+              {showPastDays ? "Hide" : "Show"} {pastDays.length} past day{pastDays.length !== 1 ? "s" : ""}
+            </button>
+          )}
+        </div>
+        <Btn onClick={openAddDay} small><I n="plus" s={12} />Add Day</Btn>
+      </div>
+
+      {days.length === 0 && (
+        <div style={{ background: "#f8fafc", border: "2px dashed #e2e8f0", borderRadius: 12, padding: "40px 20px", textAlign: "center", color: "#94a3b8", fontSize: 13 }}>
+          No agenda days yet. Add your first day to get started.
+        </div>
+      )}
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {visibleDays.map(day => {
+          const past = isDayInPast(day.date);
+          return (
+            <div key={day.id} style={{ background: "#fff", border: `1.5px solid ${past ? "#e5e7eb" : "#e8eef4"}`, borderRadius: 12, overflow: "hidden", opacity: past ? .8 : 1, boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
+              <div
+                style={{ background: past ? BRAND.navy + "cc" : BRAND.navy, padding: "11px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}
+                onClick={() => toggleCollapsed(day.id)}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <InfinityLogo height={18} color="#fff" showText={false} />
+                  <div style={{ width: 1, height: 20, background: "rgba(255,255,255,.2)" }} />
+                  <span style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", color: "#fff", fontWeight: 700, fontSize: 15 }}>Day {day.day_number}</span>
+                  <span style={{ color: "#7dd3d8", fontSize: 13 }}>{day.date}</span>
+                  {past && <span style={{ background: "rgba(255,255,255,.15)", color: "rgba(255,255,255,.6)", fontSize: 10, fontWeight: 700, letterSpacing: .5, padding: "1px 7px", borderRadius: 4 }}>PAST</span>}
+                  <span style={{ color: "rgba(255,255,255,.4)", fontSize: 11 }}>{day.agenda_items.length} item{day.agenda_items.length !== 1 ? "s" : ""}</span>
+                </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <button onClick={e => { e.stopPropagation(); setAddingItem(day.id); setItemForm(BLANK); }}
+                    style={{ background: "rgba(255,255,255,.15)", border: "none", borderRadius: 5, padding: "4px 10px", fontSize: 11, color: "#fff", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>
+                    + Add
+                  </button>
+                  <button onClick={e => { e.stopPropagation(); removeDay(day.id); }}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,.35)", padding: 3 }}>
+                    <I n="trash" s={13} />
+                  </button>
+                  <div style={{ transform: day.collapsed ? "rotate(-90deg)" : "rotate(0deg)", transition: "transform .2s", display: "flex" }}>
+                    <I n="chevron" s={14} c="rgba(255,255,255,.5)" />
+                  </div>
+                </div>
+              </div>
+
+              {!day.collapsed && (
+                <div>
+                  {day.agenda_items.length === 0 && addingItem !== day.id && (
+                    <div style={{ color: "#cbd5e1", fontSize: 12, padding: "14px 16px", textAlign: "center" }}>No items yet</div>
+                  )}
+                  {day.agenda_items.map(item => (
+                    <ItemRow
+                      key={item.id}
+                      item={item}
+                      onEdit={() => { setEditCtx({ dayId: day.id, itemId: item.id }); setEditForm(itemToForm(item)); }}
+                      onRemove={() => removeItem(day.id, item.id)}
+                      onToggleCostPaid={() => toggleCostPaid(day.id, item)}
+                      onAddFeedback={(text, role, sentiment) => addFeedback(day.id, item.id, text, role, sentiment)}
+                    />
+                  ))}
+                  {addingItem === day.id && (
+                    <ItemForm
+                      form={itemForm} setForm={setItemForm}
+                      onSave={() => saveItem(day.id)}
+                      onCancel={() => setAddingItem(null)}
+                      saving={saving}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {showAddDay && (
+        <Modal title="Add Agenda Day(s)" onClose={() => setShowAddDay(false)}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <Field label="Start Date">
+              <Inp value={newDayDate} onChange={e => setNewDayDate(e.target.value)} placeholder="Apr 14" autoFocus />
+              {suggestedDateStr && newDayDate !== suggestedDateStr && (
+                <button onClick={() => setNewDayDate(suggestedDateStr)}
+                  style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: 11, color: BRAND.teal, textAlign: "left", marginTop: 3 }}>
+                  Suggested: {suggestedDateStr} - tap to use
+                </button>
+              )}
+              {suggestedDateStr && newDayDate === suggestedDateStr && (
+                <div style={{ fontSize: 11, color: BRAND.teal, marginTop: 3 }}>Suggested based on existing days</div>
+              )}
+            </Field>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "#f8fafc", borderRadius: 9, border: "1.5px solid #e2e8f0" }}>
+              <input type="checkbox" id="multiday" checked={addMultiple} onChange={e => setAddMultiple(e.target.checked)} style={{ accentColor: BRAND.navy, width: 15, height: 15 }} />
+              <label htmlFor="multiday" style={{ fontSize: 13, cursor: "pointer", fontWeight: 500 }}>Add multiple consecutive days</label>
+            </div>
+            {addMultiple && (
+              <Field label="How many days?">
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <button onClick={() => setMultiCount(c => Math.max(1, c - 1))} style={{ width: 32, height: 32, borderRadius: 8, border: "1.5px solid #e2e8f0", background: "#fff", cursor: "pointer", fontSize: 16, fontWeight: 700, color: BRAND.navy, fontFamily: "inherit" }}>-</button>
+                  <span style={{ fontSize: 18, fontWeight: 700, color: BRAND.navy, minWidth: 32, textAlign: "center" }}>{multiCount}</span>
+                  <button onClick={() => setMultiCount(c => c + 1)} style={{ width: 32, height: 32, borderRadius: 8, border: "1.5px solid #e2e8f0", background: "#fff", cursor: "pointer", fontSize: 16, fontWeight: 700, color: BRAND.navy, fontFamily: "inherit" }}>+</button>
+                  <span style={{ fontSize: 12, color: "#64748b" }}>
+                    {multiCount > 1 && newDayDate && parseAgendaDate(newDayDate) ? (() => {
+                      const end = new Date(parseAgendaDate(newDayDate)!);
+                      end.setDate(end.getDate() + multiCount - 1);
+                      return `${newDayDate} through ${formatAgendaDate(end)}`;
+                    })() : ""}
+                  </span>
+                </div>
+              </Field>
+            )}
+            <div style={{ display: "flex", gap: 8 }}>
+              <Btn onClick={() => setShowAddDay(false)} variant="muted" style={{ flex: 1 }}>Cancel</Btn>
+              <Btn onClick={addDay} style={{ flex: 1 }}>Add {addMultiple && multiCount > 1 ? `${multiCount} Days` : "Day"}</Btn>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {editCtx && (
+        <Modal title="Edit Agenda Item" onClose={() => setEditCtx(null)} wide>
+          <ItemForm
+            form={editForm} setForm={setEditForm}
+            onSave={updateItem}
+            onCancel={() => setEditCtx(null)}
+            isEdit saving={saving}
+          />
+        </Modal>
+      )}
+    </div>
+  );
+}
