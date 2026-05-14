@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import InfinityLogo from "@/components/shared/InfinityLogo";
+import InfinityLogoImg from "@/components/shared/InfinityLogoImg";
 import { BRAND } from "@/lib/helpers";
 
 export default function LoginPage() {
@@ -44,16 +44,21 @@ export default function LoginPage() {
   return (
     <div style={{ minHeight: "100vh", background: BRAND.navy, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
       <div style={{ width: "100%", maxWidth: 400 }}>
-        <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
-            <InfinityLogo height={36} color="#fff" showText={true} />
+        <div style={{ background: "#fff", borderRadius: 16, overflow: "hidden", boxShadow: "0 24px 80px rgba(0,0,0,0.3)" }}>
+          {/* Brand header — light background, image logo looks natural here */}
+          <div style={{ padding: "28px 32px 22px", textAlign: "center", borderBottom: "1px solid #f1f5f9" }}>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
+              <InfinityLogoImg height={48} showText={false} />
+            </div>
+            <div style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 700, fontSize: 18, color: BRAND.navy, letterSpacing: 0.5 }}>
+              INFINITY
+            </div>
+            <div style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 9, color: BRAND.navy, opacity: 0.45, letterSpacing: 3, textTransform: "uppercase", marginTop: 1 }}>
+              TOURS + EVENTS
+            </div>
           </div>
-          <p style={{ color: "rgba(255,255,255,0.55)", fontSize: 13, margin: 0, letterSpacing: 0.3 }}>
-            Tour Manager
-          </p>
-        </div>
 
-        <div style={{ background: "#fff", borderRadius: 16, padding: 32, boxShadow: "0 24px 80px rgba(0,0,0,0.3)" }}>
+          <div style={{ padding: "28px 32px 32px" }}>
           <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 22, fontWeight: 700, color: BRAND.navy, margin: "0 0 24px" }}>
             Sign in
           </h2>
@@ -111,6 +116,7 @@ export default function LoginPage() {
               {loading ? "Signing in..." : "Sign in"}
             </button>
           </form>
+          </div>
         </div>
       </div>
     </div>
