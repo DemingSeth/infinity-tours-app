@@ -693,7 +693,7 @@ export default function AgendaTab({ tour, days, onDaysChange, onTourChange }: Ag
                 onClick={() => toggleCollapsed(day.id)}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <Image src="/infinity-logo.png" alt="" width={0} height={0} sizes="60px" style={{ height: 24, width: "auto" }} />
+                  <Image src="/infinity-logo.png" alt="" width={0} height={0} sizes="60px" style={{ height: 36, width: "auto" }} />
                   <div style={{ width: 1, height: 20, background: "rgba(255,255,255,.2)" }} />
                   <span style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", color: "#fff", fontWeight: 700, fontSize: 15 }}>Day {day.day_number}</span>
                   <span style={{ color: "#7dd3d8", fontSize: 13 }}>{day.date}</span>
