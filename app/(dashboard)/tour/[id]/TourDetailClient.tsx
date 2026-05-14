@@ -77,7 +77,7 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
           Back
         </button>
         <div style={{ marginTop: 2, flexShrink: 0, filter: "invert(1)" }}>
-          <InfinityLogoImg height={28} showText={false} />
+          <InfinityLogoImg height={48} showText={false} />
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
