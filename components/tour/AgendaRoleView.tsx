@@ -1,6 +1,6 @@
 "use client";
 
-import InfinityLogo from "@/components/shared/InfinityLogo";
+import Image from "next/image";
 import TypeDot from "@/components/shared/TypeDot";
 import { BRAND, ROLES, DEFAULT_VISIBILITY, getMapUrl, TRAVEL_METHODS } from "@/lib/helpers";
 import type { AgendaDayWithItems, Role } from "@/lib/types";
@@ -40,7 +40,13 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, d
 
       <div style={{ background: BRAND.navy, borderRadius: 12, padding: "20px 24px", marginBottom: 18 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-          <InfinityLogo height={22} color="#fff" showText />
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <Image src="/infinity-logo.png" alt="Infinity Tours" width={0} height={0} sizes="80px" style={{ height: 22, width: "auto" }} />
+            <div style={{ display: "flex", flexDirection: "column", lineHeight: 1 }}>
+              <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 700, fontSize: 12, color: "#fff", letterSpacing: 0.5 }}>INFINITY</span>
+              <span style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontWeight: 400, fontSize: 6, color: "rgba(255,255,255,0.6)", letterSpacing: 2, textTransform: "uppercase" }}>TOURS + EVENTS</span>
+            </div>
+          </div>
           <div style={{ background: roleInfo.bg, color: roleInfo.color, borderRadius: 6, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>
             {roleInfo.label}
           </div>

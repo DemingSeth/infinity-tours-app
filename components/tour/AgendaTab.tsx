@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import InfinityLogo from "@/components/shared/InfinityLogo";
+import Image from "next/image";
 import TypeDot from "@/components/shared/TypeDot";
 import {
   BRAND, ROLES, AGENDA_TYPES, TRAVEL_METHODS,
@@ -693,7 +693,7 @@ export default function AgendaTab({ tour, days, onDaysChange, onTourChange }: Ag
                 onClick={() => toggleCollapsed(day.id)}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <InfinityLogo height={18} color="#fff" showText={false} />
+                  <Image src="/infinity-logo.png" alt="" width={0} height={0} sizes="60px" style={{ height: 24, width: "auto" }} />
                   <div style={{ width: 1, height: 20, background: "rgba(255,255,255,.2)" }} />
                   <span style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", color: "#fff", fontWeight: 700, fontSize: 15 }}>Day {day.day_number}</span>
                   <span style={{ color: "#7dd3d8", fontSize: 13 }}>{day.date}</span>

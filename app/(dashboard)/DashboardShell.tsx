@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import type { TourHostRow } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
-import InfinityLogo from "@/components/shared/InfinityLogo";
+import Image from "next/image";
 import { BRAND } from "@/lib/helpers";
 
 interface Props {
@@ -31,9 +31,13 @@ export default function DashboardShell({ children, user, tourHost }: Props) {
       <header style={{ background: BRAND.navy, padding: "0 24px", height: 56, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
         <div
           onClick={() => router.push("/dashboard")}
-          style={{ cursor: "pointer" }}
+          style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}
         >
-          <InfinityLogo height={26} color="#fff" showText={true} />
+          <Image src="/infinity-logo.png" alt="Infinity Tours" width={0} height={0} sizes="80px" style={{ height: 36, width: "auto" }} />
+          <div style={{ display: "flex", flexDirection: "column", lineHeight: 1 }}>
+            <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 700, fontSize: 14, color: "#fff", letterSpacing: 0.5 }}>INFINITY</span>
+            <span style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontWeight: 400, fontSize: 7, color: "rgba(255,255,255,0.6)", letterSpacing: 2, textTransform: "uppercase" }}>TOURS + EVENTS</span>
+          </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
