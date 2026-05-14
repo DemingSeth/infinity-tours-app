@@ -9,9 +9,10 @@ import {
   isDayInPast, parseAgendaDate, formatAgendaDate, suggestNextDate,
   getMapUrl, fmt$,
 } from "@/lib/helpers";
+import AgendaRoleView from "@/components/tour/AgendaRoleView";
 import type {
   TourRow, AgendaDayWithItems, AgendaItemWithFeedback,
-  AgendaItemType, TravelMethod, MealPayType,
+  AgendaItemType, TravelMethod, MealPayType, Role,
 } from "@/lib/types";
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
@@ -498,6 +499,8 @@ export default function AgendaTab({ tour, days, onDaysChange, onTourChange }: Ag
   const [editForm, setEditForm] = useState<ItemFormState>(BLANK);
   const [showPastDays, setShowPastDays] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [previewRole, setPreviewRole] = useState<Role | null>(null);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   const pastDays = days.filter(d => isDayInPast(d.date));
   const visibleDays = showPastDays ? days : days.filter(d => !isDayInPast(d.date));
@@ -631,6 +634,20 @@ export default function AgendaTab({ tour, days, onDaysChange, onTourChange }: Ag
   }
 
   // ── render ────────────────────────────────────────────────────────────────────
+  if (previewRole) {
+    return (
+      <AgendaRoleView
+        tourName={tour.name}
+        tourDestination={tour.destination}
+        tourDates={tour.dates}
+        days={days}
+        role={previewRole}
+        onClose={() => setPreviewRole(null)}
+        embedded
+      />
+    );
+  }
+
   return (
     <div>
       <AccessCodeManager tour={tour} onTourChange={onTourChange} />
@@ -647,7 +664,17 @@ export default function AgendaTab({ tour, days, onDaysChange, onTourChange }: Ag
             </button>
           )}
         </div>
-        <Btn onClick={openAddDay} small><I n="plus" s={12} />Add Day</Btn>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+          {days.length > 0 && (
+            <>
+              <button onClick={() => setPreviewRole("teacher")} style={{ background: "#f5f3ff", color: "#5b21b6", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Preview Teacher</button>
+              <button onClick={() => setPreviewRole("driver")} style={{ background: "#fef3c7", color: "#92400e", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Preview Driver</button>
+              <button onClick={() => setPreviewRole("student")} style={{ background: "#ecfdf5", color: "#065f46", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Preview Student</button>
+              <button onClick={() => setShowShareModal(true)} style={{ background: BRAND.teal, color: "#fff", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Share View</button>
+            </>
+          )}
+          <Btn onClick={openAddDay} small><I n="plus" s={12} />Add Day</Btn>
+        </div>
       </div>
 
       {days.length === 0 && (
@@ -769,6 +796,34 @@ export default function AgendaTab({ tour, days, onDaysChange, onTourChange }: Ag
             onCancel={() => setEditCtx(null)}
             isEdit saving={saving}
           />
+        </Modal>
+      )}
+
+      {showShareModal && (
+        <Modal title="Share Itinerary" onClose={() => setShowShareModal(false)}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <p style={{ margin: 0, fontSize: 13, color: "#475569" }}>
+              Share this link with travelers. They select their role and enter the access code you set above.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .8 }}>Share URL</label>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input
+                  readOnly
+                  value={typeof window !== "undefined" ? `${window.location.origin}/tour/${tour.id}/view` : `/tour/${tour.id}/view`}
+                  style={{ flex: 1, border: "1.5px solid #e2e8f0", borderRadius: 8, padding: "7px 11px", fontSize: 12, fontFamily: "inherit", color: "#1e293b", background: "#f8fafc", outline: "none" }}
+                />
+                <Btn variant="muted" onClick={() => {
+                  const url = `${window.location.origin}/tour/${tour.id}/view`;
+                  navigator.clipboard.writeText(url).catch(() => {});
+                }}>Copy</Btn>
+              </div>
+            </div>
+            <div style={{ background: "#f0fdfa", borderRadius: 8, padding: "10px 14px", fontSize: 12, color: "#065f46" }}>
+              Set access codes in the Access Codes section above, then share the matching code with each person.
+            </div>
+            <Btn onClick={() => setShowShareModal(false)} variant="muted" style={{ alignSelf: "flex-end" }}>Close</Btn>
+          </div>
         </Modal>
       )}
     </div>
