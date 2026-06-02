@@ -7,7 +7,7 @@ import TypeDot from "@/components/shared/TypeDot";
 import {
   BRAND, ROLES, AGENDA_TYPES, TRAVEL_METHODS,
   isDayInPast, parseAgendaDate, formatAgendaDate, suggestNextDate,
-  getMapUrl, fmt$,
+  toDateInput, getMapUrl, fmt$,
 } from "@/lib/helpers";
 import AgendaRoleView from "@/components/tour/AgendaRoleView";
 import type {
@@ -19,6 +19,7 @@ import type {
 const ICONS: Record<string, string> = {
   trash:    "M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6",
   edit:     "M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z",
+  pencil:   "M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z",
   chevron:  "M19 9l-7 7-7-7",
   plus:     "M12 5v14M5 12h14",
   link:     "M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71",
@@ -501,6 +502,8 @@ export default function AgendaTab({ tour, days, onDaysChange, onTourChange }: Ag
   const [saving, setSaving] = useState(false);
   const [previewRole, setPreviewRole] = useState<Role | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [editingDayId, setEditingDayId] = useState<string | null>(null);
+  const [editingDayDateVal, setEditingDayDateVal] = useState("");
 
   const pastDays = days.filter(d => isDayInPast(d.date));
   const visibleDays = showPastDays ? days : days.filter(d => !isDayInPast(d.date));
@@ -579,6 +582,16 @@ export default function AgendaTab({ tour, days, onDaysChange, onTourChange }: Ag
     const supabase = createClient();
     await supabase.from("agenda_days").update({ collapsed: !day.collapsed }).eq("id", dayId);
     onDaysChange(days.map(d => d.id === dayId ? { ...d, collapsed: !d.collapsed } : d));
+  }
+
+  async function updateDayDate(dayId: string, isoDate: string) {
+    if (!isoDate) return;
+    const d = new Date(isoDate + "T12:00:00");
+    const formatted = formatAgendaDate(d);
+    const supabase = createClient();
+    await supabase.from("agenda_days").update({ date: formatted }).eq("id", dayId);
+    onDaysChange(days.map(dy => dy.id === dayId ? { ...dy, date: formatted } : dy));
+    setEditingDayId(null);
   }
 
   // ── item mutations ────────────────────────────────────────────────────────────
@@ -696,7 +709,47 @@ export default function AgendaTab({ tour, days, onDaysChange, onTourChange }: Ag
                   <Image src="/infinity-logo.png" alt="" width={0} height={0} sizes="60px" style={{ height: 36, width: "auto" }} />
                   <div style={{ width: 1, height: 20, background: "rgba(255,255,255,.2)" }} />
                   <span style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", color: "#fff", fontWeight: 700, fontSize: 15 }}>Day {day.day_number}</span>
-                  <span style={{ color: "#7dd3d8", fontSize: 13 }}>{day.date}</span>
+                  {editingDayId === day.id ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: 5 }} onClick={e => e.stopPropagation()}>
+                      <input
+                        type="date"
+                        value={editingDayDateVal}
+                        onChange={e => setEditingDayDateVal(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === "Enter") updateDayDate(day.id, editingDayDateVal);
+                          if (e.key === "Escape") setEditingDayId(null);
+                        }}
+                        autoFocus
+                        style={{ fontSize: 12, padding: "2px 6px", borderRadius: 5, border: "1.5px solid rgba(255,255,255,.4)", background: "rgba(255,255,255,.15)", color: "#fff", fontFamily: "inherit", outline: "none", colorScheme: "dark" }}
+                      />
+                      <button
+                        onClick={() => updateDayDate(day.id, editingDayDateVal)}
+                        style={{ background: BRAND.teal, border: "none", borderRadius: 4, padding: "3px 8px", cursor: "pointer", color: "#fff", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}
+                      >✓</button>
+                      <button
+                        onClick={() => setEditingDayId(null)}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,.5)", padding: 2, display: "flex", alignItems: "center" }}
+                      >
+                        <I n="x" s={12} c="rgba(255,255,255,.5)" />
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <span style={{ color: "#7dd3d8", fontSize: 13 }}>{day.date}</span>
+                      <button
+                        onClick={e => {
+                          e.stopPropagation();
+                          const parsed = parseAgendaDate(day.date);
+                          setEditingDayDateVal(parsed ? toDateInput(parsed) : "");
+                          setEditingDayId(day.id);
+                        }}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,.3)", padding: "0 2px", display: "flex", alignItems: "center" }}
+                        title="Edit date"
+                      >
+                        <I n="pencil" s={12} c="rgba(255,255,255,.35)" />
+                      </button>
+                    </>
+                  )}
                   {past && <span style={{ background: "rgba(255,255,255,.15)", color: "rgba(255,255,255,.6)", fontSize: 10, fontWeight: 700, letterSpacing: .5, padding: "1px 7px", borderRadius: 4 }}>PAST</span>}
                   <span style={{ color: "rgba(255,255,255,.4)", fontSize: 11 }}>{day.agenda_items.length} item{day.agenda_items.length !== 1 ? "s" : ""}</span>
                 </div>

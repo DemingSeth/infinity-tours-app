@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { BRAND, STATUSES } from "@/lib/helpers";
+import { BRAND, STATUSES, formatAgendaDate } from "@/lib/helpers";
 import StatusPill from "@/components/shared/StatusPill";
 import OverviewTab from "@/components/tour/OverviewTab";
 import InfinityLogoImg from "@/components/shared/InfinityLogoImg";
@@ -54,16 +54,37 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
   const [days, setDays] = useState(initialDays);
   const [tab, setTab] = useState("overview");
   const [saving, setSaving] = useState(false);
+  const [cascadePrompt, setCascadePrompt] = useState<{ newStartDate: string; dayCount: number } | null>(null);
 
   const isOwner = tour.tour_host_id === currentUserId;
 
   async function handleTourChange(patch: Record<string, any>) {
+    const prevStartDate = tour.start_date;
     const optimistic = { ...tour, ...patch };
     setTour(optimistic);
     setSaving(true);
     const supabase = createClient();
     await supabase.from("tours").update(patch).eq("id", tour.id);
     setSaving(false);
+
+    if ("start_date" in patch && patch.start_date && patch.start_date !== prevStartDate && days.length > 0) {
+      setCascadePrompt({ newStartDate: patch.start_date, dayCount: days.length });
+    }
+  }
+
+  async function applyCascade(newStartDate: string) {
+    const supabase = createClient();
+    const startDate = new Date(newStartDate + "T12:00:00");
+    const updates = days.map((day: any, i: number) => {
+      const d = new Date(startDate);
+      d.setDate(d.getDate() + i);
+      return { id: day.id, date: formatAgendaDate(d) };
+    });
+    await Promise.all(updates.map((u: { id: string; date: string }) =>
+      supabase.from("agenda_days").update({ date: u.date }).eq("id", u.id)
+    ));
+    setDays((prev: any[]) => prev.map((day: any, i: number) => ({ ...day, date: updates[i].date })));
+    setCascadePrompt(null);
   }
 
   return (
@@ -163,6 +184,33 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
           isOwner={isOwner}
           onTourChange={handleTourChange}
         />
+      )}
+
+      {cascadePrompt && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+          <div style={{ background: "#fff", borderRadius: 16, padding: 24, maxWidth: 420, width: "100%", boxShadow: "0 20px 60px rgba(0,0,0,.2)" }}>
+            <div style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: 17, fontWeight: 700, color: BRAND.navy, marginBottom: 10 }}>
+              Update Agenda Dates?
+            </div>
+            <p style={{ fontSize: 13, color: "#475569", margin: "0 0 18px", lineHeight: 1.6 }}>
+              Would you like to update your agenda day dates to match the new tour dates? This will reassign dates starting from <strong>{formatAgendaDate(new Date(cascadePrompt.newStartDate + "T12:00:00"))}</strong> across all <strong>{cascadePrompt.dayCount}</strong> existing day{cascadePrompt.dayCount !== 1 ? "s" : ""}.
+            </p>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={() => setCascadePrompt(null)}
+                style={{ flex: 1, background: "#f1f5f9", color: "#64748b", border: "1.5px solid #e2e8f0", borderRadius: 8, padding: "9px 0", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+              >
+                Keep Existing Dates
+              </button>
+              <button
+                onClick={() => applyCascade(cascadePrompt.newStartDate)}
+                style={{ flex: 1, background: BRAND.navy, color: "#fff", border: "none", borderRadius: 8, padding: "9px 0", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+              >
+                Update Agenda Dates
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

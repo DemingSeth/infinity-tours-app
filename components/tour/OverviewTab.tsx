@@ -55,6 +55,8 @@ export default function OverviewTab({ tour, members, isOwner, onChange }: Props)
       destination: tour.destination ?? "",
       alt_destination: tour.alt_destination ?? "",
       dates: tour.dates ?? "",
+      start_date: tour.start_date ?? "",
+      end_date: tour.end_date ?? "",
       date_flexible: tour.date_flexible ?? false,
       bus_capacity: tour.bus_capacity ?? 55,
       room_config: { boysPerRoom: tour.room_config?.boysPerRoom ?? 4, girlsPerRoom: tour.room_config?.girlsPerRoom ?? 4 },
@@ -122,6 +124,8 @@ export default function OverviewTab({ tour, members, isOwner, onChange }: Props)
               ["Destination",      tour.destination],
               ["Alt Destination",  tour.alt_destination || "—"],
               ["Dates",            tour.dates],
+              ["Start Date",       tour.start_date || "—"],
+              ["End Date",         tour.end_date || "—"],
               ["Date Flexible",    tour.date_flexible ? "Yes" : "No"],
               ["Planning Host",    tour.planning_tour_host || "—"],
               ["Traveling Host",   tour.traveling_tour_host || "—"],
@@ -165,6 +169,12 @@ export default function OverviewTab({ tour, members, isOwner, onChange }: Props)
             </Field>
             <Field label="Dates" half>
               <input style={inp} value={form.dates} onChange={e => f({ dates: e.target.value })} />
+            </Field>
+            <Field label="Start Date" half>
+              <input style={inp} type="date" value={form.start_date || ""} onChange={e => f({ start_date: e.target.value || null })} />
+            </Field>
+            <Field label="End Date" half>
+              <input style={inp} type="date" value={form.end_date || ""} onChange={e => f({ end_date: e.target.value || null })} />
             </Field>
             <Field label="Planning Host" half>
               <input style={inp} value={form.planning_tour_host} onChange={e => f({ planning_tour_host: e.target.value })} />
