@@ -86,7 +86,7 @@ export function parseAgendaDate(str: string): Date | null {
 
 export function formatAgendaDate(d: Date): string {
   if (!d) return "";
-  return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
+  return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
 }
 
 export function toDateInput(d: Date): string {
