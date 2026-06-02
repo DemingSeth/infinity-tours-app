@@ -55,6 +55,8 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
   const [tab, setTab] = useState("overview");
   const [saving, setSaving] = useState(false);
   const [cascadePrompt, setCascadePrompt] = useState<{ newStartDate: string; dayCount: number } | null>(null);
+  const [editingName, setEditingName] = useState(false);
+  const [nameVal, setNameVal] = useState("");
 
   const isOwner = tour.tour_host_id === currentUserId;
 
@@ -102,9 +104,27 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 22, fontWeight: 700, color: BRAND.navy, margin: 0 }}>
-              {tour.name}
-            </h2>
+            {isOwner && editingName ? (
+              <input
+                value={nameVal}
+                onChange={e => setNameVal(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === "Enter" && nameVal.trim()) { handleTourChange({ name: nameVal.trim() }); setEditingName(false); }
+                  if (e.key === "Escape") setEditingName(false);
+                }}
+                onBlur={() => { if (nameVal.trim()) handleTourChange({ name: nameVal.trim() }); setEditingName(false); }}
+                autoFocus
+                style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 22, fontWeight: 700, color: BRAND.navy, border: "none", borderBottom: `2px solid ${BRAND.navy}`, outline: "none", background: "transparent", padding: "0 2px", minWidth: 200 }}
+              />
+            ) : (
+              <h2
+                onClick={isOwner ? () => { setNameVal(tour.name); setEditingName(true); } : undefined}
+                title={isOwner ? "Click to edit tour name" : undefined}
+                style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 22, fontWeight: 700, color: BRAND.navy, margin: 0, cursor: isOwner ? "text" : "default" }}
+              >
+                {tour.name}
+              </h2>
+            )}
             <StatusPill status={tour.status} />
             {saving && <span style={{ fontSize: 11, color: "#94a3b8" }}>Saving...</span>}
           </div>

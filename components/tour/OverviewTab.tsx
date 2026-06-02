@@ -48,6 +48,7 @@ export default function OverviewTab({ tour, members, isOwner, onChange }: Props)
 
   const startEdit = () => {
     setForm({
+      name: tour.name ?? "",
       school: tour.school ?? "",
       contact_name: tour.contact_name ?? "",
       contact_email: tour.contact_email ?? "",
@@ -117,6 +118,7 @@ export default function OverviewTab({ tour, members, isOwner, onChange }: Props)
         {!editing ? (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 28px", fontSize: 13 }}>
             {[
+              ["Tour Name",        tour.name],
               ["School",           tour.school],
               ["Contact",          tour.contact_name],
               ["Email",            tour.contact_email],
@@ -149,6 +151,9 @@ export default function OverviewTab({ tour, members, isOwner, onChange }: Props)
           </div>
         ) : (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+            <Field label="Tour Name">
+              <input style={inp} value={form.name} onChange={e => f({ name: e.target.value })} />
+            </Field>
             <Field label="School Name">
               <input style={inp} value={form.school} onChange={e => f({ school: e.target.value })} />
             </Field>
