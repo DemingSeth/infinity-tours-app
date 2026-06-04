@@ -10,6 +10,10 @@ import {
   toDateInput, getMapUrl, fmt$,
 } from "@/lib/helpers";
 import AgendaRoleView from "@/components/tour/AgendaRoleView";
+import {
+  AGENDA_TYPE_COLORS, getAgendaTypeIcon, getSentimentIcon,
+} from "@/components/shared/agendaIcons";
+import { MapPin, Phone, Bus, Lock, Clock } from "lucide-react";
 import type {
   TourRow, AgendaDayWithItems, AgendaItemWithFeedback,
   AgendaItemType, TravelMethod, MealPayType, Role,
@@ -131,7 +135,7 @@ function TimePicker({ value, onChange, placeholder = "Pick a time" }: {
       <div onClick={() => setOpen(o => !o)}
         style={{ ...INP, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", userSelect: "none" }}>
         <span style={{ color: value ? "#1e293b" : "#94a3b8" }}>{value || placeholder}</span>
-        <span>🕐</span>
+        <Clock size={14} color="#94a3b8" />
       </div>
       {open && (
         <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 500, background: "#fff", borderRadius: 12, boxShadow: "0 8px 32px rgba(0,0,0,.18)", border: "1.5px solid #e2e8f0", padding: 12, width: 210 }}>
@@ -234,10 +238,7 @@ const BLANK: ItemFormState = {
   meal_pay_type: "", stipend_amount: "",
 };
 
-const TYPE_COLORS: Record<string, string> = {
-  travel: "#3b82f6", activity: "#8b5cf6", food: "#f59e0b",
-  hotel: "#0d9488", transit: "#06b6d4", free: "#6b7280", meeting: "#ec4899",
-};
+const TYPE_COLORS = AGENDA_TYPE_COLORS;
 
 function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving }: {
   form: ItemFormState;
@@ -258,10 +259,11 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving }: {
           {AGENDA_TYPES.map(t => {
             const bg = TYPE_COLORS[t.value] || "#6b7280";
             const active = form.type === t.value;
+            const TypeIcon = getAgendaTypeIcon(t.value);
             return (
               <button key={t.value} type="button" onClick={() => f({ type: t.value as AgendaItemType })}
                 style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 20, border: `2px solid ${active ? bg : "#e2e8f0"}`, background: active ? bg + "18" : "#fff", cursor: "pointer", fontSize: 12, fontWeight: active ? 700 : 400, color: active ? bg : "#64748b", fontFamily: "inherit" }}>
-                <span style={{ fontSize: 15 }}>{t.emoji}</span>{t.label}
+                <TypeIcon size={15} strokeWidth={2} />{t.label}
               </button>
             );
           })}
@@ -389,7 +391,7 @@ function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onAddFeedback }: {
               }
             </div>
           )}
-          {item.address && <div style={{ fontSize: 12, color: "#64748b", marginBottom: 3 }}>📍 {item.address}</div>}
+          {item.address && <div style={{ fontSize: 12, color: "#64748b", marginBottom: 3, display: "flex", alignItems: "center", gap: 4 }}><MapPin size={12} style={{ flexShrink: 0 }} />{item.address}</div>}
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 4, alignItems: "center" }}>
             {mapUrl && (
               <a href={mapUrl} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: "#0369a1", display: "inline-flex", alignItems: "center", gap: 3, textDecoration: "none", fontWeight: 600 }}>
@@ -402,8 +404,8 @@ function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onAddFeedback }: {
               </a>
             )}
             {item.contact_name && (
-              <span style={{ fontSize: 11, color: "#475569" }}>
-                📞 {item.contact_name}{item.contact_phone ? ` · ${item.contact_phone}` : ""}
+              <span style={{ fontSize: 11, color: "#475569", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <Phone size={11} style={{ flexShrink: 0 }} />{item.contact_name}{item.contact_phone ? ` · ${item.contact_phone}` : ""}
               </span>
             )}
             {item.cost > 0 && (
@@ -415,8 +417,8 @@ function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onAddFeedback }: {
                 </button>
               </span>
             )}
-            {item.driver_note && <span style={{ fontSize: 10, background: "#fef3c7", color: "#92400e", borderRadius: 5, padding: "1px 7px" }}>🚌 {item.driver_note}</span>}
-            {item.internal_note && <span style={{ fontSize: 10, background: "#f3e8ff", color: "#6b21a8", borderRadius: 5, padding: "1px 7px" }}>📋 {item.internal_note}</span>}
+            {item.driver_note && <span style={{ fontSize: 10, background: "#fef3c7", color: "#92400e", borderRadius: 5, padding: "1px 7px", display: "inline-flex", alignItems: "center", gap: 4 }}><Bus size={11} style={{ flexShrink: 0 }} />{item.driver_note}</span>}
+            {item.internal_note && <span style={{ fontSize: 10, background: "#f3e8ff", color: "#6b21a8", borderRadius: 5, padding: "1px 7px", display: "inline-flex", alignItems: "center", gap: 4 }}><Lock size={11} style={{ flexShrink: 0 }} />{item.internal_note}</span>}
           </div>
 
           {item.agenda_feedback?.length > 0 && (
@@ -426,7 +428,7 @@ function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onAddFeedback }: {
               </div>
               {item.agenda_feedback.map(fb => (
                 <div key={fb.id} style={{ fontSize: 11, color: "#475569", marginBottom: 4, display: "flex", alignItems: "flex-start", gap: 6 }}>
-                  <span style={{ fontSize: 16, lineHeight: 1, flexShrink: 0 }}>{fb.sentiment || "😐"}</span>
+                  {(() => { const { Icon, color } = getSentimentIcon(fb.sentiment); return <Icon size={15} color={color} style={{ flexShrink: 0, marginTop: 1 }} />; })()}
                   <span>
                     <span style={{ background: ROLES_TYPED[fb.role]?.bg || "#f1f5f9", color: ROLES_TYPED[fb.role]?.color || "#475569", borderRadius: 4, padding: "0 5px", fontSize: 10, fontWeight: 600, marginRight: 5 }}>
                       {ROLES_TYPED[fb.role]?.label || fb.role}
@@ -442,13 +444,17 @@ function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onAddFeedback }: {
             <div style={{ marginTop: 8, padding: "10px 12px", background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", marginBottom: 8, textTransform: "uppercase", letterSpacing: .6 }}>Leave Feedback</div>
               <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
-                {[{ v: "😊", l: "Good" }, { v: "😐", l: "OK" }, { v: "😞", l: "Poor" }].map(opt => (
-                  <button key={opt.v} onClick={() => setFbSentiment(opt.v)}
-                    style={{ flex: 1, padding: "6px 4px", borderRadius: 8, border: `2px solid ${fbSentiment === opt.v ? "#0369a1" : "#e2e8f0"}`, background: fbSentiment === opt.v ? "#eff6ff" : "#fff", cursor: "pointer", fontSize: 22, lineHeight: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-                    {opt.v}
-                    <span style={{ fontSize: 9, color: fbSentiment === opt.v ? "#0369a1" : "#94a3b8", fontWeight: 600, fontFamily: "inherit" }}>{opt.l}</span>
-                  </button>
-                ))}
+                {[{ v: "😊", l: "Good" }, { v: "😐", l: "OK" }, { v: "😞", l: "Poor" }].map(opt => {
+                  const { Icon, color } = getSentimentIcon(opt.v);
+                  const active = fbSentiment === opt.v;
+                  return (
+                    <button key={opt.v} onClick={() => setFbSentiment(opt.v)}
+                      style={{ flex: 1, padding: "6px 4px", borderRadius: 8, border: `2px solid ${active ? "#0369a1" : "#e2e8f0"}`, background: active ? "#eff6ff" : "#fff", cursor: "pointer", lineHeight: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+                      <Icon size={22} color={active ? color : "#94a3b8"} />
+                      <span style={{ fontSize: 9, color: active ? "#0369a1" : "#94a3b8", fontWeight: 600, fontFamily: "inherit" }}>{opt.l}</span>
+                    </button>
+                  );
+                })}
               </div>
               <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
                 <Sel options={Object.entries(ROLES_TYPED).map(([v, r]) => ({ value: v, label: r.label }))} value={fbRole} onChange={e => setFbRole(e.target.value)} style={{ width: 165, padding: "4px 8px", fontSize: 11 }} />

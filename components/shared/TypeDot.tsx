@@ -1,9 +1,12 @@
 "use client";
 
 import { getAgendaType } from "@/lib/helpers";
+import { getAgendaTypeIcon, getAgendaTypeColor } from "@/components/shared/agendaIcons";
 
 export default function TypeDot({ type, size = 28 }: { type: string; size?: number }) {
   const t = getAgendaType(type);
+  const Icon = getAgendaTypeIcon(type);
+  const color = getAgendaTypeColor(type);
   return (
     <div
       title={t.label}
@@ -14,12 +17,12 @@ export default function TypeDot({ type, size = 28 }: { type: string; size?: numb
         alignItems: "center",
         justifyContent: "center",
         flexShrink: 0,
-        fontSize: Math.round(size * 0.7),
-        lineHeight: 1,
-        userSelect: "none",
+        borderRadius: Math.round(size * 0.28),
+        background: color + "1a",
+        color,
       }}
     >
-      {t.emoji || "📍"}
+      <Icon size={Math.round(size * 0.56)} strokeWidth={2} />
     </div>
   );
 }

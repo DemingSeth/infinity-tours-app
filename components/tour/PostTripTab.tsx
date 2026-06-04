@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { BRAND, ROLES } from "@/lib/helpers";
+import { getSentimentIcon } from "@/components/shared/agendaIcons";
 import { Tex, Btn } from "@/components/tour/ui";
 import type { TourRow, PostTripRow, AgendaDayWithItems } from "@/lib/types";
 
@@ -107,26 +108,29 @@ export default function PostTripTab({ tour, days, initialPostTrip }: Props) {
             return (
               <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
                 {[
-                  { emoji: "😊", label: "Good", count: happy, col: "#166534", bg: "#f0fdf4" },
-                  { emoji: "😐", label: "OK",   count: ok,    col: "#92400e", bg: "#fef3c7" },
-                  { emoji: "😞", label: "Poor", count: poor,  col: "#b91c1c", bg: "#fee2e2" },
-                ].map(s => (
+                  { sentiment: "😊", label: "Good", count: happy, col: "#166534", bg: "#f0fdf4" },
+                  { sentiment: "😐", label: "OK",   count: ok,    col: "#92400e", bg: "#fef3c7" },
+                  { sentiment: "😞", label: "Poor", count: poor,  col: "#b91c1c", bg: "#fee2e2" },
+                ].map(s => {
+                  const { Icon } = getSentimentIcon(s.sentiment);
+                  return (
                   <div key={s.label} style={{ flex: 1, background: s.bg, borderRadius: 10, padding: "10px 8px", textAlign: "center" }}>
-                    <div style={{ fontSize: 28, lineHeight: 1, marginBottom: 4 }}>{s.emoji}</div>
+                    <div style={{ display: "flex", justifyContent: "center", marginBottom: 4 }}><Icon size={28} color={s.col} /></div>
                     <div style={{ fontSize: 18, fontWeight: 700, color: s.col }}>{s.count}</div>
                     <div style={{ fontSize: 10, color: s.col, fontWeight: 600 }}>{s.label} · {total > 0 ? Math.round(s.count / total * 100) : 0}%</div>
                     <div style={{ marginTop: 6, height: 4, borderRadius: 2, background: "rgba(0,0,0,.08)" }}>
                       <div style={{ height: "100%", borderRadius: 2, background: s.col, width: `${total > 0 ? s.count / total * 100 : 0}%` }} />
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             );
           })()}
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {allFeedback.map(fb => (
               <div key={fb.id} style={{ background: "#f8fafc", borderRadius: 8, padding: "9px 12px", fontSize: 12, display: "flex", gap: 8, alignItems: "flex-start" }}>
-                <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0 }}>{fb.sentiment || "😐"}</span>
+                {(() => { const { Icon, color } = getSentimentIcon(fb.sentiment); return <Icon size={17} color={color} style={{ flexShrink: 0, marginTop: 1 }} />; })()}
                 <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", gap: 8, marginBottom: 2, alignItems: "center", flexWrap: "wrap" }}>
                     <span style={{ background: ROLES_TYPED[fb.role]?.bg || "#f1f5f9", color: ROLES_TYPED[fb.role]?.color || "#475569", borderRadius: 4, padding: "1px 7px", fontSize: 10, fontWeight: 700 }}>
