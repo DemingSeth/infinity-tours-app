@@ -163,6 +163,7 @@ export interface AgendaItemRow {
   meal_pay_type: MealPayType | null;
   stipend_amount: number | null;
   item_visibility: ItemVisibility | null;
+  image_urls: string[];
   created_at: string;
 }
 

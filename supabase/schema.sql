@@ -74,6 +74,7 @@ create table if not exists agenda_items (
   meal_pay_type text,
   stipend_amount numeric,
   item_visibility jsonb,
+  image_urls text[] not null default '{}',
   created_at timestamptz default now()
 );
 

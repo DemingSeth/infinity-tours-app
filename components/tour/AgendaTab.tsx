@@ -13,7 +13,8 @@ import AgendaRoleView from "@/components/tour/AgendaRoleView";
 import {
   AGENDA_TYPE_COLORS, getAgendaTypeIcon, getSentimentIcon,
 } from "@/components/shared/agendaIcons";
-import { MapPin, Phone, Bus, Lock, Clock } from "lucide-react";
+import AgendaImages from "@/components/shared/AgendaImages";
+import { MapPin, Phone, Bus, Lock, Clock, ImagePlus } from "lucide-react";
 import type {
   TourRow, AgendaDayWithItems, AgendaItemWithFeedback,
   AgendaItemType, TravelMethod, MealPayType, Role,
@@ -228,6 +229,7 @@ type ItemFormState = {
   contact_email: string; cost: string; cost_paid: boolean;
   driver_note: string; internal_note: string;
   meal_pay_type: MealPayType; stipend_amount: string;
+  image_urls: string[];
 };
 
 const BLANK: ItemFormState = {
@@ -235,15 +237,69 @@ const BLANK: ItemFormState = {
   address: "", map_link: "", website: "", travel_method: "",
   contact_name: "", contact_phone: "", contact_email: "",
   cost: "", cost_paid: false, driver_note: "", internal_note: "",
-  meal_pay_type: "", stipend_amount: "",
+  meal_pay_type: "", stipend_amount: "", image_urls: [],
 };
 
 const TYPE_COLORS = AGENDA_TYPE_COLORS;
 
-function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving }: {
+const STORAGE_BUCKET = "agenda-images";
+const STORAGE_MARKER = `/${STORAGE_BUCKET}/`;
+
+// Derive the storage object path from a public URL so we can delete it.
+function storagePathFromUrl(url: string): string | null {
+  const idx = url.indexOf(STORAGE_MARKER);
+  return idx >= 0 ? decodeURIComponent(url.slice(idx + STORAGE_MARKER.length)) : null;
+}
+
+// ── ImageUploader ────────────────────────────────────────────────────────────
+function ImageUploader({ tourId, itemId, urls, onChange }: {
+  tourId: string; itemId: string; urls: string[]; onChange: (urls: string[]) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  async function handleFiles(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    const supabase = createClient();
+    const added: string[] = [];
+    for (const file of Array.from(files)) {
+      const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `${tourId}/${itemId}/${Date.now()}-${safe}`;
+      const { error } = await supabase.storage.from(STORAGE_BUCKET).upload(path, file, { cacheControl: "3600", upsert: false });
+      if (error) { console.error("Image upload failed", error.message); continue; }
+      const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+      if (data?.publicUrl) added.push(data.publicUrl);
+    }
+    if (added.length) onChange([...urls, ...added]);
+    setUploading(false);
+    if (inputRef.current) inputRef.current.value = "";
+  }
+
+  async function removeImage(url: string) {
+    onChange(urls.filter(u => u !== url));
+    const path = storagePathFromUrl(url);
+    if (path) { try { await createClient().storage.from(STORAGE_BUCKET).remove([path]); } catch {} }
+  }
+
+  return (
+    <div>
+      <AgendaImages urls={urls} size={72} onRemove={removeImage} />
+      <input ref={inputRef} type="file" accept="image/*" multiple style={{ display: "none" }}
+        onChange={e => handleFiles(e.target.files)} />
+      <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading}
+        style={{ marginTop: urls.length ? 10 : 0, display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: 8, border: "1.5px dashed #cbd5e1", background: "#fff", cursor: uploading ? "default" : "pointer", fontSize: 12, fontWeight: 600, color: "#475569", fontFamily: "inherit", opacity: uploading ? 0.6 : 1 }}>
+        <ImagePlus size={14} />{uploading ? "Uploading..." : "Upload Image"}
+      </button>
+    </div>
+  );
+}
+
+function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, itemId }: {
   form: ItemFormState;
   setForm: React.Dispatch<React.SetStateAction<ItemFormState>>;
   onSave: () => void; onCancel: () => void; isEdit?: boolean; saving?: boolean;
+  tourId: string; itemId: string;
 }) {
   const f = (v: Partial<ItemFormState>) => setForm(p => ({ ...p, ...v }));
 
@@ -286,6 +342,9 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving }: {
         </Field>
         <Field label="Public Notes (visible to all roles)">
           <Tex value={form.public_note} onChange={e => f({ public_note: e.target.value })} placeholder="Directions, dress code, what to bring..." />
+        </Field>
+        <Field label="Images (visible to all roles)">
+          <ImageUploader tourId={tourId} itemId={itemId} urls={form.image_urls} onChange={urls => f({ image_urls: urls })} />
         </Field>
 
         {form.type === "food" && (
@@ -351,10 +410,11 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving }: {
 }
 
 // ── ItemRow ────────────────────────────────────────────────────────────────────
-function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onAddFeedback }: {
+function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onAddFeedback, onRemoveImage }: {
   item: AgendaItemWithFeedback;
   onEdit: () => void; onRemove: () => void; onToggleCostPaid: () => void;
   onAddFeedback: (text: string, role: string, sentiment: string) => void;
+  onRemoveImage: (url: string) => void;
 }) {
   const [showFeedback, setShowFeedback] = useState(false);
   const [fbText, setFbText] = useState("");
@@ -420,6 +480,8 @@ function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onAddFeedback }: {
             {item.driver_note && <span style={{ fontSize: 10, background: "#fef3c7", color: "#92400e", borderRadius: 5, padding: "1px 7px", display: "inline-flex", alignItems: "center", gap: 4 }}><Bus size={11} style={{ flexShrink: 0 }} />{item.driver_note}</span>}
             {item.internal_note && <span style={{ fontSize: 10, background: "#f3e8ff", color: "#6b21a8", borderRadius: 5, padding: "1px 7px", display: "inline-flex", alignItems: "center", gap: 4 }}><Lock size={11} style={{ flexShrink: 0 }} />{item.internal_note}</span>}
           </div>
+
+          <AgendaImages urls={item.image_urls} size={84} onRemove={onRemoveImage} />
 
           {item.agenda_feedback?.length > 0 && (
             <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid #f1f5f9" }}>
@@ -501,6 +563,7 @@ export default function AgendaTab({ tour, days, onDaysChange, onTourChange }: Ag
   const [addMultiple, setAddMultiple] = useState(false);
   const [multiCount, setMultiCount] = useState(1);
   const [addingItem, setAddingItem] = useState<string | null>(null);
+  const [addingItemId, setAddingItemId] = useState<string>("");
   const [itemForm, setItemForm] = useState<ItemFormState>(BLANK);
   const [editCtx, setEditCtx] = useState<{ dayId: string; itemId: string } | null>(null);
   const [editForm, setEditForm] = useState<ItemFormState>(BLANK);
@@ -539,6 +602,7 @@ export default function AgendaTab({ tour, days, onDaysChange, onTourChange }: Ag
       meal_pay_type: f.meal_pay_type || null,
       stipend_amount: f.stipend_amount ? parseFloat(f.stipend_amount) : null,
       item_visibility: null,
+      image_urls: f.image_urls,
     };
   }
 
@@ -555,6 +619,7 @@ export default function AgendaTab({ tour, days, onDaysChange, onTourChange }: Ag
       internal_note: item.internal_note || "",
       meal_pay_type: item.meal_pay_type || "",
       stipend_amount: item.stipend_amount ? String(item.stipend_amount) : "",
+      image_urls: item.image_urls || [],
     };
   }
 
@@ -606,12 +671,15 @@ export default function AgendaTab({ tour, days, onDaysChange, onTourChange }: Ag
     setSaving(true);
     const day = days.find(d => d.id === dayId);
     const supabase = createClient();
+    // Insert with the pre-generated id so uploaded images already live under
+    // agenda-images/[tourId]/[itemId]/ match the saved row.
     const { data } = await supabase.from("agenda_items")
-      .insert(formToInsert(itemForm, dayId, (day?.agenda_items.length ?? 0) + 1))
+      .insert({ id: addingItemId, ...formToInsert(itemForm, dayId, (day?.agenda_items.length ?? 0) + 1) })
       .select().single();
     if (data) onDaysChange(days.map(d => d.id === dayId ? { ...d, agenda_items: [...d.agenda_items, { ...data, agenda_feedback: [] }] } : d));
     setItemForm(BLANK);
     setAddingItem(null);
+    setAddingItemId("");
     setSaving(false);
   }
 
@@ -632,6 +700,15 @@ export default function AgendaTab({ tour, days, onDaysChange, onTourChange }: Ag
     const supabase = createClient();
     await supabase.from("agenda_items").delete().eq("id", itemId);
     onDaysChange(days.map(d => d.id === dayId ? { ...d, agenda_items: d.agenda_items.filter(i => i.id !== itemId) } : d));
+  }
+
+  async function removeItemImage(dayId: string, item: AgendaItemWithFeedback, url: string) {
+    const next = (item.image_urls || []).filter(u => u !== url);
+    const supabase = createClient();
+    await supabase.from("agenda_items").update({ image_urls: next }).eq("id", item.id);
+    onDaysChange(days.map(d => d.id === dayId ? { ...d, agenda_items: d.agenda_items.map(i => i.id === item.id ? { ...i, image_urls: next } : i) } : d));
+    const path = storagePathFromUrl(url);
+    if (path) { try { await supabase.storage.from(STORAGE_BUCKET).remove([path]); } catch {} }
   }
 
   async function toggleCostPaid(dayId: string, item: AgendaItemWithFeedback) {
@@ -760,7 +837,7 @@ export default function AgendaTab({ tour, days, onDaysChange, onTourChange }: Ag
                   <span style={{ color: "rgba(255,255,255,.4)", fontSize: 11 }}>{day.agenda_items.length} item{day.agenda_items.length !== 1 ? "s" : ""}</span>
                 </div>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <button onClick={e => { e.stopPropagation(); setAddingItem(day.id); setItemForm(BLANK); }}
+                  <button onClick={e => { e.stopPropagation(); setAddingItem(day.id); setAddingItemId(crypto.randomUUID()); setItemForm(BLANK); }}
                     style={{ background: "rgba(255,255,255,.15)", border: "none", borderRadius: 5, padding: "4px 10px", fontSize: 11, color: "#fff", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>
                     + Add
                   </button>
@@ -787,14 +864,16 @@ export default function AgendaTab({ tour, days, onDaysChange, onTourChange }: Ag
                       onRemove={() => removeItem(day.id, item.id)}
                       onToggleCostPaid={() => toggleCostPaid(day.id, item)}
                       onAddFeedback={(text, role, sentiment) => addFeedback(day.id, item.id, text, role, sentiment)}
+                      onRemoveImage={url => removeItemImage(day.id, item, url)}
                     />
                   ))}
                   {addingItem === day.id && (
                     <ItemForm
                       form={itemForm} setForm={setItemForm}
                       onSave={() => saveItem(day.id)}
-                      onCancel={() => setAddingItem(null)}
+                      onCancel={() => { setAddingItem(null); setAddingItemId(""); }}
                       saving={saving}
+                      tourId={tour.id} itemId={addingItemId}
                     />
                   )}
                 </div>
@@ -854,6 +933,7 @@ export default function AgendaTab({ tour, days, onDaysChange, onTourChange }: Ag
             onSave={updateItem}
             onCancel={() => setEditCtx(null)}
             isEdit saving={saving}
+            tourId={tour.id} itemId={editCtx.itemId}
           />
         </Modal>
       )}

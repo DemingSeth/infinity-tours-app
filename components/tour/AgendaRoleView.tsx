@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import TypeDot from "@/components/shared/TypeDot";
+import AgendaImages from "@/components/shared/AgendaImages";
 import { BRAND, ROLES, DEFAULT_VISIBILITY, getMapUrl, TRAVEL_METHODS } from "@/lib/helpers";
 import type { AgendaDayWithItems, Role } from "@/lib/types";
 
@@ -110,6 +111,9 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, d
                           {item.public_note}
                         </div>
                       )}
+
+                      <AgendaImages urls={item.image_urls} size={88} />
+
 
                       {vis.address && item.address && (
                         <div style={{ fontSize: 12, color: "#475569", marginTop: 4 }}>
