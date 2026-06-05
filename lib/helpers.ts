@@ -186,3 +186,67 @@ export function getStatus(id: string) {
 export function getAgendaType(value: string) {
   return AGENDA_TYPES.find(t => t.value === value) || AGENDA_TYPES[0];
 }
+
+// ─── Overview command center helpers ───────────────────────────────────────────
+
+// Distinct, readable colors for the calendar's "By Host" mode. Cycles if there
+// are more hosts than colors.
+export const HOST_PALETTE = [
+  "#2563eb", "#db2777", "#16a34a", "#d97706", "#7c3aed",
+  "#0891b2", "#dc2626", "#4f46e5", "#ca8a04", "#0d9488",
+] as const;
+
+// Build a stable hostId → color map. Sorting by id keeps colors consistent
+// across renders regardless of tour ordering.
+export function buildHostColorMap(hostIds: (string | null | undefined)[]): Record<string, string> {
+  const unique = Array.from(new Set(hostIds.filter((id): id is string => !!id))).sort();
+  const map: Record<string, string> = {};
+  unique.forEach((id, i) => { map[id] = HOST_PALETTE[i % HOST_PALETTE.length]; });
+  return map;
+}
+
+export function initialsFrom(name: string | null | undefined, fallback = "?"): string {
+  if (!name) return fallback;
+  return name.trim().split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase() || fallback;
+}
+
+// Parse a DATE column ('YYYY-MM-DD') to a local Date at noon (avoids TZ drift).
+export function parseISODate(value: string | null | undefined): Date | null {
+  if (!value) return null;
+  const m = value.trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return null;
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12, 0, 0);
+}
+
+export function startOfDay(d: Date): Date {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+export function sameDay(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+export const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+] as const;
+
+export const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
+
+// Human date label for a tour: prefer the free-text `dates`, else derive from
+// the start/end DATE columns. Falls back to "Dates TBD".
+export function tourDateLabel(
+  dates: string | null | undefined,
+  startDate: string | null | undefined,
+  endDate: string | null | undefined,
+): string {
+  if (dates && dates.trim()) return dates;
+  const s = parseISODate(startDate);
+  if (!s) return "Dates TBD";
+  const e = parseISODate(endDate) ?? s;
+  const fmt = (d: Date) => `${MONTH_NAMES[d.getMonth()].slice(0, 3)} ${d.getDate()}`;
+  if (!sameDay(s, e)) return `${fmt(s)} – ${fmt(e)}, ${e.getFullYear()}`;
+  return `${fmt(s)}, ${s.getFullYear()}`;
+}

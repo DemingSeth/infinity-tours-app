@@ -1,10 +1,11 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import type { TourHostRow } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
+import { KanbanSquare, LayoutGrid } from "lucide-react";
 import { BRAND } from "@/lib/helpers";
 
 interface Props {
@@ -13,8 +14,14 @@ interface Props {
   tourHost: TourHostRow | null;
 }
 
+const NAV_LINKS = [
+  { href: "/dashboard", label: "Pipeline", Icon: KanbanSquare },
+  { href: "/overview", label: "Overview", Icon: LayoutGrid },
+] as const;
+
 export default function DashboardShell({ children, user, tourHost }: Props) {
   const router = useRouter();
+  const pathname = usePathname();
   const initials = tourHost?.initials ||
     (tourHost?.name || user.email || "TH").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
 
@@ -39,6 +46,30 @@ export default function DashboardShell({ children, user, tourHost }: Props) {
             <span style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontWeight: 400, fontSize: 7, color: "rgba(255,255,255,0.6)", letterSpacing: 2, textTransform: "uppercase" }}>TOURS + EVENTS</span>
           </div>
         </div>
+
+        {/* Primary nav */}
+        <nav style={{ display: "flex", alignItems: "center", gap: 4, marginRight: "auto", marginLeft: 28 }}>
+          {NAV_LINKS.map(({ href, label, Icon }) => {
+            const active = pathname === href || (href === "/dashboard" && pathname.startsWith("/tour"));
+            return (
+              <button
+                key={href}
+                onClick={() => router.push(href)}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 7, padding: "6px 13px",
+                  borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "inherit",
+                  fontSize: 13, fontWeight: 600,
+                  background: active ? "rgba(255,255,255,0.12)" : "transparent",
+                  color: active ? "#fff" : "rgba(255,255,255,0.6)",
+                }}
+              >
+                <Icon size={15} />
+                {label}
+              </button>
+            );
+          })}
+        </nav>
+
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{

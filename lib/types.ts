@@ -63,6 +63,8 @@ export interface Database {
 
 // ─── Row types ────────────────────────────────────────────────────────────────
 
+export type HostRole = "host" | "admin";
+
 export interface TourHostRow {
   id: string;
   name: string;
@@ -70,6 +72,7 @@ export interface TourHostRow {
   phone: string | null;
   initials: string | null;
   company: string | null;
+  role: HostRole;
   created_at: string;
 }
 
@@ -220,6 +223,13 @@ export interface PostTripRow {
 
 export interface TourWithRelations extends TourRow {
   tour_hosts?: TourHostRow;
+}
+
+// Lightweight tour shape used by the dashboard pipeline + overview command center:
+// the tour plus just the host fields and member fields those views render.
+export interface TourWithHostAndMembers extends TourRow {
+  tour_hosts: Pick<TourHostRow, "id" | "name" | "initials"> | null;
+  tour_members: Pick<TourMemberRow, "id" | "type" | "waiver">[];
 }
 
 export interface AgendaDayWithItems extends AgendaDayRow {

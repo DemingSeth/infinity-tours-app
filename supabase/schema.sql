@@ -7,6 +7,7 @@ create table if not exists tour_hosts (
   phone text,
   initials text,
   company text default 'Infinity Tours + Events',
+  role text not null default 'host' check (role in ('host', 'admin')),
   created_at timestamptz default now()
 );
 
