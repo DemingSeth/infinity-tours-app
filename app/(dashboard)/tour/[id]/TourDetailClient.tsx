@@ -31,7 +31,7 @@ const I = ({ n, s = 13 }: { n: string; s?: number }) => (
 
 const TABS = [
   { id: "overview", label: "Overview",  icon: "home"     },
-  { id: "agenda",   label: "Agenda",    icon: "map"      },
+  { id: "agenda",   label: "Itinerary", icon: "map"      },
   { id: "roster",   label: "Roster",    icon: "users"    },
   { id: "vendors",  label: "Vendors",   icon: "flag"     },
   { id: "post",     label: "Post-Trip", icon: "note"     },
@@ -210,10 +210,10 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
           <div style={{ background: "#fff", borderRadius: 16, padding: 24, maxWidth: 420, width: "100%", boxShadow: "0 20px 60px rgba(0,0,0,.2)" }}>
             <div style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: 17, fontWeight: 700, color: BRAND.navy, marginBottom: 10 }}>
-              Update Agenda Dates?
+              Update Itinerary Dates?
             </div>
             <p style={{ fontSize: 13, color: "#475569", margin: "0 0 18px", lineHeight: 1.6 }}>
-              Would you like to update your agenda day dates to match the new tour dates? This will reassign dates starting from <strong>{formatAgendaDate(new Date(cascadePrompt.newStartDate + "T12:00:00"))}</strong> across all <strong>{cascadePrompt.dayCount}</strong> existing day{cascadePrompt.dayCount !== 1 ? "s" : ""}.
+              Would you like to update your itinerary day dates to match the new tour dates? This will reassign dates starting from <strong>{formatAgendaDate(new Date(cascadePrompt.newStartDate + "T12:00:00"))}</strong> across all <strong>{cascadePrompt.dayCount}</strong> existing day{cascadePrompt.dayCount !== 1 ? "s" : ""}.
             </p>
             <div style={{ display: "flex", gap: 8 }}>
               <button
@@ -226,7 +226,7 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
                 onClick={() => applyCascade(cascadePrompt.newStartDate)}
                 style={{ flex: 1, background: BRAND.navy, color: "#fff", border: "none", borderRadius: 8, padding: "9px 0", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
               >
-                Update Agenda Dates
+                Update Itinerary Dates
               </button>
             </div>
           </div>

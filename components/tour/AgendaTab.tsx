@@ -306,7 +306,7 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
   return (
     <div style={{ padding: 16, background: "#f8fafc", borderTop: "1.5px solid #e2e8f0" }} onClick={e => e.stopPropagation()}>
       <div style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: 13, fontWeight: 700, color: BRAND.navy, marginBottom: 12 }}>
-        {isEdit ? "Edit Item" : "New Agenda Item"}
+        {isEdit ? "Edit Item" : "New Itinerary Item"}
       </div>
 
       <div style={{ marginBottom: 14 }}>
@@ -775,7 +775,7 @@ export default function AgendaTab({ tour, days, onDaysChange, onTourChange }: Ag
 
       {days.length === 0 && (
         <div style={{ background: "#f8fafc", border: "2px dashed #e2e8f0", borderRadius: 12, padding: "40px 20px", textAlign: "center", color: "#94a3b8", fontSize: 13 }}>
-          No agenda days yet. Add your first day to get started.
+          No itinerary days yet. Add your first day to get started.
         </div>
       )}
 
@@ -884,7 +884,7 @@ export default function AgendaTab({ tour, days, onDaysChange, onTourChange }: Ag
       </div>
 
       {showAddDay && (
-        <Modal title="Add Agenda Day(s)" onClose={() => setShowAddDay(false)}>
+        <Modal title="Add Itinerary Day(s)" onClose={() => setShowAddDay(false)}>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <Field label="Start Date">
               <Inp value={newDayDate} onChange={e => setNewDayDate(e.target.value)} placeholder="Apr 14" autoFocus />
@@ -927,7 +927,7 @@ export default function AgendaTab({ tour, days, onDaysChange, onTourChange }: Ag
       )}
 
       {editCtx && (
-        <Modal title="Edit Agenda Item" onClose={() => setEditCtx(null)} wide>
+        <Modal title="Edit Itinerary Item" onClose={() => setEditCtx(null)} wide>
           <ItemForm
             form={editForm} setForm={setEditForm}
             onSave={updateItem}

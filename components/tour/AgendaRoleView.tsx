@@ -64,7 +64,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, d
 
       {days.length === 0 && (
         <div style={{ background: "#f8fafc", border: "2px dashed #e2e8f0", borderRadius: 12, padding: "40px 20px", textAlign: "center", color: "#94a3b8", fontSize: 13 }}>
-          No agenda days have been added yet.
+          No itinerary days have been added yet.
         </div>
       )}
 

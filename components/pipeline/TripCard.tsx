@@ -71,7 +71,7 @@ export default function TripCard({ tour, currentHostId, isDuplicating, onClick, 
         <button
           onClick={e => { e.stopPropagation(); onDuplicate(); }}
           disabled={isDuplicating}
-          title="Duplicate this tour as a new bid"
+          title="Duplicate this tour as a new quote"
           style={{ flex: 1, background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 6, padding: "4px 0", fontSize: 11, fontWeight: 600, color: "#0369a1", cursor: isDuplicating ? "not-allowed" : "pointer", fontFamily: "inherit", opacity: isDuplicating ? 0.6 : 1 }}
         >
           {isDuplicating ? "Copying..." : "⧉ Duplicate"}

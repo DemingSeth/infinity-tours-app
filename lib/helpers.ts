@@ -14,7 +14,7 @@ export const BRAND = {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 export const STATUSES = [
-  { id: "bid",         label: "Bid",         color: "#92400e", bg: "#fef3c7", dot: "#d97706" },
+  { id: "bid",         label: "Quote",       color: "#92400e", bg: "#fef3c7", dot: "#d97706" },
   { id: "committed",   label: "Committed",   color: "#065f46", bg: "#ecfdf5", dot: "#10b981" },
   { id: "in-progress", label: "In Progress", color: "#1e40af", bg: "#eff6ff", dot: "#3b82f6" },
   { id: "closed",      label: "Closed",      color: "#374151", bg: "#f3f4f6", dot: "#9ca3af" },

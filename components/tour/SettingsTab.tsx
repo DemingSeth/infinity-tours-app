@@ -73,11 +73,11 @@ export default function SettingsTab({ tour, isOwner, onTourChange }: Props) {
         </div>
       </div>
 
-      {/* Agenda Visibility Matrix */}
+      {/* Itinerary Visibility Matrix */}
       <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 14, padding: 20 }}>
-        <div style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: 15, fontWeight: 700, color: BRAND.navy, marginBottom: 6 }}>Agenda Item Visibility</div>
+        <div style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: 15, fontWeight: 700, color: BRAND.navy, marginBottom: 6 }}>Itinerary Item Visibility</div>
         <p style={{ fontSize: 12, color: "#64748b", margin: "0 0 12px", lineHeight: 1.6 }}>
-          Control which details each role sees on agenda items. Tour Hosts always see everything.
+          Control which details each role sees on itinerary items. Tour Hosts always see everything.
         </p>
         <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: "9px 14px", marginBottom: 14, fontSize: 12, color: "#0c4a6e" }}>
           <strong>Always visible to all roles:</strong> Item title, time, type, travel method, Public Notes, meal payment info, Google Maps link, and Website link.
