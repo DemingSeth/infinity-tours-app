@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, ExternalLink, CalendarDays } from "lucide-react";
 import {
-  BRAND, STATUSES, getStatus, buildHostColorMap, initialsFrom,
+  BRAND, STATUSES, getStatus, buildHostColorMap, initialsFrom, hostNameOf,
   parseISODate, startOfDay, sameDay, tourDateLabel, MONTH_NAMES, WEEKDAY_LABELS,
 } from "@/lib/helpers";
 import StatusPill from "@/components/shared/StatusPill";
@@ -138,7 +138,7 @@ export default function CalendarView({ tours, onOpenTour }: {
           : (() => {
               const seen = new Map<string, string>();
               for (const s of scheduled) {
-                const name = s.tour.tour_hosts?.name ?? "Unassigned";
+                const name = hostNameOf(s.tour);
                 if (!seen.has(s.tour.tour_host_id)) seen.set(s.tour.tour_host_id, name);
               }
               const entries = Array.from(seen.entries());
@@ -338,7 +338,8 @@ function PopoverCard({ popover, colorFor, onOpenTour, onClose }: {
 }
 
 function TourPopoverBody({ tour, onOpenTour }: { tour: TourWithHostAndMembers; onOpenTour: (id: string) => void }) {
-  const initials = tour.tour_hosts?.initials || initialsFrom(tour.tour_hosts?.name);
+  const hostName = hostNameOf(tour);
+  const initials = tour.tour_hosts?.initials || initialsFrom(hostName === "Unassigned" ? null : hostName);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
       <div style={{ fontSize: 14, fontWeight: 700, color: BRAND.navy, fontFamily: "'Cormorant Garamond', Georgia, serif", lineHeight: 1.25 }}>
@@ -349,7 +350,7 @@ function TourPopoverBody({ tour, onOpenTour }: { tour: TourWithHostAndMembers; o
         <span style={{ width: 20, height: 20, borderRadius: "50%", background: BRAND.teal, color: "#fff", fontSize: 9, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>
           {initials}
         </span>
-        <span style={{ fontSize: 12, color: "#475569" }}>{tour.tour_hosts?.name ?? "Unassigned"}</span>
+        <span style={{ fontSize: 12, color: "#475569" }}>{hostName}</span>
       </div>
       <div style={{ fontSize: 12, color: "#475569" }}>{tourDateLabel(tour.dates, tour.start_date, tour.end_date)}</div>
       <div><StatusPill status={tour.status} /></div>

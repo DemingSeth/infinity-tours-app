@@ -205,6 +205,23 @@ export function buildHostColorMap(hostIds: (string | null | undefined)[]): Recor
   return map;
 }
 
+// Resolve a tour's display host name. Prefers the joined `tour_hosts` row (the
+// assigned account owner — e.g. Mike Crockett), then falls back to the free-text
+// traveling/planning host columns, and only shows "Unassigned" when none exist.
+// Used by the calendar so a tour with a real host never renders as "Unassigned".
+export function hostNameOf(tour: {
+  tour_hosts?: { name?: string | null } | null;
+  traveling_tour_host?: string | null;
+  planning_tour_host?: string | null;
+}): string {
+  return (
+    tour.tour_hosts?.name?.trim() ||
+    tour.traveling_tour_host?.trim() ||
+    tour.planning_tour_host?.trim() ||
+    "Unassigned"
+  );
+}
+
 export function initialsFrom(name: string | null | undefined, fallback = "?"): string {
   if (!name) return fallback;
   return name.trim().split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase() || fallback;

@@ -27,7 +27,7 @@ export default function OverviewClient({ tours, currentHostId, viewerRole }: Pro
       <header style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
         <div>
           <h2 style={{ fontSize: 26, fontWeight: 700, color: BRAND.navy, fontFamily: "'Cormorant Garamond', Georgia, serif", margin: 0, letterSpacing: -0.5 }}>
-            Command Center
+            Infinity Tours Dashboard
           </h2>
           <p style={{ color: "#64748b", fontSize: 13, marginTop: 4, marginBottom: 0 }}>
             All tours across Infinity Tours · <strong>{tours.length}</strong> total
