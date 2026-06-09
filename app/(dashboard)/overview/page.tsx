@@ -3,6 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 import OverviewClient from "./OverviewClient";
 import type { TourWithHostAndMembers, HostRole } from "@/lib/types";
 
+// Always render fresh on every request so the dashboard reflects the latest
+// tour data — including edits made directly in Supabase — with no caching.
+export const dynamic = "force-dynamic";
+
 // Command center: an all-tours view (not scoped to the current host by design).
 export default async function OverviewPage() {
   const supabase = await createClient();

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ChevronDown, ChevronRight, MapPin, Users, FileWarning, ExternalLink } from "lucide-react";
-import { STATUSES, BRAND, getStatus, initialsFrom, tourDateLabel } from "@/lib/helpers";
+import { STATUSES, BRAND, getStatus, initialsFrom, hostNameOf, tourDateLabel } from "@/lib/helpers";
 import StatusPill from "@/components/shared/StatusPill";
 import type { TourWithHostAndMembers } from "@/lib/types";
 
@@ -13,7 +13,10 @@ function SummaryCard({ tour, isOwn, onOpenTour }: {
   const members = tour.tour_members ?? [];
   const travelers = members.length;
   const waiversPending = members.filter(m => m.type === "student" && !m.waiver).length;
-  const initials = tour.tour_hosts?.initials || initialsFrom(tour.tour_hosts?.name);
+  // Resolve the host name (join → traveling/planning text fallbacks) so the
+  // avatar shows real initials instead of "?" for tours without a joined host.
+  const hostName = hostNameOf(tour);
+  const initials = tour.tour_hosts?.initials || initialsFrom(hostName === "Unassigned" ? null : hostName);
 
   return (
     <div style={{ background: "#fff", border: "1px solid #e8eef4", borderRadius: 10, boxShadow: "0 1px 2px rgba(0,0,0,.03)" }}>
@@ -31,7 +34,7 @@ function SummaryCard({ tour, isOwn, onOpenTour }: {
           <div style={{ fontSize: 10.5, color: "#94a3b8", marginTop: 3 }}>{tourDateLabel(tour.dates, tour.start_date, tour.end_date)}</div>
         </div>
         <div
-          title={tour.tour_hosts?.name ?? ""}
+          title={hostName}
           style={{ width: 22, height: 22, borderRadius: "50%", background: isOwn ? BRAND.teal : "#94a3b8", color: "#fff", fontSize: 9, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
         >
           {initials}
