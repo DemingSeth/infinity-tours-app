@@ -61,6 +61,8 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
   const [nameVal, setNameVal] = useState("");
 
   const isOwner = tour.tour_host_id === currentUserId;
+  // Set when a persona is newly activated in Settings → shows a review banner on Itinerary.
+  const [addedPersona, setAddedPersona] = useState<string | null>(null);
 
   // Count itinerary items with no linked confirmation — surfaced on the
   // Confirmations tab label so consultants see outstanding work at a glance.
@@ -196,6 +198,8 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
           isOwner={isOwner}
           onDaysChange={setDays}
           onTourChange={handleTourChange}
+          recentlyAddedPersona={addedPersona}
+          onDismissAddedPersona={() => setAddedPersona(null)}
         />
       )}
       {tab === "roster" && (
@@ -230,6 +234,7 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
           viewerIsAdmin={viewerIsAdmin}
           currentUserId={currentUserId}
           onTourChange={handleTourChange}
+          onPersonaAdded={key => setAddedPersona(key)}
         />
       )}
 

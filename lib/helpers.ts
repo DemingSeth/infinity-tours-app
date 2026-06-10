@@ -137,6 +137,27 @@ export function isPersonaActive(key: string, active?: string[] | null): boolean 
   return activePersonaKeys(active).includes(key);
 }
 
+// Smart per-persona visibility defaults for a NEW item, by type + travel method.
+// Bus Driver only sees bus-relevant items (bus travel, breaks, meeting points)
+// by default. In a future phase, these defaults can be made configurable
+// per-tour in Settings.
+export function defaultPersonaVisibility(type: string, travelMethod?: string | null): Record<string, boolean> {
+  const base: Record<string, boolean> = { tour_host: true, teacher: true, student: true, chaperone: true, bus_driver: false };
+  if (travelMethod === "bus" || type === "break" || type === "meeting") {
+    return { ...base, bus_driver: true };
+  }
+  // flight, hotel, and everything else keep bus_driver hidden.
+  return base;
+}
+
+// Whether an item is visible to a persona — strictly visibility[persona] === true.
+export function isItemVisibleTo(
+  item: { persona_visibility?: Record<string, boolean> | null },
+  personaKey: string,
+): boolean {
+  return item.persona_visibility?.[personaKey] === true;
+}
+
 // ─── Location formatting ──────────────────────────────────────────────────────
 
 const US_STATES: Record<string, string> = {

@@ -5,7 +5,7 @@ import AgendaImages from "@/components/shared/AgendaImages";
 import ItemFeedback from "@/components/tour/ItemFeedback";
 import TripInformation from "@/components/tour/TripInformation";
 import ItineraryHeaderTile from "@/components/tour/ItineraryHeaderTile";
-import { BRAND, ROLES, DEFAULT_VISIBILITY, getMapUrl, TRAVEL_METHODS } from "@/lib/helpers";
+import { BRAND, ROLES, DEFAULT_VISIBILITY, getMapUrl, TRAVEL_METHODS, isItemVisibleTo } from "@/lib/helpers";
 import type { AgendaDayWithItems, Role, TripInfo } from "@/lib/types";
 
 interface Props {
@@ -19,11 +19,12 @@ interface Props {
   days: AgendaDayWithItems[];
   role: Role;
   roleLabel?: string;
+  personaKey?: string;
   onClose?: () => void;
   embedded?: boolean;
 }
 
-export default function AgendaRoleView({ tourName, tourDestination, tourDates, bannerUrl, bannerFocusX = 50, bannerFocusY = 50, tripInfo, days, role, roleLabel, onClose, embedded }: Props) {
+export default function AgendaRoleView({ tourName, tourDestination, tourDates, bannerUrl, bannerFocusX = 50, bannerFocusY = 50, tripInfo, days, role, roleLabel, personaKey, onClose, embedded }: Props) {
   const vis = DEFAULT_VISIBILITY[role] as Record<string, boolean>;
   const roleInfo = ROLES[role];
   const label = roleLabel || roleInfo.label; // persona label override
@@ -75,18 +76,19 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        {days.map(day => (
+        {days.map(day => {
+          // Strict per-persona filtering: only items where visibility[persona] === true.
+          const items = personaKey ? day.agenda_items.filter(i => isItemVisibleTo(i, personaKey)) : day.agenda_items;
+          if (items.length === 0) return null; // hide days with nothing visible to this persona
+          return (
           <div key={day.id} style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
             <div style={{ background: BRAND.navy, padding: "10px 16px", display: "flex", alignItems: "center", gap: 10 }}>
               <span style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", color: "#fff", fontWeight: 700, fontSize: 15 }}>Day {day.day_number}</span>
               <span style={{ color: "#7dd3d8", fontSize: 13 }}>{day.date}</span>
-              <span style={{ color: "rgba(255,255,255,.4)", fontSize: 11 }}>{day.agenda_items.length} item{day.agenda_items.length !== 1 ? "s" : ""}</span>
+              <span style={{ color: "rgba(255,255,255,.4)", fontSize: 11 }}>{items.length} item{items.length !== 1 ? "s" : ""}</span>
             </div>
             <div>
-              {day.agenda_items.length === 0 && (
-                <div style={{ color: "#cbd5e1", fontSize: 12, padding: "14px 16px", textAlign: "center" }}>No items</div>
-              )}
-              {day.agenda_items.map((item, idx) => (
+              {items.map((item, idx) => (
                 <div key={item.id} style={{ padding: "12px 16px", borderTop: idx > 0 ? "1px solid #f1f5f9" : undefined }}>
                   <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                     {item.time && (
@@ -191,7 +193,8 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
               ))}
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <div style={{ textAlign: "center", marginTop: 28, paddingBottom: 20, fontSize: 11, color: "#94a3b8" }}>

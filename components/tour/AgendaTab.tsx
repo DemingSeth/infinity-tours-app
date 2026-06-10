@@ -8,9 +8,10 @@ import {
   BRAND, ROLES, AGENDA_TYPES, TRAVEL_METHODS, TRAVEL_SUBTYPES, ACTIVITY_SUBTYPES,
   isDayInPast, parseAgendaDate, formatAgendaDate, suggestNextDate,
   toDateInput, getMapUrl, fmt$, buildTripInfo,
-  activePersonaKeys, personaLabel, getPersona,
+  activePersonaKeys, personaLabel, getPersona, PERSONAS, defaultPersonaVisibility,
 } from "@/lib/helpers";
 import AgendaRoleView from "@/components/tour/AgendaRoleView";
+import TripInformation from "@/components/tour/TripInformation";
 import {
   AGENDA_TYPE_COLORS, getAgendaTypeIcon, getSentimentIcon,
   TRAVEL_SUBTYPE_ICONS, ACTIVITY_SUBTYPE_ICONS,
@@ -252,6 +253,7 @@ type ItemFormState = {
   confirmation_not_required: boolean;
   driver_note: string; internal_note: string;
   meal_pay_type: MealPayType; stipend_amount: string;
+  persona_visibility: Record<string, boolean>;
   image_urls: string[];
 };
 
@@ -260,7 +262,7 @@ const BLANK: ItemFormState = {
   address: "", map_link: "", website: "", travel_method: "",
   contact_name: "", contact_phone: "", contact_email: "",
   cost: "", cost_paid: false, confirmation_not_required: false, driver_note: "", internal_note: "",
-  meal_pay_type: "", stipend_amount: "", image_urls: [],
+  meal_pay_type: "", stipend_amount: "", persona_visibility: defaultPersonaVisibility("activity", ""), image_urls: [],
 };
 
 const TYPE_COLORS = AGENDA_TYPE_COLORS;
@@ -318,13 +320,23 @@ function ImageUploader({ tourId, itemId, urls, onChange }: {
   );
 }
 
-function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, itemId }: {
+function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, itemId, activePersonas, personaLabels }: {
   form: ItemFormState;
   setForm: React.Dispatch<React.SetStateAction<ItemFormState>>;
   onSave: () => void; onCancel: () => void; isEdit?: boolean; saving?: boolean;
   tourId: string; itemId: string;
+  activePersonas: string[];
+  personaLabels: Record<string, string>;
 }) {
   const f = (v: Partial<ItemFormState>) => setForm(p => ({ ...p, ...v }));
+  // For NEW items, recompute the smart visibility default when type/travel changes.
+  const fT = (v: Partial<ItemFormState>) => setForm(p => {
+    const next = { ...p, ...v };
+    if (!isEdit && ("type" in v || "travel_method" in v)) {
+      next.persona_visibility = defaultPersonaVisibility(next.type, next.travel_method);
+    }
+    return next;
+  });
 
   return (
     <div style={{ padding: 16, background: "#f8fafc", borderTop: "1.5px solid #e2e8f0" }} onClick={e => e.stopPropagation()}>
@@ -340,7 +352,7 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
             const active = form.type === t.value;
             const TypeIcon = getAgendaTypeIcon(t.value);
             return (
-              <button key={t.value} type="button" onClick={() => f({ type: t.value as AgendaItemType })}
+              <button key={t.value} type="button" onClick={() => fT({ type: t.value as AgendaItemType })}
                 style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 20, border: `2px solid ${active ? bg : "#e2e8f0"}`, background: active ? bg + "18" : "#fff", cursor: "pointer", fontSize: 12, fontWeight: active ? 700 : 400, color: active ? bg : "#64748b", fontFamily: "inherit" }}>
                 <TypeIcon size={15} strokeWidth={2} />{t.label}
               </button>
@@ -362,7 +374,7 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
               const SubIcon = (isTravel ? TRAVEL_SUBTYPE_ICONS : ACTIVITY_SUBTYPE_ICONS)[st.value];
               return (
                 <button key={st.value} type="button"
-                  onClick={() => isTravel ? f({ travel_method: st.value as TravelMethod }) : f({ activity_subtype: st.value })}
+                  onClick={() => isTravel ? fT({ travel_method: st.value as TravelMethod }) : f({ activity_subtype: st.value })}
                   style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 20, border: `2px solid ${active ? bg : "#e2e8f0"}`, background: active ? bg + "18" : "#fff", cursor: "pointer", fontSize: 12, fontWeight: active ? 700 : 400, color: active ? bg : "#64748b", fontFamily: "inherit" }}>
                   {SubIcon && <SubIcon size={15} strokeWidth={2} />}{st.label}
                 </button>
@@ -371,6 +383,25 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
           </div>
         </div>
       )}
+
+      {/* Per-persona visibility for this item */}
+      <div style={{ marginBottom: 14 }}>
+        <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>Visible To</label>
+        <div style={{ display: "flex", gap: 14, flexWrap: "wrap", padding: "10px 12px", background: "#fff", border: "1px solid #eef2f7", borderRadius: 9 }}>
+          {activePersonas.map(key => {
+            const locked = key === "tour_host";
+            const checked = locked || form.persona_visibility?.[key] === true;
+            return (
+              <label key={key} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: checked ? "#1e293b" : "#94a3b8", cursor: locked ? "default" : "pointer" }}>
+                <input type="checkbox" checked={checked} disabled={locked}
+                  onChange={() => f({ persona_visibility: { ...form.persona_visibility, [key]: !checked } })}
+                  style={{ accentColor: BRAND.navy, width: 15, height: 15, cursor: locked ? "default" : "pointer" }} />
+                {personaLabel(key, personaLabels)}{locked && " 🔒"}
+              </label>
+            );
+          })}
+        </div>
+      </div>
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 12 }}>
         <Field label="Time" third>
@@ -458,6 +489,53 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
 }
 
 // ── ItemRow ────────────────────────────────────────────────────────────────────
+// Day-header popover to bulk-set persona visibility for a day or the whole tour.
+function DayVisibilityButton({ dayId, activePersonas, personaLabels, onApply }: {
+  dayId: string;
+  activePersonas: string[];
+  personaLabels: Record<string, string>;
+  onApply: (dayId: string | null, overrides: Record<string, boolean>) => void;
+}) {
+  const personas = activePersonas.filter(k => k !== "tour_host"); // Tour Host excluded from bulk
+  const [open, setOpen] = useState(false);
+  const [sel, setSel] = useState<Record<string, boolean>>(() => Object.fromEntries(personas.map(k => [k, true])));
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  return (
+    <div ref={ref} style={{ position: "relative" }} onClick={e => e.stopPropagation()}>
+      <button onClick={() => setOpen(o => !o)} title="Set visibility for this day"
+        style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,.7)", padding: 3, display: "flex", alignItems: "center" }}>
+        <I n="eye" s={13} c="rgba(255,255,255,.7)" />
+      </button>
+      {open && (
+        <div style={{ position: "absolute", right: 0, top: "calc(100% + 6px)", zIndex: 50, width: 230, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, boxShadow: "0 12px 30px rgba(0,0,0,.18)", padding: 12, cursor: "default", color: "#1e293b" }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: BRAND.navy, marginBottom: 8 }}>Set visibility for items in this day:</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
+            {personas.map(k => (
+              <label key={k} style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12, cursor: "pointer" }}>
+                <input type="checkbox" checked={!!sel[k]} onChange={() => setSel(s => ({ ...s, [k]: !s[k] }))} style={{ accentColor: BRAND.navy, width: 14, height: 14 }} />
+                {personaLabel(k, personaLabels)}
+              </label>
+            ))}
+          </div>
+          <div style={{ fontSize: 10.5, color: "#94a3b8", marginBottom: 10 }}>Tour Host always stays visible.</div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <Btn small onClick={() => { onApply(dayId, sel); setOpen(false); }}>Apply to Day</Btn>
+            <Btn small variant="muted" onClick={() => { onApply(null, sel); setOpen(false); }}>Apply to Entire Tour</Btn>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Itinerary item action button — dark navy icon at 80% opacity (clearly
 // visible), with a distinct hover state (full opacity + subtle background;
 // red for the destructive delete action).
@@ -633,9 +711,11 @@ interface AgendaTabProps {
   isOwner: boolean;
   onDaysChange: (days: AgendaDayWithItems[]) => void;
   onTourChange: (patch: Record<string, any>) => void;
+  recentlyAddedPersona?: string | null;
+  onDismissAddedPersona?: () => void;
 }
 
-export default function AgendaTab({ tour, days, members, onDaysChange, onTourChange }: AgendaTabProps) {
+export default function AgendaTab({ tour, days, members, onDaysChange, onTourChange, recentlyAddedPersona, onDismissAddedPersona }: AgendaTabProps) {
   const [showAddDay, setShowAddDay] = useState(false);
   const [newDayDate, setNewDayDate] = useState("");
   const [addMultiple, setAddMultiple] = useState(false);
@@ -680,6 +760,7 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
       meal_pay_type: f.meal_pay_type || null,
       stipend_amount: f.stipend_amount ? parseFloat(f.stipend_amount) : null,
       item_visibility: null,
+      persona_visibility: f.persona_visibility,
       image_urls: f.image_urls,
     };
   }
@@ -697,6 +778,7 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
       internal_note: item.internal_note || "",
       meal_pay_type: item.meal_pay_type || "",
       stipend_amount: item.stipend_amount ? String(item.stipend_amount) : "",
+      persona_visibility: item.persona_visibility ?? defaultPersonaVisibility(item.type, item.travel_method),
       image_urls: item.image_urls || [],
     };
   }
@@ -813,6 +895,15 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
     }
   }
 
+  // Bulk-apply persona visibility to a day (dayId) or the whole tour (null).
+  // Tour Host always stays visible.
+  async function applyBulkVisibility(dayId: string | null, overrides: Record<string, boolean>) {
+    const supabase = createClient();
+    await supabase.rpc("bulk_set_persona_visibility", { p_tour: tour.id, p_day: dayId, p_overrides: overrides });
+    const apply = (i: AgendaItemWithFeedback) => ({ ...i, persona_visibility: { ...(i.persona_visibility || {}), ...overrides, tour_host: true } });
+    onDaysChange(days.map(d => (dayId === null || d.id === dayId) ? { ...d, agenda_items: d.agenda_items.map(apply) } : d));
+  }
+
   // ── render ────────────────────────────────────────────────────────────────────
   if (previewPersona) {
     const persona = getPersona(previewPersona);
@@ -834,14 +925,40 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
         days={days}
         role={(persona?.viewRole ?? "student") as Role}
         roleLabel={personaLabel(previewPersona, tour.persona_labels)}
+        personaKey={previewPersona}
         onClose={() => setPreviewPersona(null)}
         embedded
       />
     );
   }
 
+  // Trip Information (host editing view). Locate the itinerary items that
+  // back the Hotel / Bus rows so the inline editor can open their edit modals.
+  // Mirrors buildTripInfo's selection: prefer a "Check In - <Name>" hotel item.
+  const openEditItem = (dayId: string, item: AgendaItemWithFeedback) => {
+    setEditCtx({ dayId, itemId: item.id });
+    setEditForm(itemToForm(item));
+  };
+  const itemLocs = days.flatMap(d => (d.agenda_items ?? []).map(item => ({ dayId: d.id, item })));
+  const hotelLocs = itemLocs.filter(x => x.item.type === "hotel");
+  const hotelLoc = hotelLocs.find(x => /[-–]/.test(x.item.title ?? "")) ?? hotelLocs[0] ?? null;
+  const busLoc = itemLocs.find(x => x.item.travel_method === "bus") ?? null;
+
   return (
     <div>
+      {/* Persona-added review banner */}
+      {recentlyAddedPersona && (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#fffbeb", border: "1.5px solid #fcd34d", borderRadius: 10, padding: "10px 14px", marginBottom: 14 }}>
+          <span style={{ fontSize: 13, color: "#92400e", flex: 1 }}>
+            <strong>{personaLabel(recentlyAddedPersona, tour.persona_labels)}</strong> was added to this tour. Review item visibility to choose what they can see.
+          </span>
+          <button onClick={onDismissAddedPersona} title="Dismiss"
+            style={{ background: "none", border: "none", cursor: "pointer", color: "#92400e", padding: 4, display: "flex", alignItems: "center", flexShrink: 0 }}>
+            <I n="x" s={14} c="#92400e" />
+          </button>
+        </div>
+      )}
+
       {/* Header tile (incl. banner) — gives the host a live view without
           entering a preview mode. Mirrors the preview/participant header. */}
       <ItineraryHeaderTile
@@ -882,6 +999,21 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
 
       {/* Access codes — secondary, subdued and collapsed below the preview */}
       <AccessCodeManager tour={tour} onTourChange={onTourChange} />
+
+      {/* Trip Information — same card the participants see, editable by the host. */}
+      <TripInformation
+        info={buildTripInfo({
+          tour,
+          members,
+          days,
+          hostName: (tour as any).tour_hosts?.name ?? null,
+          hostPhone: (tour as any).tour_hosts?.phone ?? null,
+        })}
+        isHost
+        onSaveTour={onTourChange}
+        onEditHotel={hotelLoc ? () => openEditItem(hotelLoc.dayId, hotelLoc.item) : null}
+        onEditBus={busLoc ? () => openEditItem(busLoc.dayId, busLoc.item) : null}
+      />
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -964,6 +1096,12 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
                   <span style={{ color: "rgba(255,255,255,.4)", fontSize: 11 }}>{day.agenda_items.length} item{day.agenda_items.length !== 1 ? "s" : ""}</span>
                 </div>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <DayVisibilityButton
+                    dayId={day.id}
+                    activePersonas={activePersonaKeys(tour.active_personas)}
+                    personaLabels={tour.persona_labels || {}}
+                    onApply={applyBulkVisibility}
+                  />
                   <button onClick={e => { e.stopPropagation(); setAddingItem(day.id); setAddingItemId(crypto.randomUUID()); setItemForm(BLANK); }}
                     style={{ background: "rgba(255,255,255,.15)", border: "none", borderRadius: 5, padding: "4px 10px", fontSize: 11, color: "#fff", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>
                     + Add
@@ -1002,6 +1140,8 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
                       onCancel={() => { setAddingItem(null); setAddingItemId(""); }}
                       saving={saving}
                       tourId={tour.id} itemId={addingItemId}
+                      activePersonas={activePersonaKeys(tour.active_personas)}
+                      personaLabels={tour.persona_labels || {}}
                     />
                   )}
                 </div>
@@ -1062,6 +1202,8 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
             onCancel={() => setEditCtx(null)}
             isEdit saving={saving}
             tourId={tour.id} itemId={editCtx.itemId}
+            activePersonas={activePersonaKeys(tour.active_personas)}
+            personaLabels={tour.persona_labels || {}}
           />
         </Modal>
       )}

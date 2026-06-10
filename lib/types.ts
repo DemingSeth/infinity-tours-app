@@ -186,6 +186,8 @@ export interface AgendaItemRow {
   meal_pay_type: MealPayType | null;
   stipend_amount: number | null;
   item_visibility: ItemVisibility | null;
+  // Per-persona show/hide for this item (tour_host/teacher/student/chaperone/bus_driver → bool).
+  persona_visibility: Record<string, boolean>;
   image_urls: string[];
   // Confirmation documents (PDF or image) linked to this itinerary item.
   // Stored in the shared agenda-images bucket; display-layer "Confirmations".

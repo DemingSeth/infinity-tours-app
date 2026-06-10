@@ -33,7 +33,7 @@ export default function PublicTourViewClient({ tourName, tourDestination, tourDa
   const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [unlocked, setUnlocked] = useState<{ role: Role; label: string } | null>(null);
+  const [unlocked, setUnlocked] = useState<{ role: Role; label: string; personaKey: string } | null>(null);
 
   // Selectable personas (active ones), each mapped to its itinerary view + code.
   const options = activePersonaKeys(activePersonas).map(key => {
@@ -48,7 +48,7 @@ export default function PublicTourViewClient({ tourName, tourDestination, tourDa
     const codes = accessCodes as unknown as Record<string, string>;
     const expected = codes[opt.codeKey];
     if (expected && code.trim() === expected) {
-      setUnlocked({ role: opt.viewRole, label: opt.label });
+      setUnlocked({ role: opt.viewRole, label: opt.label, personaKey: opt.key });
     } else {
       setError("Incorrect access code. Please try again.");
     }
@@ -68,6 +68,7 @@ export default function PublicTourViewClient({ tourName, tourDestination, tourDa
           days={days}
           role={unlocked.role}
           roleLabel={unlocked.label}
+          personaKey={unlocked.personaKey}
         />
       </div>
     );

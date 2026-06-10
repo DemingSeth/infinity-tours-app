@@ -38,6 +38,12 @@ create table if not exists tours (
   activities text[] default '{}',
   notes text,
   access_codes jsonb default '{"coordinator": "", "teacher": "", "driver": "", "student": ""}',
+  -- Optional banner photo (chosen from banner_image_library) shown behind the
+  -- itinerary header tile. Null → solid navy header. Focus is the object-position
+  -- focal point (percent across/down) used when the banner is cropped.
+  banner_image_url text,
+  banner_focus_x integer default 50,
+  banner_focus_y integer default 50,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
@@ -124,6 +130,18 @@ create table if not exists post_trip (
   updated_at timestamptz default now()
 );
 
+-- Curated banner images that tour hosts choose from. Managed by admins only
+-- (see RLS below); all authenticated hosts may browse. Files live in the
+-- public `banner-images` storage bucket (see storage-policies.sql).
+create table if not exists banner_image_library (
+  id uuid primary key default gen_random_uuid(),
+  url text not null,
+  label text not null,
+  destination text,
+  uploaded_by uuid references tour_hosts(id),
+  created_at timestamptz default now()
+);
+
 -- ─── Updated_at trigger ────────────────────────────────────────────────────────
 
 create or replace function update_updated_at()
@@ -148,6 +166,7 @@ alter table agenda_feedback enable row level security;
 alter table tour_members enable row level security;
 alter table vendors enable row level security;
 alter table post_trip enable row level security;
+alter table banner_image_library enable row level security;
 
 -- tour_hosts
 create policy "Hosts read own record"
@@ -264,3 +283,20 @@ create policy "Tour hosts insert post trip"
 create policy "Tour hosts update post trip"
   on post_trip for update to authenticated
   using (exists (select 1 from tours where id = tour_id and tour_host_id = auth.uid()));
+
+-- banner_image_library: everyone browses, only admins manage.
+create policy "Authenticated read banner library"
+  on banner_image_library for select to authenticated
+  using (true);
+
+create policy "Admins insert banner library"
+  on banner_image_library for insert to authenticated
+  with check (exists (select 1 from tour_hosts th where th.id = auth.uid() and th.role = 'admin'));
+
+create policy "Admins update banner library"
+  on banner_image_library for update to authenticated
+  using (exists (select 1 from tour_hosts th where th.id = auth.uid() and th.role = 'admin'));
+
+create policy "Admins delete banner library"
+  on banner_image_library for delete to authenticated
+  using (exists (select 1 from tour_hosts th where th.id = auth.uid() and th.role = 'admin'));

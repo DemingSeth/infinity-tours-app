@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { createClient } from "@/lib/supabase/client";
 import { BRAND, ROLES, DEFAULT_VISIBILITY, PERSONAS, activePersonaKeys } from "@/lib/helpers";
 import { I, Field, Inp, Btn } from "@/components/tour/ui";
 import FocalPointPicker from "@/components/tour/FocalPointPicker";
@@ -115,8 +116,9 @@ function BannerUploader({ tour, isOwner, onTourChange }: {
   );
 }
 
-function PersonaConfig({ tour, isOwner, onTourChange }: {
+function PersonaConfig({ tour, isOwner, onTourChange, onPersonaAdded }: {
   tour: TourRow; isOwner: boolean; onTourChange: (patch: Record<string, any>) => void;
+  onPersonaAdded: (key: string) => void;
 }) {
   const active = activePersonaKeys(tour.active_personas);
   const labels = (tour.persona_labels || {}) as Record<string, string>;
@@ -125,8 +127,14 @@ function PersonaConfig({ tour, isOwner, onTourChange }: {
   function toggle(key: string) {
     const p = PERSONAS.find(x => x.key === key);
     if (!p || p.locked || !isOwner) return;
+    const turningOn = !active.includes(key);
     const next = active.includes(key) ? active.filter(k => k !== key) : [...active, key];
     onTourChange({ active_personas: PERSONAS.filter(x => next.includes(x.key)).map(x => x.key) });
+    if (turningOn) {
+      // Add the persona key (default false) to every existing item, then prompt a review.
+      createClient().rpc("add_persona_visibility", { p_tour: tour.id, p_key: key });
+      onPersonaAdded(key);
+    }
   }
 
   function saveLabel(key: string) {
@@ -195,9 +203,10 @@ interface Props {
   viewerIsAdmin: boolean;
   currentUserId: string;
   onTourChange: (patch: Record<string, any>) => void;
+  onPersonaAdded: (key: string) => void;
 }
 
-export default function SettingsTab({ tour, isOwner, viewerIsAdmin, currentUserId, onTourChange }: Props) {
+export default function SettingsTab({ tour, isOwner, viewerIsAdmin, currentUserId, onTourChange, onPersonaAdded }: Props) {
   const [vis, setVis] = useState<Record<string, Record<string, boolean>>>(
     Object.fromEntries(VIS_ROLES.map(r => [r, { ...(DEFAULT_VISIBILITY as any)[r] }]))
   );
@@ -227,7 +236,7 @@ export default function SettingsTab({ tour, isOwner, viewerIsAdmin, currentUserI
       <BannerUploader tour={tour} isOwner={isOwner} onTourChange={onTourChange} />
 
       {/* Participant Personas */}
-      <PersonaConfig tour={tour} isOwner={isOwner} onTourChange={onTourChange} />
+      <PersonaConfig tour={tour} isOwner={isOwner} onTourChange={onTourChange} onPersonaAdded={onPersonaAdded} />
 
       {/* Room & Bus Configuration */}
       <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 14, padding: 20 }}>
