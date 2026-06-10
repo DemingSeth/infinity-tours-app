@@ -46,9 +46,10 @@ interface Props {
   initialPostTrip: any;
   initialPostTripReview: any;
   currentUserId: string;
+  viewerIsAdmin: boolean;
 }
 
-export default function TourDetailClient({ tour: initialTour, initialMembers, initialDays, initialPostTrip, initialPostTripReview, currentUserId }: Props) {
+export default function TourDetailClient({ tour: initialTour, initialMembers, initialDays, initialPostTrip, initialPostTripReview, currentUserId, viewerIsAdmin }: Props) {
   const router = useRouter();
   const [tour, setTour] = useState(initialTour);
   const [members, setMembers] = useState(initialMembers);
@@ -226,6 +227,8 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
         <SettingsTab
           tour={tour}
           isOwner={isOwner}
+          viewerIsAdmin={viewerIsAdmin}
+          currentUserId={currentUserId}
           onTourChange={handleTourChange}
         />
       )}

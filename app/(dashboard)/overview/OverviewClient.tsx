@@ -1,14 +1,57 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Settings } from "lucide-react";
+import { Settings, Image as ImageIcon } from "lucide-react";
 import { BRAND } from "@/lib/helpers";
+import { createClient } from "@/lib/supabase/client";
+import { Modal, Btn } from "@/components/tour/ui";
+import BannerLibraryManager from "@/components/tour/BannerLibraryManager";
 import StatsRow from "@/components/overview/StatsRow";
 import PipelineSummary from "@/components/overview/PipelineSummary";
 import CalendarView from "@/components/overview/CalendarView";
 import VisibilitySettingsModal from "@/components/overview/VisibilitySettingsModal";
 import type { TourWithHostAndMembers, HostRole } from "@/lib/types";
+
+// Admin-only card: library image count + a button to manage the library.
+function BannerLibraryCard({ currentHostId }: { currentHostId: string }) {
+  const [count, setCount] = useState<number | null>(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const supabase = createClient();
+      const { count } = await supabase.from("banner_image_library").select("*", { count: "exact", head: true });
+      if (active) setCount(count ?? 0);
+    })();
+    return () => { active = false; };
+  }, [open]);
+
+  return (
+    <>
+      <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 14, padding: "16px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: "#eef2f7", display: "flex", alignItems: "center", justifyContent: "center", color: BRAND.navy, flexShrink: 0 }}>
+            <ImageIcon size={20} />
+          </div>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: BRAND.navy, fontFamily: "'Cormorant Garamond', Georgia, serif" }}>Banner Library</div>
+            <div style={{ fontSize: 12, color: "#64748b" }}>
+              {count === null ? "Loading…" : `${count} approved image${count !== 1 ? "s" : ""}`} · Admin
+            </div>
+          </div>
+        </div>
+        <Btn onClick={() => setOpen(true)}>Manage Banner Images</Btn>
+      </div>
+      {open && (
+        <Modal title="Banner Image Library" onClose={() => setOpen(false)} wide>
+          <BannerLibraryManager currentHostId={currentHostId} />
+        </Modal>
+      )}
+    </>
+  );
+}
 
 interface Props {
   tours: TourWithHostAndMembers[];
@@ -42,6 +85,8 @@ export default function OverviewClient({ tours, currentHostId, viewerRole }: Pro
           <Settings size={17} />
         </button>
       </header>
+
+      {viewerRole === "admin" && <BannerLibraryCard currentHostId={currentHostId} />}
 
       <StatsRow tours={tours} />
       <PipelineSummary tours={tours} currentHostId={currentHostId} onOpenTour={openTour} />

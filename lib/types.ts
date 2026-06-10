@@ -257,6 +257,16 @@ export interface PostTripReviewRow {
   submitted_at: string;
 }
 
+// Curated banner image available to tour hosts (managed by admins).
+export interface BannerImageLibraryRow {
+  id: string;
+  url: string;
+  label: string;
+  destination: string | null;
+  uploaded_by: string | null;
+  created_at: string;
+}
+
 // Resolved "Trip Information" summary shown at the top of the itinerary view.
 export interface TripInfo {
   teacherName: string | null;

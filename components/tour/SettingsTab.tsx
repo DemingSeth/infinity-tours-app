@@ -1,49 +1,36 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import Image from "next/image";
-import { createClient } from "@/lib/supabase/client";
 import { BRAND, ROLES, DEFAULT_VISIBILITY } from "@/lib/helpers";
 import { I, Field, Inp, Btn } from "@/components/tour/ui";
 import FocalPointPicker from "@/components/tour/FocalPointPicker";
+import BannerLibraryPicker from "@/components/tour/BannerLibraryPicker";
+import BannerLibraryManager from "@/components/tour/BannerLibraryManager";
 import type { TourRow } from "@/lib/types";
 
 const ROLES_TYPED = ROLES as Record<string, { label: string; color: string; bg: string }>;
 
-// Reuse the existing public storage bucket / upload pattern.
-const STORAGE_BUCKET = "agenda-images";
-
 function BannerUploader({ tour, isOwner, onTourChange }: {
   tour: TourRow; isOwner: boolean; onTourChange: (patch: Record<string, any>) => void;
 }) {
-  const [uploading, setUploading] = useState(false);
   const [adjusting, setAdjusting] = useState(false);
+  const [picking, setPicking] = useState(false);
   const [draft, setDraft] = useState({ x: 50, y: 50 });
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const focusX = tour.banner_focus_x ?? 50;
   const focusY = tour.banner_focus_y ?? 50;
 
-  async function handleFile(file: File | undefined) {
-    if (!file) return;
-    setUploading(true);
-    const supabase = createClient();
-    const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const path = `${tour.id}/banner/${Date.now()}-${safe}`;
-    const { error } = await supabase.storage.from(STORAGE_BUCKET).upload(path, file, { cacheControl: "3600", upsert: false });
-    if (error) {
-      console.error("Banner upload failed", error.message);
+  // Apply a chosen library image (reset focus, open the focal adjuster) or clear it.
+  function chooseImage(url: string | null) {
+    if (url) {
+      onTourChange({ banner_image_url: url, banner_focus_x: 50, banner_focus_y: 50 });
+      setDraft({ x: 50, y: 50 });
+      setAdjusting(true);
     } else {
-      const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
-      if (data?.publicUrl) {
-        // New image → reset focus to centered, then open the picker to adjust.
-        onTourChange({ banner_image_url: data.publicUrl, banner_focus_x: 50, banner_focus_y: 50 });
-        setDraft({ x: 50, y: 50 });
-        setAdjusting(true);
-      }
+      onTourChange({ banner_image_url: null });
+      setAdjusting(false);
     }
-    setUploading(false);
-    if (inputRef.current) inputRef.current.value = "";
   }
 
   function openAdjust() {
@@ -60,7 +47,7 @@ function BannerUploader({ tour, isOwner, onTourChange }: {
     <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 14, padding: 20 }}>
       <div style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: 15, fontWeight: 700, color: BRAND.navy, marginBottom: 6 }}>Banner Image</div>
       <p style={{ fontSize: 12, color: "#64748b", margin: "0 0 12px", lineHeight: 1.6 }}>
-        Shown behind the itinerary header on the shared participant view. Leave empty for the default navy header.
+        Choose from the approved image library to show behind the itinerary header. Leave empty for the default navy header.
       </p>
 
       {/* Saved-state preview (header crop at the saved focal point) */}
@@ -102,19 +89,27 @@ function BannerUploader({ tour, isOwner, onTourChange }: {
         </div>
       )}
 
-      <input ref={inputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => handleFile(e.target.files?.[0])} />
       {!adjusting && (
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <Btn onClick={() => inputRef.current?.click()} disabled={!isOwner || uploading}>
-            <I n="upload" s={13} />{uploading ? "Uploading..." : tour.banner_image_url ? "Replace Banner Image" : "Upload Banner Image"}
+          <Btn onClick={() => setPicking(true)} disabled={!isOwner}>
+            {tour.banner_image_url ? "Change Banner Image" : "Choose Banner Image"}
           </Btn>
           {tour.banner_image_url && isOwner && (
-            <Btn variant="muted" onClick={openAdjust} disabled={uploading}>Adjust Focus</Btn>
+            <Btn variant="muted" onClick={openAdjust}>Adjust Focus</Btn>
           )}
           {tour.banner_image_url && isOwner && (
-            <Btn variant="muted" onClick={() => onTourChange({ banner_image_url: null })} disabled={uploading}>Remove</Btn>
+            <Btn variant="muted" onClick={() => chooseImage(null)}>Remove Banner</Btn>
           )}
         </div>
+      )}
+
+      {picking && (
+        <BannerLibraryPicker
+          tourDestination={tour.destination}
+          currentUrl={tour.banner_image_url}
+          onSelect={chooseImage}
+          onClose={() => setPicking(false)}
+        />
       )}
     </div>
   );
@@ -138,10 +133,12 @@ const VIS_ROLES = ["teacher", "driver", "student"] as const;
 interface Props {
   tour: TourRow;
   isOwner: boolean;
+  viewerIsAdmin: boolean;
+  currentUserId: string;
   onTourChange: (patch: Record<string, any>) => void;
 }
 
-export default function SettingsTab({ tour, isOwner, onTourChange }: Props) {
+export default function SettingsTab({ tour, isOwner, viewerIsAdmin, currentUserId, onTourChange }: Props) {
   const [vis, setVis] = useState<Record<string, Record<string, boolean>>>(
     Object.fromEntries(VIS_ROLES.map(r => [r, { ...(DEFAULT_VISIBILITY as any)[r] }]))
   );
@@ -156,7 +153,18 @@ export default function SettingsTab({ tour, isOwner, onTourChange }: Props) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      {/* Banner Image */}
+      {/* Manage Banner Library — admin only, above the chooser */}
+      {viewerIsAdmin && (
+        <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 14, padding: 20 }}>
+          <div style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: 15, fontWeight: 700, color: BRAND.navy, marginBottom: 6 }}>Manage Banner Library</div>
+          <p style={{ fontSize: 12, color: "#64748b", margin: "0 0 12px", lineHeight: 1.6 }}>
+            Approved images that all tour hosts can choose from. Admin only.
+          </p>
+          <BannerLibraryManager currentHostId={currentUserId} />
+        </div>
+      )}
+
+      {/* Banner Image — choose from the library */}
       <BannerUploader tour={tour} isOwner={isOwner} onTourChange={onTourChange} />
 
       {/* Room & Bus Configuration */}
