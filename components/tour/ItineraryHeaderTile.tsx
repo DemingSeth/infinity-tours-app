@@ -7,12 +7,14 @@ import { BRAND, expandStateName } from "@/lib/helpers";
 // destination + dates). Shared by the participant/preview role view and the
 // tour host's internal editing view so the banner is visible in both.
 export default function ItineraryHeaderTile({
-  tourName, tourDestination, tourDates, bannerUrl, badgeLabel, badgeBg, badgeColor,
+  tourName, tourDestination, tourDates, bannerUrl, focusX = 50, focusY = 50, badgeLabel, badgeBg, badgeColor,
 }: {
   tourName: string;
   tourDestination?: string | null;
   tourDates?: string | null;
   bannerUrl?: string | null;
+  focusX?: number;
+  focusY?: number;
   badgeLabel: string;
   badgeBg: string;
   badgeColor: string;
@@ -23,7 +25,7 @@ export default function ItineraryHeaderTile({
       {/* Banner background photo + dark gradient overlay for text legibility */}
       {bannerUrl && (
         <>
-          <Image src={bannerUrl} alt="" fill sizes="(max-width: 720px) 100vw, 680px" style={{ objectFit: "cover", objectPosition: "center" }} />
+          <Image src={bannerUrl} alt="" fill sizes="(max-width: 720px) 100vw, 680px" style={{ objectFit: "cover", objectPosition: `${focusX}% ${focusY}%` }} />
           <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.45), rgba(0,0,0,0.70))" }} />
         </>
       )}

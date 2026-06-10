@@ -126,6 +126,10 @@ export interface TourRow {
   access_codes: AccessCodes;
   // Optional banner photo shown behind the itinerary header tile. Null → solid navy.
   banner_image_url: string | null;
+  // Focal point (percent across/down) applied as object-position when the banner
+  // is cropped into the header tile. Default 50/50 = centered.
+  banner_focus_x: number;
+  banner_focus_y: number;
   created_at: string;
   updated_at: string;
 }

@@ -5,6 +5,7 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { BRAND, ROLES, DEFAULT_VISIBILITY } from "@/lib/helpers";
 import { I, Field, Inp, Btn } from "@/components/tour/ui";
+import FocalPointPicker from "@/components/tour/FocalPointPicker";
 import type { TourRow } from "@/lib/types";
 
 const ROLES_TYPED = ROLES as Record<string, { label: string; color: string; bg: string }>;
@@ -16,7 +17,12 @@ function BannerUploader({ tour, isOwner, onTourChange }: {
   tour: TourRow; isOwner: boolean; onTourChange: (patch: Record<string, any>) => void;
 }) {
   const [uploading, setUploading] = useState(false);
+  const [adjusting, setAdjusting] = useState(false);
+  const [draft, setDraft] = useState({ x: 50, y: 50 });
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const focusX = tour.banner_focus_x ?? 50;
+  const focusY = tour.banner_focus_y ?? 50;
 
   async function handleFile(file: File | undefined) {
     if (!file) return;
@@ -29,10 +35,25 @@ function BannerUploader({ tour, isOwner, onTourChange }: {
       console.error("Banner upload failed", error.message);
     } else {
       const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
-      if (data?.publicUrl) onTourChange({ banner_image_url: data.publicUrl });
+      if (data?.publicUrl) {
+        // New image → reset focus to centered, then open the picker to adjust.
+        onTourChange({ banner_image_url: data.publicUrl, banner_focus_x: 50, banner_focus_y: 50 });
+        setDraft({ x: 50, y: 50 });
+        setAdjusting(true);
+      }
     }
     setUploading(false);
     if (inputRef.current) inputRef.current.value = "";
+  }
+
+  function openAdjust() {
+    setDraft({ x: focusX, y: focusY });
+    setAdjusting(true);
+  }
+
+  function saveFocus() {
+    onTourChange({ banner_focus_x: draft.x, banner_focus_y: draft.y });
+    setAdjusting(false);
   }
 
   return (
@@ -41,20 +62,60 @@ function BannerUploader({ tour, isOwner, onTourChange }: {
       <p style={{ fontSize: 12, color: "#64748b", margin: "0 0 12px", lineHeight: 1.6 }}>
         Shown behind the itinerary header on the shared participant view. Leave empty for the default navy header.
       </p>
-      {tour.banner_image_url && (
+
+      {/* Saved-state preview (header crop at the saved focal point) */}
+      {tour.banner_image_url && !adjusting && (
         <div style={{ position: "relative", width: "100%", height: 130, borderRadius: 10, overflow: "hidden", border: "1px solid #e2e8f0", background: "#f1f5f9", marginBottom: 12 }}>
-          <Image src={tour.banner_image_url} alt="Tour banner" fill sizes="(max-width: 720px) 100vw, 680px" style={{ objectFit: "cover" }} />
+          <Image src={tour.banner_image_url} alt="Tour banner" fill sizes="(max-width: 720px) 100vw, 680px" style={{ objectFit: "cover", objectPosition: `${focusX}% ${focusY}%` }} />
         </div>
       )}
+
+      {/* Focal point picker */}
+      {tour.banner_image_url && adjusting && (
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>
+            Drag the focal point to the most important part of the photo. The header keeps this point visible when it crops.
+          </div>
+          <FocalPointPicker imageUrl={tour.banner_image_url} x={draft.x} y={draft.y} onChange={(x, y) => setDraft({ x, y })} />
+
+          {/* Live header crop preview */}
+          <div style={{ marginTop: 12 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 5 }}>Header preview</div>
+            <div style={{ position: "relative", width: "100%", maxWidth: 360, height: 96, borderRadius: 8, overflow: "hidden", border: "1px solid #e2e8f0", background: "#f1f5f9" }}>
+              <Image src={tour.banner_image_url} alt="Header preview" fill sizes="360px" style={{ objectFit: "cover", objectPosition: `${draft.x}% ${draft.y}%` }} />
+              <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.45), rgba(0,0,0,0.70))" }} />
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 12, flexWrap: "wrap" }}>
+            <Btn onClick={saveFocus} disabled={!isOwner}><I n="check" s={13} />Save Focus</Btn>
+            <Btn variant="muted" onClick={() => setAdjusting(false)}>Cancel</Btn>
+            <button
+              type="button"
+              onClick={() => setDraft({ x: 50, y: 50 })}
+              style={{ background: "none", border: "none", color: "#0369a1", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "underline" }}
+            >
+              Reset to Center
+            </button>
+            <span style={{ fontSize: 11, color: "#94a3b8" }}>Focus: {draft.x}% / {draft.y}%</span>
+          </div>
+        </div>
+      )}
+
       <input ref={inputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => handleFile(e.target.files?.[0])} />
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <Btn onClick={() => inputRef.current?.click()} disabled={!isOwner || uploading}>
-          <I n="upload" s={13} />{uploading ? "Uploading..." : tour.banner_image_url ? "Replace Banner Image" : "Upload Banner Image"}
-        </Btn>
-        {tour.banner_image_url && isOwner && (
-          <Btn variant="muted" onClick={() => onTourChange({ banner_image_url: null })} disabled={uploading}>Remove</Btn>
-        )}
-      </div>
+      {!adjusting && (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <Btn onClick={() => inputRef.current?.click()} disabled={!isOwner || uploading}>
+            <I n="upload" s={13} />{uploading ? "Uploading..." : tour.banner_image_url ? "Replace Banner Image" : "Upload Banner Image"}
+          </Btn>
+          {tour.banner_image_url && isOwner && (
+            <Btn variant="muted" onClick={openAdjust} disabled={uploading}>Adjust Focus</Btn>
+          )}
+          {tour.banner_image_url && isOwner && (
+            <Btn variant="muted" onClick={() => onTourChange({ banner_image_url: null })} disabled={uploading}>Remove</Btn>
+          )}
+        </div>
+      )}
     </div>
   );
 }

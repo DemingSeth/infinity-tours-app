@@ -813,6 +813,8 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
         tourDestination={tour.destination}
         tourDates={tour.dates}
         bannerUrl={tour.banner_image_url}
+        bannerFocusX={tour.banner_focus_x ?? 50}
+        bannerFocusY={tour.banner_focus_y ?? 50}
         tripInfo={buildTripInfo({
           tour,
           members,
@@ -837,6 +839,8 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
         tourDestination={tour.destination}
         tourDates={tour.dates}
         bannerUrl={tour.banner_image_url}
+        focusX={tour.banner_focus_x ?? 50}
+        focusY={tour.banner_focus_y ?? 50}
         badgeLabel="Tour Host"
         badgeBg={ROLES_TYPED.coordinator.bg}
         badgeColor={ROLES_TYPED.coordinator.color}

@@ -13,6 +13,8 @@ interface Props {
   tourDestination?: string | null;
   tourDates?: string | null;
   bannerUrl?: string | null;
+  bannerFocusX?: number;
+  bannerFocusY?: number;
   tripInfo?: TripInfo | null;
   days: AgendaDayWithItems[];
   role: Role;
@@ -20,7 +22,7 @@ interface Props {
   embedded?: boolean;
 }
 
-export default function AgendaRoleView({ tourName, tourDestination, tourDates, bannerUrl, tripInfo, days, role, onClose, embedded }: Props) {
+export default function AgendaRoleView({ tourName, tourDestination, tourDates, bannerUrl, bannerFocusX = 50, bannerFocusY = 50, tripInfo, days, role, onClose, embedded }: Props) {
   const vis = DEFAULT_VISIBILITY[role] as Record<string, boolean>;
   const roleInfo = ROLES[role];
 
@@ -54,6 +56,8 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
         tourDestination={tourDestination}
         tourDates={tourDates}
         bannerUrl={bannerUrl}
+        focusX={bannerFocusX}
+        focusY={bannerFocusY}
         badgeLabel={roleInfo.label}
         badgeBg={roleInfo.bg}
         badgeColor={roleInfo.color}
