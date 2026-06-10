@@ -57,6 +57,12 @@ export interface Database {
         Update: Partial<Omit<PostTripRow, "id">>;
         Relationships: [];
       };
+      post_trip_reviews: {
+        Row: PostTripReviewRow;
+        Insert: Omit<PostTripReviewRow, "id" | "submitted_at">;
+        Update: Partial<Omit<PostTripReviewRow, "id">>;
+        Relationships: [];
+      };
     };
   };
 }
@@ -217,6 +223,19 @@ export interface PostTripRow {
   do_not_repeat: string | null;
   completed: boolean;
   updated_at: string;
+}
+
+// Tour-host-submitted post-trip survey (separate from the free-form `post_trip`
+// debrief notes). One row per tour; resubmitting updates the existing row.
+export interface PostTripReviewRow {
+  id: string;
+  tour_id: string;
+  host_id: string | null;
+  overall_rating: number | null;
+  went_well: string | null;
+  to_improve: string | null;
+  vendor_notes: string | null;
+  submitted_at: string;
 }
 
 // ─── App-level types (with relations) ─────────────────────────────────────────
