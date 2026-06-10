@@ -102,17 +102,26 @@ export interface PersonaDef {
   viewRole: Role;       // which itinerary view (visibility) this persona sees
   codeKey: string;      // access_codes key
   memberType: string;   // tour_members.type used for participant counts
+  color: string;        // accent color (distinct per persona)
+  bg: string;           // accent background tint
 }
 
 // Order here is the canonical checklist order (Tour Host, Teacher, Student,
-// Chaperone, Bus Driver).
+// Chaperone, Bus Driver). Each persona has its OWN color so Student and
+// Chaperone are distinguishable everywhere (Chaperone = blue).
 export const PERSONAS: PersonaDef[] = [
-  { key: "tour_host",  default: "Tour Host",  locked: true,  defaultOn: true,  viewRole: "coordinator", codeKey: "coordinator", memberType: "tour-host" },
-  { key: "teacher",    default: "Teacher",    locked: false, defaultOn: true,  viewRole: "teacher",     codeKey: "teacher",     memberType: "teacher" },
-  { key: "student",    default: "Student",    locked: false, defaultOn: true,  viewRole: "student",     codeKey: "student",     memberType: "student" },
-  { key: "chaperone",  default: "Chaperone",  locked: false, defaultOn: true,  viewRole: "student",     codeKey: "chaperone",   memberType: "chaperone" },
-  { key: "bus_driver", default: "Bus Driver", locked: false, defaultOn: false, viewRole: "driver",      codeKey: "driver",      memberType: "driver" },
+  { key: "tour_host",  default: "Tour Host",  locked: true,  defaultOn: true,  viewRole: "coordinator", codeKey: "coordinator", memberType: "tour-host", color: BRAND.navy, bg: "#e8f4f8" },
+  { key: "teacher",    default: "Teacher",    locked: false, defaultOn: true,  viewRole: "teacher",     codeKey: "teacher",     memberType: "teacher",   color: "#5b21b6", bg: "#f5f3ff" },
+  { key: "student",    default: "Student",    locked: false, defaultOn: true,  viewRole: "student",     codeKey: "student",     memberType: "student",   color: "#065f46", bg: "#ecfdf5" },
+  { key: "chaperone",  default: "Chaperone",  locked: false, defaultOn: true,  viewRole: "student",     codeKey: "chaperone",   memberType: "chaperone", color: "#1d4ed8", bg: "#eff6ff" },
+  { key: "bus_driver", default: "Bus Driver", locked: false, defaultOn: false, viewRole: "driver",      codeKey: "driver",      memberType: "driver",    color: "#92400e", bg: "#fef3c7" },
 ];
+
+// Accent color/background for a persona (distinct per persona, not per view role).
+export function personaColors(key: string): { color: string; bg: string } {
+  const p = getPersona(key);
+  return { color: p?.color ?? "#64748b", bg: p?.bg ?? "#f1f5f9" };
+}
 
 export const DEFAULT_ACTIVE_PERSONAS = PERSONAS.filter(p => p.defaultOn).map(p => p.key);
 
