@@ -8,6 +8,7 @@ import {
   BRAND, ROLES, AGENDA_TYPES, TRAVEL_METHODS, TRAVEL_SUBTYPES, ACTIVITY_SUBTYPES,
   isDayInPast, parseAgendaDate, formatAgendaDate, suggestNextDate,
   toDateInput, getMapUrl, fmt$, buildTripInfo,
+  activePersonaKeys, personaLabel, getPersona,
 } from "@/lib/helpers";
 import AgendaRoleView from "@/components/tour/AgendaRoleView";
 import {
@@ -198,14 +199,21 @@ const ROLES_TYPED = ROLES as Record<string, { label: string; color: string; bg: 
 function AccessCodeManager({ tour, onTourChange }: {
   tour: TourRow; onTourChange: (patch: Record<string, any>) => void;
 }) {
-  const codes = (tour.access_codes as unknown as Record<string, string>) || { coordinator: "", teacher: "", driver: "", student: "" };
-  const set = (role: string, val: string) => onTourChange({ access_codes: { ...codes, [role]: val } });
-  const gen = (role: string) => set(role, Math.random().toString(36).slice(2, 8).toUpperCase());
-  const setCount = Object.values(codes).filter(Boolean).length;
+  const codes = (tour.access_codes as unknown as Record<string, string>) || {};
+  const set = (codeKey: string, val: string) => onTourChange({ access_codes: { ...codes, [codeKey]: val } });
+  const gen = (codeKey: string) => set(codeKey, Math.random().toString(36).slice(2, 8).toUpperCase());
   const [open, setOpen] = useState(false);
 
+  // One code row per active persona, labelled with the tour's custom labels.
+  const rows = activePersonaKeys(tour.active_personas).map(key => {
+    const p = getPersona(key)!;
+    const meta = ROLES_TYPED[p.viewRole];
+    return { key, codeKey: p.codeKey, label: personaLabel(key, tour.persona_labels), color: meta.color, bg: meta.bg };
+  });
+  const setCount = rows.filter(r => codes[r.codeKey]).length;
+
   // Subdued, collapsed-by-default secondary card (the preview buttons above are
-  // the primary action). Expands to manage the per-role codes.
+  // the primary action). Expands to manage the per-persona codes.
   return (
     <div style={{ background: "#f8fafc", border: "1px solid #eef2f7", borderRadius: 10, padding: "10px 14px", marginBottom: 16 }}>
       <button onClick={() => setOpen(o => !o)}
@@ -213,19 +221,19 @@ function AccessCodeManager({ tour, onTourChange }: {
         <I n={open ? "chevron" : "chevronRight"} s={13} />
         <span style={{ fontSize: 12, fontWeight: 700, color: "#64748b" }}>Access Codes</span>
         <span style={{ fontSize: 11, color: "#94a3b8", marginLeft: "auto" }}>
-          {setCount} of 4 set · share each with the right group
+          {setCount} of {rows.length} set · share each with the right group
         </span>
       </button>
       {open && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginTop: 12 }}>
-          {Object.entries(ROLES_TYPED).map(([role, meta]) => (
-            <div key={role} style={{ background: meta.bg, border: `1.5px solid ${meta.color}22`, borderRadius: 9, padding: "10px 12px" }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: meta.color, textTransform: "uppercase", letterSpacing: .7, marginBottom: 6 }}>{meta.label}</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 8, marginTop: 12 }}>
+          {rows.map(r => (
+            <div key={r.key} style={{ background: r.bg, border: `1.5px solid ${r.color}22`, borderRadius: 9, padding: "10px 12px" }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: r.color, textTransform: "uppercase", letterSpacing: .7, marginBottom: 6 }}>{r.label}</div>
               <div style={{ display: "flex", gap: 5 }}>
-                <input value={codes[role] || ""} onChange={e => set(role, e.target.value.toUpperCase())}
-                  style={{ ...INP, fontFamily: "monospace", fontSize: 14, fontWeight: 700, letterSpacing: 2, color: meta.color, flex: 1, padding: "5px 8px" }}
+                <input value={codes[r.codeKey] || ""} onChange={e => set(r.codeKey, e.target.value.toUpperCase())}
+                  style={{ ...INP, fontFamily: "monospace", fontSize: 14, fontWeight: 700, letterSpacing: 2, color: r.color, flex: 1, padding: "5px 8px" }}
                   placeholder="CODE" maxLength={12} />
-                <button onClick={() => gen(role)} style={{ background: meta.color, color: "#fff", border: "none", borderRadius: 6, padding: "5px 8px", cursor: "pointer", fontSize: 10, fontWeight: 700, fontFamily: "inherit", flexShrink: 0 }}>Gen</button>
+                <button onClick={() => gen(r.codeKey)} style={{ background: r.color, color: "#fff", border: "none", borderRadius: 6, padding: "5px 8px", cursor: "pointer", fontSize: 10, fontWeight: 700, fontFamily: "inherit", flexShrink: 0 }}>Gen</button>
               </div>
             </div>
           ))}
@@ -639,7 +647,7 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
   const [editForm, setEditForm] = useState<ItemFormState>(BLANK);
   const [showPastDays, setShowPastDays] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [previewRole, setPreviewRole] = useState<Role | null>(null);
+  const [previewPersona, setPreviewPersona] = useState<string | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [editingDayId, setEditingDayId] = useState<string | null>(null);
   const [editingDayDateVal, setEditingDayDateVal] = useState("");
@@ -806,7 +814,8 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
   }
 
   // ── render ────────────────────────────────────────────────────────────────────
-  if (previewRole) {
+  if (previewPersona) {
+    const persona = getPersona(previewPersona);
     return (
       <AgendaRoleView
         tourName={tour.name}
@@ -823,8 +832,9 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
           hostPhone: (tour as any).tour_hosts?.phone ?? null,
         })}
         days={days}
-        role={previewRole}
-        onClose={() => setPreviewRole(null)}
+        role={(persona?.viewRole ?? "student") as Role}
+        roleLabel={personaLabel(previewPersona, tour.persona_labels)}
+        onClose={() => setPreviewPersona(null)}
         embedded
       />
     );
@@ -852,16 +862,16 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
           <div style={{ fontSize: 15, fontWeight: 700, color: BRAND.navy, fontFamily: "'Cormorant Garamond',Georgia,serif", marginBottom: 2 }}>Preview the Itinerary</div>
           <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 12 }}>See exactly what each role sees on the shared view, then share the link.</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {([
-              { role: "teacher", label: "Teacher",    bg: "#f5f3ff", color: "#5b21b6" },
-              { role: "driver",  label: "Bus Driver", bg: "#fef3c7", color: "#92400e" },
-              { role: "student", label: "Student",    bg: "#ecfdf5", color: "#065f46" },
-            ] as const).map(p => (
-              <button key={p.role} onClick={() => setPreviewRole(p.role)}
-                style={{ flex: "1 1 140px", minWidth: 130, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, background: p.bg, color: p.color, border: `1.5px solid ${p.color}22`, borderRadius: 10, padding: "12px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                <I n="eye" s={15} />Preview {p.label}
-              </button>
-            ))}
+            {/* One preview per active participant persona (Tour Host = the editor). */}
+            {activePersonaKeys(tour.active_personas).filter(k => k !== "tour_host").map(key => {
+              const meta = ROLES_TYPED[getPersona(key)?.viewRole ?? "student"];
+              return (
+                <button key={key} onClick={() => setPreviewPersona(key)}
+                  style={{ flex: "1 1 140px", minWidth: 130, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, background: meta.bg, color: meta.color, border: `1.5px solid ${meta.color}22`, borderRadius: 10, padding: "12px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                  <I n="eye" s={15} />Preview {personaLabel(key, tour.persona_labels)}
+                </button>
+              );
+            })}
             <button onClick={() => setShowShareModal(true)}
               style={{ flex: "1 1 140px", minWidth: 130, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, background: BRAND.teal, color: "#fff", border: "none", borderRadius: 10, padding: "12px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                 <I n="link" s={15} />Share View

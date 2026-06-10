@@ -47,9 +47,7 @@ export default function TripInformation({ info }: { info: TripInfo }) {
       label: "Participants",
       content: (
         <>
-          <div>
-            {info.performingStudents} Performing Students, {info.chaperones} Chaperones, {info.siblings} Siblings, {info.tourHosts} Tour Hosts
-          </div>
+          <div>{info.participants.map(p => `${p.count} ${p.label}`).join(", ") || "—"}</div>
           <div style={{ color: BRAND.teal, fontWeight: 700, marginTop: 2 }}>
             {info.totalParticipants} Total Participants
           </div>

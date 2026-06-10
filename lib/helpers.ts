@@ -1,4 +1,4 @@
-import type { TourMemberRow, RoomConfig, TripInfo } from "@/lib/types";
+import type { TourMemberRow, RoomConfig, TripInfo, Role } from "@/lib/types";
 
 // ─── Brand ────────────────────────────────────────────────────────────────────
 
@@ -92,6 +92,51 @@ export const DEFAULT_VISIBILITY = {
   student:     { address: true, mapLink: true, contactName: false, contactPhone: false, contactEmail: false, cost: false, costPaid: false, driverNote: false, detail: true, internalNote: false },
 } as const;
 
+// ─── Participant personas ─────────────────────────────────────────────────────
+
+export interface PersonaDef {
+  key: string;          // persona key stored in active_personas
+  default: string;      // default label
+  locked: boolean;      // tour_host is always on
+  defaultOn: boolean;   // included in a new tour's defaults
+  viewRole: Role;       // which itinerary view (visibility) this persona sees
+  codeKey: string;      // access_codes key
+  memberType: string;   // tour_members.type used for participant counts
+}
+
+// Order here is the canonical checklist order (Tour Host, Teacher, Student,
+// Chaperone, Bus Driver).
+export const PERSONAS: PersonaDef[] = [
+  { key: "tour_host",  default: "Tour Host",  locked: true,  defaultOn: true,  viewRole: "coordinator", codeKey: "coordinator", memberType: "tour-host" },
+  { key: "teacher",    default: "Teacher",    locked: false, defaultOn: true,  viewRole: "teacher",     codeKey: "teacher",     memberType: "teacher" },
+  { key: "student",    default: "Student",    locked: false, defaultOn: true,  viewRole: "student",     codeKey: "student",     memberType: "student" },
+  { key: "chaperone",  default: "Chaperone",  locked: false, defaultOn: true,  viewRole: "student",     codeKey: "chaperone",   memberType: "chaperone" },
+  { key: "bus_driver", default: "Bus Driver", locked: false, defaultOn: false, viewRole: "driver",      codeKey: "driver",      memberType: "driver" },
+];
+
+export const DEFAULT_ACTIVE_PERSONAS = PERSONAS.filter(p => p.defaultOn).map(p => p.key);
+
+export function getPersona(key: string): PersonaDef | undefined {
+  return PERSONAS.find(p => p.key === key);
+}
+
+// Resolve a persona's display label (custom override → default).
+export function personaLabel(key: string, labels?: Record<string, string> | null): string {
+  const override = labels?.[key]?.trim();
+  return override || getPersona(key)?.default || key;
+}
+
+// Active persona keys for a tour, falling back to the defaults.
+export function activePersonaKeys(active?: string[] | null): string[] {
+  const list = active && active.length ? active : DEFAULT_ACTIVE_PERSONAS;
+  // Return in canonical PERSONAS order.
+  return PERSONAS.filter(p => list.includes(p.key)).map(p => p.key);
+}
+
+export function isPersonaActive(key: string, active?: string[] | null): boolean {
+  return activePersonaKeys(active).includes(key);
+}
+
 // ─── Location formatting ──────────────────────────────────────────────────────
 
 const US_STATES: Record<string, string> = {
@@ -164,15 +209,22 @@ export function buildTripInfo({ tour, members, days, hostName, hostPhone }: {
   if (rc?.boysPerRoom) roomBits.push(`${rc.boysPerRoom} boys/room`);
   if (rc?.girlsPerRoom) roomBits.push(`${rc.girlsPerRoom} girls/room`);
 
+  // Participant breakdown by active persona, using the tour's custom labels.
+  // Display order puts travelers first and Tour Host last (e.g. "26 Choir
+  // Members, 11 Chaperones, 1 Tour Host").
+  const labels = tour?.persona_labels as Record<string, string> | undefined;
+  const active = activePersonaKeys(tour?.active_personas);
+  const order = ["student", "chaperone", "teacher", "bus_driver", "tour_host"];
+  const participants = order
+    .filter(k => active.includes(k))
+    .map(k => ({ label: personaLabel(k, labels), count: m.filter(x => x.type === getPersona(k)?.memberType).length }));
+
   return {
     teacherName: tour?.contact_name || null,
     teacherEmail: tour?.contact_email || null,
     tourHostName: tour?.traveling_tour_host || hostName || null,
     tourHostPhone: hostPhone || null,
-    performingStudents: m.filter(x => x.type === "student").length,
-    chaperones: m.filter(x => x.type === "chaperone").length,
-    siblings: m.filter(x => x.type === "sibling").length, // no dedicated type yet → 0
-    tourHosts: m.filter(x => x.type === "tour-host").length,
+    participants,
     totalParticipants: m.length,
     departure: tour?.start_date || null,
     returnDate: tour?.end_date || null,

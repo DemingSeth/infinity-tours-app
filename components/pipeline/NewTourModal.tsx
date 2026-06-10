@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { BRAND, STATUSES } from "@/lib/helpers";
+import { BRAND, STATUSES, PERSONAS, DEFAULT_ACTIVE_PERSONAS } from "@/lib/helpers";
 
 interface Props {
   onClose: () => void;
   onCreate: (fields: {
     name: string; school: string; destination: string;
     dates: string; status: string; transport_type: string;
+    activePersonas: string[]; personaLabels: Record<string, string>;
   }) => Promise<void>;
 }
 
@@ -27,11 +28,22 @@ export default function NewTourModal({ onClose, onCreate }: Props) {
   const [form, setForm] = useState({
     name: "", school: "", destination: "", dates: "",
     status: "bid", transport_type: "flight",
+    activePersonas: [...DEFAULT_ACTIVE_PERSONAS] as string[],
+    personaLabels: {} as Record<string, string>,
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   const f = (patch: Partial<typeof form>) => setForm(p => ({ ...p, ...patch }));
+
+  function togglePersona(key: string) {
+    const p = PERSONAS.find(x => x.key === key);
+    if (!p || p.locked) return;
+    const next = form.activePersonas.includes(key)
+      ? form.activePersonas.filter(k => k !== key)
+      : [...form.activePersonas, key];
+    f({ activePersonas: PERSONAS.filter(x => next.includes(x.key)).map(x => x.key) });
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -39,8 +51,12 @@ export default function NewTourModal({ onClose, onCreate }: Props) {
     if (!form.school.trim()) { setError("School name is required."); return; }
     setSaving(true);
     setError("");
+    // Drop blank label overrides.
+    const personaLabels = Object.fromEntries(
+      Object.entries(form.personaLabels).map(([k, v]) => [k, v.trim()]).filter(([, v]) => v),
+    );
     try {
-      await onCreate(form);
+      await onCreate({ ...form, personaLabels });
     } catch {
       setError("Something went wrong. Please try again.");
       setSaving(false);
@@ -89,6 +105,28 @@ export default function NewTourModal({ onClose, onCreate }: Props) {
               <select style={{ ...inp, background: "#fff" }} value={form.transport_type} onChange={e => f({ transport_type: e.target.value })}>
                 {TRANSPORT.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.8 }}>Participant Personas</label>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {PERSONAS.map(p => {
+                const on = form.activePersonas.includes(p.key);
+                return (
+                  <div key={p.key} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <input type="checkbox" checked={on} disabled={p.locked} onChange={() => togglePersona(p.key)}
+                      style={{ accentColor: BRAND.navy, width: 15, height: 15, cursor: p.locked ? "default" : "pointer", flexShrink: 0 }} />
+                    <span style={{ width: 84, flexShrink: 0, fontSize: 12, fontWeight: 700, color: on ? "#1e293b" : "#94a3b8" }}>{p.default}</span>
+                    <input
+                      style={{ ...inp, padding: "6px 10px", fontSize: 12 }}
+                      value={form.personaLabels[p.key] ?? ""}
+                      placeholder={`Label (default: ${p.default})`}
+                      onChange={e => f({ personaLabels: { ...form.personaLabels, [p.key]: e.target.value } })}
+                    />
+                  </div>
+                );
+              })}
             </div>
           </div>
 

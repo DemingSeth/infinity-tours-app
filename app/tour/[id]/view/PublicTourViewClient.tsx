@@ -3,7 +3,7 @@
 import { useState } from "react";
 import AgendaRoleView from "@/components/tour/AgendaRoleView";
 import InfinityLogoImg from "@/components/shared/InfinityLogoImg";
-import { BRAND, ROLES, expandStateName } from "@/lib/helpers";
+import { BRAND, ROLES, expandStateName, activePersonaKeys, personaLabel, getPersona } from "@/lib/helpers";
 import type { AgendaDayWithItems, Role, AccessCodes, TripInfo } from "@/lib/types";
 
 interface Props {
@@ -16,29 +16,39 @@ interface Props {
   tourBannerFocusY: number;
   tripInfo: TripInfo | null;
   accessCodes: AccessCodes;
+  activePersonas: string[];
+  personaLabels: Record<string, string>;
   days: AgendaDayWithItems[];
 }
 
-const ROLE_OPTIONS: { role: Role; label: string; description: string }[] = [
-  { role: "teacher",     label: "Teacher / Admin",     description: "Full schedule with contacts" },
-  { role: "driver",      label: "Bus Driver",           description: "Addresses and driving notes" },
-  { role: "student",     label: "Student / Chaperone",  description: "Day-by-day itinerary" },
-  { role: "coordinator", label: "Tour Host",            description: "Full coordinator access" },
-];
+const PERSONA_DESC: Record<string, string> = {
+  tour_host: "Full coordinator access",
+  teacher: "Full schedule with contacts",
+  student: "Day-by-day itinerary",
+  chaperone: "Day-by-day itinerary",
+  bus_driver: "Addresses and driving notes",
+};
 
-export default function PublicTourViewClient({ tourName, tourDestination, tourDates, tourBannerUrl, tourBannerFocusX, tourBannerFocusY, tripInfo, accessCodes, days }: Props) {
-  const [selectedRole, setSelectedRole] = useState<Role | null>(null);
+export default function PublicTourViewClient({ tourName, tourDestination, tourDates, tourBannerUrl, tourBannerFocusX, tourBannerFocusY, tripInfo, accessCodes, activePersonas, personaLabels, days }: Props) {
+  const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [unlocked, setUnlocked] = useState<Role | null>(null);
+  const [unlocked, setUnlocked] = useState<{ role: Role; label: string } | null>(null);
+
+  // Selectable personas (active ones), each mapped to its itinerary view + code.
+  const options = activePersonaKeys(activePersonas).map(key => {
+    const p = getPersona(key)!;
+    return { key, label: personaLabel(key, personaLabels), viewRole: p.viewRole, codeKey: p.codeKey, desc: PERSONA_DESC[key] ?? "" };
+  });
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!selectedRole) return;
+    const opt = options.find(o => o.key === selectedPersona);
+    if (!opt) return;
     const codes = accessCodes as unknown as Record<string, string>;
-    const expected = codes[selectedRole];
+    const expected = codes[opt.codeKey];
     if (expected && code.trim() === expected) {
-      setUnlocked(selectedRole);
+      setUnlocked({ role: opt.viewRole, label: opt.label });
     } else {
       setError("Incorrect access code. Please try again.");
     }
@@ -56,7 +66,8 @@ export default function PublicTourViewClient({ tourName, tourDestination, tourDa
           bannerFocusY={tourBannerFocusY}
           tripInfo={tripInfo}
           days={days}
-          role={unlocked}
+          role={unlocked.role}
+          roleLabel={unlocked.label}
         />
       </div>
     );
@@ -96,13 +107,13 @@ export default function PublicTourViewClient({ tourName, tourDestination, tourDa
             </p>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
-              {ROLE_OPTIONS.map(opt => {
-                const roleInfo = ROLES[opt.role];
-                const selected = selectedRole === opt.role;
+              {options.map(opt => {
+                const roleInfo = ROLES[opt.viewRole];
+                const selected = selectedPersona === opt.key;
                 return (
                   <button
-                    key={opt.role}
-                    onClick={() => { setSelectedRole(opt.role); setCode(""); setError(null); }}
+                    key={opt.key}
+                    onClick={() => { setSelectedPersona(opt.key); setCode(""); setError(null); }}
                     style={{
                       display: "flex", alignItems: "center", gap: 12, padding: "10px 14px",
                       border: `1.5px solid ${selected ? roleInfo.color : "#e2e8f0"}`,
@@ -112,7 +123,7 @@ export default function PublicTourViewClient({ tourName, tourDestination, tourDa
                   >
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: selected ? roleInfo.color : "#1e293b" }}>{opt.label}</div>
-                      <div style={{ fontSize: 11, color: "#94a3b8" }}>{opt.description}</div>
+                      <div style={{ fontSize: 11, color: "#94a3b8" }}>{opt.desc}</div>
                     </div>
                     {selected && <div style={{ width: 8, height: 8, borderRadius: "50%", background: roleInfo.color, flexShrink: 0 }} />}
                   </button>
@@ -120,7 +131,7 @@ export default function PublicTourViewClient({ tourName, tourDestination, tourDa
               })}
             </div>
 
-            {selectedRole && (
+            {selectedPersona && (
               <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
                   <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.8 }}>

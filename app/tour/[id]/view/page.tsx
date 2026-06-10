@@ -45,6 +45,8 @@ export default async function PublicTourViewPage({ params }: { params: Promise<{
       tourBannerFocusY={tour.banner_focus_y ?? 50}
       tripInfo={tripInfo}
       accessCodes={tour.access_codes}
+      activePersonas={tour.active_personas ?? []}
+      personaLabels={tour.persona_labels ?? {}}
       days={days}
     />
   );

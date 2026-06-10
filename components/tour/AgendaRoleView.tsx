@@ -18,13 +18,15 @@ interface Props {
   tripInfo?: TripInfo | null;
   days: AgendaDayWithItems[];
   role: Role;
+  roleLabel?: string;
   onClose?: () => void;
   embedded?: boolean;
 }
 
-export default function AgendaRoleView({ tourName, tourDestination, tourDates, bannerUrl, bannerFocusX = 50, bannerFocusY = 50, tripInfo, days, role, onClose, embedded }: Props) {
+export default function AgendaRoleView({ tourName, tourDestination, tourDates, bannerUrl, bannerFocusX = 50, bannerFocusY = 50, tripInfo, days, role, roleLabel, onClose, embedded }: Props) {
   const vis = DEFAULT_VISIBILITY[role] as Record<string, boolean>;
   const roleInfo = ROLES[role];
+  const label = roleLabel || roleInfo.label; // persona label override
 
   // Feedback is for participants rating activities. Show it for all participant
   // roles (student/chaperone, teacher, tour host) and hide it only for the bus
@@ -38,9 +40,9 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
         <div style={{ marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{ background: roleInfo.bg, color: roleInfo.color, borderRadius: 6, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>
-              Previewing: {roleInfo.label}
+              Previewing: {label}
             </div>
-            <span style={{ fontSize: 11, color: "#94a3b8" }}>This is what {roleInfo.label.toLowerCase()}s see on the shared view.</span>
+            <span style={{ fontSize: 11, color: "#94a3b8" }}>This is what {label.toLowerCase()}s see on the shared view.</span>
           </div>
           <button
             onClick={onClose}
@@ -58,7 +60,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
         bannerUrl={bannerUrl}
         focusX={bannerFocusX}
         focusY={bannerFocusY}
-        badgeLabel={roleInfo.label}
+        badgeLabel={label}
         badgeBg={roleInfo.bg}
         badgeColor={roleInfo.color}
       />

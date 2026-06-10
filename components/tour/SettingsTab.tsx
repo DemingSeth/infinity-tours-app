@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { BRAND, ROLES, DEFAULT_VISIBILITY } from "@/lib/helpers";
+import { BRAND, ROLES, DEFAULT_VISIBILITY, PERSONAS, activePersonaKeys } from "@/lib/helpers";
 import { I, Field, Inp, Btn } from "@/components/tour/ui";
 import FocalPointPicker from "@/components/tour/FocalPointPicker";
 import BannerLibraryPicker from "@/components/tour/BannerLibraryPicker";
@@ -115,6 +115,65 @@ function BannerUploader({ tour, isOwner, onTourChange }: {
   );
 }
 
+function PersonaConfig({ tour, isOwner, onTourChange }: {
+  tour: TourRow; isOwner: boolean; onTourChange: (patch: Record<string, any>) => void;
+}) {
+  const active = activePersonaKeys(tour.active_personas);
+  const labels = (tour.persona_labels || {}) as Record<string, string>;
+  const [draft, setDraft] = useState<Record<string, string>>({ ...labels });
+
+  function toggle(key: string) {
+    const p = PERSONAS.find(x => x.key === key);
+    if (!p || p.locked || !isOwner) return;
+    const next = active.includes(key) ? active.filter(k => k !== key) : [...active, key];
+    onTourChange({ active_personas: PERSONAS.filter(x => next.includes(x.key)).map(x => x.key) });
+  }
+
+  function saveLabel(key: string) {
+    const v = (draft[key] ?? "").trim();
+    const next = { ...labels };
+    if (v) next[key] = v; else delete next[key];
+    onTourChange({ persona_labels: next });
+  }
+
+  return (
+    <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 14, padding: 20 }}>
+      <div style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: 15, fontWeight: 700, color: BRAND.navy, marginBottom: 6 }}>Participant Personas</div>
+      <p style={{ fontSize: 12, color: "#64748b", margin: "0 0 14px", lineHeight: 1.6 }}>
+        Choose which participant types are active for this tour. Active personas control the preview buttons, access codes, and labels shown to travelers. Customize any label (e.g. &ldquo;Choir Member&rdquo;).
+      </p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {PERSONAS.map(p => {
+          const on = active.includes(p.key);
+          return (
+            <div key={p.key} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", background: on ? "#f8fafc" : "#fff", border: "1px solid #eef2f7", borderRadius: 9 }}>
+              <input
+                type="checkbox"
+                checked={on}
+                disabled={p.locked || !isOwner}
+                onChange={() => toggle(p.key)}
+                title={p.locked ? "Tour Host is always on" : undefined}
+                style={{ accentColor: BRAND.navy, width: 16, height: 16, cursor: p.locked || !isOwner ? "default" : "pointer", flexShrink: 0 }}
+              />
+              <div style={{ width: 96, flexShrink: 0, fontSize: 12.5, fontWeight: 700, color: on ? BRAND.navy : "#94a3b8" }}>
+                {p.default}{p.locked && <span style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8" }}> 🔒</span>}
+              </div>
+              <Inp
+                value={draft[p.key] ?? ""}
+                placeholder={`Label (default: ${p.default})`}
+                onChange={e => setDraft(d => ({ ...d, [p.key]: e.target.value }))}
+                onBlur={() => saveLabel(p.key)}
+                disabled={!isOwner}
+                style={{ flex: 1, padding: "6px 10px", fontSize: 12 }}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 const VIS_FIELDS = [
   { key: "detail",       label: "Detail / Notes" },
   { key: "address",      label: "Address" },
@@ -166,6 +225,9 @@ export default function SettingsTab({ tour, isOwner, viewerIsAdmin, currentUserI
 
       {/* Banner Image — choose from the library */}
       <BannerUploader tour={tour} isOwner={isOwner} onTourChange={onTourChange} />
+
+      {/* Participant Personas */}
+      <PersonaConfig tour={tour} isOwner={isOwner} onTourChange={onTourChange} />
 
       {/* Room & Bus Configuration */}
       <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 14, padding: 20 }}>

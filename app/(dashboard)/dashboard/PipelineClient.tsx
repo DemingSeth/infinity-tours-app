@@ -21,6 +21,7 @@ export default function PipelineClient({ initialTours, currentHostId, currentHos
   async function handleNewTour(fields: {
     name: string; school: string; destination: string;
     dates: string; status: string; transport_type: string;
+    activePersonas: string[]; personaLabels: Record<string, string>;
   }) {
     const supabase = createClient();
     const { data, error } = await supabase
@@ -33,7 +34,9 @@ export default function PipelineClient({ initialTours, currentHostId, currentHos
         dates: fields.dates,
         status: fields.status as any,
         transport_type: fields.transport_type as any,
-        access_codes: { coordinator: "", teacher: "", driver: "", student: "" },
+        access_codes: { coordinator: "", teacher: "", driver: "", student: "", chaperone: "" },
+        active_personas: fields.activePersonas,
+        persona_labels: fields.personaLabels,
       })
       .select("*, tour_hosts(id, name, initials), tour_members(id, type, waiver)")
       .single();

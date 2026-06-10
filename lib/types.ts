@@ -95,6 +95,7 @@ export interface AccessCodes {
   teacher: string;
   driver: string;
   student: string;
+  chaperone?: string;
 }
 
 export interface TourRow {
@@ -130,6 +131,10 @@ export interface TourRow {
   // is cropped into the header tile. Default 50/50 = centered.
   banner_focus_x: number;
   banner_focus_y: number;
+  // Participant personas enabled for this tour (drives preview buttons, access
+  // codes, and label usage). persona_labels holds per-persona label overrides.
+  active_personas: string[];
+  persona_labels: Record<string, string>;
   created_at: string;
   updated_at: string;
 }
@@ -273,10 +278,8 @@ export interface TripInfo {
   teacherEmail: string | null;
   tourHostName: string | null;
   tourHostPhone: string | null;
-  performingStudents: number;
-  chaperones: number;
-  siblings: number;
-  tourHosts: number;
+  // Per-persona participant counts using the tour's custom labels.
+  participants: { label: string; count: number }[];
   totalParticipants: number;
   departure: string | null; // raw start date
   returnDate: string | null; // raw end date
