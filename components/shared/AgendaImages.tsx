@@ -6,13 +6,66 @@ import { X } from "lucide-react";
 export default function AgendaImages({
   urls,
   size = 76,
+  fullWidth = false,
   onRemove,
 }: {
   urls: string[] | null | undefined;
   size?: number;
+  // Full-width mode: images stack vertically at the full width of the item
+  // card, height scaling proportionally (no crop). Used on the itinerary
+  // display in both the tour host view and all participant views. The default
+  // (thumbnail grid) is kept for the upload/management UI in the editor.
+  fullWidth?: boolean;
   onRemove?: (url: string) => void;
 }) {
   if (!urls || urls.length === 0) return null;
+
+  if (fullWidth) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+        {urls.map((url, i) => (
+          <div key={`${url}-${i}`} style={{ position: "relative", width: "100%" }}>
+            <a
+              href={url}
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                display: "block", borderRadius: 10, overflow: "hidden",
+                border: "1px solid #e2e8f0", background: "#f1f5f9",
+              }}
+            >
+              <Image
+                src={url}
+                alt="Itinerary item photo"
+                width={0}
+                height={0}
+                sizes="(max-width: 680px) 100vw, 640px"
+                style={{ width: "100%", height: "auto", display: "block" }}
+              />
+            </a>
+            {onRemove && (
+              <button
+                type="button"
+                title="Remove image"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); onRemove(url); }}
+                style={{
+                  position: "absolute", top: 8, right: 8, width: 24, height: 24,
+                  borderRadius: "50%", background: "rgba(15,33,55,.75)", color: "#fff",
+                  border: "none", cursor: "pointer", padding: 0,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  lineHeight: 1, boxShadow: "0 1px 4px rgba(0,0,0,.35)",
+                }}
+              >
+                <X size={13} strokeWidth={3} />
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // Thumbnail grid (upload/management UI).
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
       {urls.map((url, i) => (

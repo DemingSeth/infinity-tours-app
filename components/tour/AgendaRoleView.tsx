@@ -119,7 +119,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, d
                         </div>
                       )}
 
-                      <AgendaImages urls={item.image_urls} size={88} />
+                      <AgendaImages urls={item.image_urls} fullWidth />
 
 
                       {vis.address && item.address && (

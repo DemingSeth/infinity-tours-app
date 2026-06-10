@@ -550,7 +550,7 @@ function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onToggleNotRequired
             {item.internal_note && <span style={{ fontSize: 10, background: "#f3e8ff", color: "#6b21a8", borderRadius: 5, padding: "1px 7px", display: "inline-flex", alignItems: "center", gap: 4 }}><Lock size={11} style={{ flexShrink: 0 }} />{item.internal_note}</span>}
           </div>
 
-          <AgendaImages urls={item.image_urls} size={84} onRemove={onRemoveImage} />
+          <AgendaImages urls={item.image_urls} fullWidth onRemove={onRemoveImage} />
 
           {item.agenda_feedback?.length > 0 && (
             <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid #f1f5f9" }}>
