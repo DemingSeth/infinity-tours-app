@@ -32,6 +32,7 @@ export default async function PublicTourViewPage({ params }: { params: Promise<{
     days,
     hostName: host?.name ?? null,
     hostPhone: host?.phone ?? null,
+    confirmations: data.confirmations ?? [],
   });
 
   return (

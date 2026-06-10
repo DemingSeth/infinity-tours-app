@@ -19,6 +19,9 @@ interface Props {
   bannerFocusY?: number;
   tripInfo?: TripInfo | null;
   days: AgendaDayWithItems[];
+  /** Tour id for live confirmation reads in authenticated contexts (the host preview).
+   *  Omitted by the public view, which carries confirmations in tripInfo instead. */
+  confTourId?: string;
   role: Role;
   roleLabel?: string;
   personaKey?: string;
@@ -26,7 +29,7 @@ interface Props {
   embedded?: boolean;
 }
 
-export default function AgendaRoleView({ tourName, tourDestination, tourDates, bannerUrl, bannerFocusX = 50, bannerFocusY = 50, tripInfo, days, role, roleLabel, personaKey, onClose, embedded }: Props) {
+export default function AgendaRoleView({ tourName, tourDestination, tourDates, bannerUrl, bannerFocusX = 50, bannerFocusY = 50, tripInfo, days, confTourId, role, roleLabel, personaKey, onClose, embedded }: Props) {
   const vis = DEFAULT_VISIBILITY[role] as Record<string, boolean>;
   const roleInfo = ROLES[role];
   const label = roleLabel || roleInfo.label; // persona label override
@@ -79,7 +82,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
       />
 
       {/* Trip Information — shown to all roles, expanded by default, above Day 1. */}
-      {tripInfo && <TripInformation info={tripInfo} />}
+      {tripInfo && <TripInformation info={tripInfo} tourId={confTourId} />}
 
       {days.length === 0 && (
         <div style={{ background: "#f8fafc", border: "2px dashed #e2e8f0", borderRadius: 12, padding: "40px 20px", textAlign: "center", color: "#94a3b8", fontSize: 13 }}>

@@ -285,6 +285,9 @@ export interface TripInfo {
   totalParticipants: number;
   departure: string | null; // raw start date
   returnDate: string | null; // raw end date
+  flightName: string | null;
+  flightAddress: string | null;
+  hasFlight: boolean; // whether a flight travel item exists on the itinerary
   hotelName: string | null;
   hotelAddress: string | null;
   hotelRooms: string | null;
@@ -293,6 +296,9 @@ export interface TripInfo {
   busContactPhone: string | null;
   busCapacity: number | null;
   hasBus: boolean; // whether a bus travel item exists on the itinerary
+  // Read-only confirmation links by type, used for the participant view link.
+  // Authenticated host views fetch live (mutable) rows separately.
+  confirmations: { type: string; label: string | null; file_url: string }[];
 }
 
 // A confirmation document (flight/hotel/bus/other) uploaded for a tour.

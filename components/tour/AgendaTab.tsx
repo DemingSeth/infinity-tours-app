@@ -877,6 +877,7 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
           hostPhone: (tour as any).tour_hosts?.phone ?? null,
         })}
         days={days}
+        confTourId={tour.id}
         role={(persona?.viewRole ?? "student") as Role}
         roleLabel={personaLabel(previewPersona, tour.persona_labels)}
         personaKey={previewPersona}
@@ -898,6 +899,7 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
   const hotelLoc = hotelLocs.find(x => /[-–]/.test(x.item.title ?? "")) ?? hotelLocs[0] ?? null;
   const busLoc = itemLocs.find(x => x.item.travel_method === "bus" && (x.item.contact_name || x.item.contact_phone))
     ?? itemLocs.find(x => x.item.travel_method === "bus") ?? null;
+  const flightLoc = itemLocs.find(x => x.item.travel_method === "flight") ?? null;
 
   return (
     <div>
@@ -968,6 +970,7 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
         tourId={tour.id}
         onSaveTour={onTourChange}
         onSaveHostPhone={onSaveHostPhone}
+        onEditFlight={flightLoc ? () => openEditItem(flightLoc.dayId, flightLoc.item) : null}
         onEditHotel={hotelLoc ? () => openEditItem(hotelLoc.dayId, hotelLoc.item) : null}
         onEditBus={busLoc ? () => openEditItem(busLoc.dayId, busLoc.item) : null}
       />

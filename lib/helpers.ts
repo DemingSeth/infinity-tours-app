@@ -218,12 +218,13 @@ export function formatFullDate(value: string | null | undefined): string {
 // Resolve the Trip Information summary from the tour record, roster, itinerary
 // items (hotel/bus), and host contact. Tolerant of missing data — callers render
 // fallback dashes rather than hiding the section.
-export function buildTripInfo({ tour, members, days, hostName, hostPhone }: {
+export function buildTripInfo({ tour, members, days, hostName, hostPhone, confirmations }: {
   tour: any;
   members: { type?: string | null }[];
   days: { agenda_items?: { type?: string | null; travel_method?: string | null; title?: string | null; address?: string | null; contact_name?: string | null; contact_phone?: string | null }[] }[];
   hostName?: string | null;
   hostPhone?: string | null;
+  confirmations?: { type: string; label: string | null; file_url: string }[] | null;
 }): TripInfo {
   const items = (days ?? []).flatMap(d => d.agenda_items ?? []);
   const m = members ?? [];
@@ -243,6 +244,12 @@ export function buildTripInfo({ tour, members, days, hostName, hostPhone }: {
   const busItems = items.filter(i => i.travel_method === "bus");
   const bus = busItems.find(i => i.contact_name || i.contact_phone) ?? busItems[0] ?? null;
   const busCompany = bus ? (stripAction(bus.title ?? "") || bus.contact_name || null) : null;
+
+  // Flight: the first flight travel item carries the airline/flight title and
+  // (optionally) the airport in its address field.
+  const flightItems = items.filter(i => i.travel_method === "flight");
+  const flight = flightItems[0] ?? null;
+  const flightName = flight ? (stripAction(flight.title ?? "") || flight.contact_name || null) : null;
 
   const rc = (tour?.room_config as RoomConfig | null) || null;
   const roomBits: string[] = [];
@@ -268,6 +275,9 @@ export function buildTripInfo({ tour, members, days, hostName, hostPhone }: {
     totalParticipants: m.length,
     departure: tour?.start_date || null,
     returnDate: tour?.end_date || null,
+    flightName: flightName || null,
+    flightAddress: flight?.address || null,
+    hasFlight: flightItems.length > 0,
     hotelName: hotelName || null,
     hotelAddress: hotel?.address || null,
     hotelRooms: roomBits.length ? roomBits.join(" · ") : null,
@@ -276,6 +286,7 @@ export function buildTripInfo({ tour, members, days, hostName, hostPhone }: {
     busContactPhone: bus?.contact_phone || null,
     busCapacity: tour?.bus_capacity ?? null,
     hasBus: busItems.length > 0,
+    confirmations: confirmations ?? [],
   };
 }
 

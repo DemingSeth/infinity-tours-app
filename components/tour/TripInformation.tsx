@@ -1,10 +1,24 @@
 "use client";
 
-import { Fragment, useState } from "react";
-import { ChevronDown, ChevronRight, Pencil } from "lucide-react";
+import { Fragment, useEffect, useRef, useState } from "react";
+import { ChevronDown, ChevronRight, Pencil, Paperclip, Upload, X } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 import { BRAND, formatFullDate } from "@/lib/helpers";
-import TripConfirmationsRow from "@/components/tour/TripConfirmationsRow";
 import type { TripInfo } from "@/lib/types";
+
+// Tour-level confirmations reuse the existing public storage bucket.
+const STORAGE_BUCKET = "agenda-images";
+
+type ConfItem = { id?: string; type: string; label: string | null; file_url: string };
+
+const confBoxStyle: React.CSSProperties = {
+  marginTop: 8, display: "flex", alignItems: "center", gap: 8,
+  border: "1px dashed #d8dee9", borderRadius: 8, padding: "7px 10px", background: "#fafbff", fontSize: 12,
+};
+const confBtnStyle: React.CSSProperties = {
+  display: "inline-flex", alignItems: "center", gap: 4, borderRadius: 6, padding: "3px 9px",
+  fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", flexShrink: 0,
+};
 
 const HOTLINE_DISPLAY = "(801) 477-8963";
 const HOTLINE_TEL = "8014778963";
@@ -28,21 +42,24 @@ const linkBtnStyle: React.CSSProperties = {
 
 interface TripInformationProps {
   info: TripInfo;
-  /** When true (tour host / internal view) show the inline edit affordance + confirmations. */
+  /** When true (tour host / internal view) show the inline edit affordance + confirmation upload/remove controls. */
   isHost?: boolean;
-  /** Tour id — required for the host-only Confirmations row uploads. */
+  /** Tour id. When provided, confirmations are read live (authenticated contexts: host + preview). The public
+   *  view omits it and relies on info.confirmations from the shared-tour payload. */
   tourId?: string;
   /** Persists tour-record fields (contact_name, contact_email, traveling_tour_host, bus_capacity). */
   onSaveTour?: (patch: Record<string, any>) => void | Promise<void>;
   /** Persists the tour host phone to the logged-in user's tour_hosts record. */
   onSaveHostPhone?: (phone: string | null) => void | Promise<void>;
+  /** Opens the flight itinerary item's edit modal. Null when no flight item exists. */
+  onEditFlight?: (() => void) | null;
   /** Opens the hotel itinerary item's edit modal. Null when no hotel item exists. */
   onEditHotel?: (() => void) | null;
   /** Opens the bus itinerary item's edit modal. Null when no bus item exists. */
   onEditBus?: (() => void) | null;
 }
 
-export default function TripInformation({ info, isHost = false, tourId, onSaveTour, onSaveHostPhone, onEditHotel, onEditBus }: TripInformationProps) {
+export default function TripInformation({ info, isHost = false, tourId, onSaveTour, onSaveHostPhone, onEditFlight, onEditHotel, onEditBus }: TripInformationProps) {
   const [open, setOpen] = useState(true); // expanded by default
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -76,6 +93,110 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
     } finally {
       setSaving(false);
     }
+  }
+
+  // ── Confirmations (inline per Flight / Hotel / Bus row) ─────────────────────
+  // Seed from the read-only payload (public view), then — in authenticated
+  // contexts where a tourId is supplied — refresh with live rows that carry ids
+  // so the host can remove them.
+  const [confs, setConfs] = useState<ConfItem[]>(info.confirmations ?? []);
+  const [busyType, setBusyType] = useState<string | null>(null);
+  const fileInputs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  useEffect(() => {
+    if (!tourId) return; // public/participant view relies on info.confirmations
+    let active = true;
+    (async () => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("tour_confirmations").select("*").eq("tour_id", tourId)
+        .order("uploaded_at", { ascending: false });
+      if (active && data) setConfs(data as ConfItem[]);
+    })();
+    return () => { active = false; };
+  }, [tourId]);
+
+  const confByType = (t: string) => confs.find(c => c.type === t) ?? null;
+
+  async function uploadConf(type: string, label: string, file: File | undefined) {
+    if (!file || !tourId) return;
+    setBusyType(type);
+    const supabase = createClient();
+    const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const path = `${tourId}/tour-confirmations/${type}-${Date.now()}-${safe}`;
+    const { error: upErr } = await supabase.storage.from(STORAGE_BUCKET).upload(path, file, { cacheControl: "3600", upsert: false });
+    if (upErr) {
+      console.error("Confirmation upload failed", upErr.message);
+    } else {
+      const { data: pub } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: row, error } = await supabase
+        .from("tour_confirmations")
+        .insert({ tour_id: tourId, type, label, file_url: pub.publicUrl, uploaded_by: user?.id ?? null })
+        .select().single();
+      if (error) {
+        console.error("Confirmation insert failed", error.message);
+      } else if (row) {
+        // One confirmation per type/tour: drop any prior row of this type.
+        await supabase.from("tour_confirmations").delete().eq("tour_id", tourId).eq("type", type).neq("id", (row as any).id);
+        setConfs(prev => [row as ConfItem, ...prev.filter(r => r.type !== type)]);
+      }
+    }
+    setBusyType(null);
+    const el = fileInputs.current[type]; if (el) el.value = "";
+  }
+
+  async function removeConf(id: string) {
+    const supabase = createClient();
+    await supabase.from("tour_confirmations").delete().eq("id", id);
+    setConfs(prev => prev.filter(r => r.id !== id));
+  }
+
+  // Read-only "Edit X Item →" link (host view only, when the item exists).
+  function editLink(onEdit: (() => void) | null | undefined, label: string) {
+    if (!isHost || !onEdit) return null;
+    return <div><button type="button" onClick={onEdit} style={linkBtnStyle}>{label}</button></div>;
+  }
+
+  // Inline confirmation attachment area for a transport row.
+  function renderConf(type: string, label: string) {
+    const c = confByType(type);
+    if (!isHost) {
+      // Participant view: a single view link, only when a file exists.
+      if (!c) return null;
+      return (
+        <a href={c.file_url} target="_blank" rel="noreferrer"
+          style={{ marginTop: 6, display: "inline-flex", alignItems: "center", gap: 6, color: "#0369a1", fontWeight: 600, fontSize: 12, textDecoration: "none" }}>
+          <Paperclip size={13} /> View {label}
+        </a>
+      );
+    }
+    return (
+      <div style={confBoxStyle}>
+        <Paperclip size={14} color={c ? "#16a34a" : "#94a3b8"} style={{ flexShrink: 0 }} />
+        <span style={{ flex: 1, minWidth: 0, color: c ? "#1e293b" : "#94a3b8" }}>
+          {c ? label : "No confirmation uploaded"}
+        </span>
+        {c ? (
+          <>
+            <a href={c.file_url} target="_blank" rel="noreferrer" style={{ ...linkStyle, fontSize: 12 }}>View</a>
+            <button type="button" title="Remove confirmation" onClick={() => c.id && removeConf(c.id)}
+              style={{ ...confBtnStyle, background: "#fff", border: "1px solid #e2e8f0", color: "#b91c1c" }}>
+              <X size={12} /> Remove
+            </button>
+          </>
+        ) : (
+          <>
+            <input ref={el => { fileInputs.current[type] = el; }} type="file" accept="image/*,.pdf" style={{ display: "none" }}
+              onChange={e => uploadConf(type, label, e.target.files?.[0])} />
+            <button type="button" onClick={() => fileInputs.current[type]?.click()} disabled={busyType === type}
+              style={{ ...confBtnStyle, background: "#f1f5f9", border: "1px solid #e2e8f0", color: "#475569" }}>
+              <Upload size={12} /> {busyType === type ? "Uploading…" : "Upload"}
+            </button>
+          </>
+        )}
+      </div>
+    );
   }
 
   const rows: { label: string; content: React.ReactNode }[] = [
@@ -137,22 +258,57 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
     { label: "Departure", content: formatFullDate(info.departure) },
     { label: "Return", content: formatFullDate(info.returnDate) },
     {
+      label: "Flight",
+      content: editing ? (
+        <>
+          {onEditFlight ? (
+            <div>
+              <div>{dash(info.flightName)}</div>
+              {info.flightAddress && <div style={{ color: "#64748b" }}>{info.flightAddress}</div>}
+              <button type="button" onClick={onEditFlight} style={linkBtnStyle}>Edit Flight Item →</button>
+            </div>
+          ) : (
+            <div style={{ color: "#94a3b8" }}>Add a flight travel item to populate this field.</div>
+          )}
+          {renderConf("flight", "Flight Confirmation")}
+        </>
+      ) : (
+        <>
+          {info.hasFlight ? (
+            <>
+              <div>{dash(info.flightName)}</div>
+              {info.flightAddress && <div style={{ color: "#64748b" }}>{info.flightAddress}</div>}
+            </>
+          ) : (
+            <div style={{ color: "#94a3b8" }}>{isHost ? "Add a flight travel item to populate this field." : "—"}</div>
+          )}
+          {editLink(onEditFlight, "Edit Flight Item →")}
+          {renderConf("flight", "Flight Confirmation")}
+        </>
+      ),
+    },
+    {
       label: "Hotel",
       content: editing ? (
-        onEditHotel ? (
-          <div>
-            <div>{dash(info.hotelName)}</div>
-            {info.hotelAddress && <div style={{ color: "#64748b" }}>{info.hotelAddress}</div>}
-            <button type="button" onClick={onEditHotel} style={linkBtnStyle}>Edit Hotel Item →</button>
-          </div>
-        ) : (
-          <div style={{ color: "#94a3b8" }}>Add a Hotel item to your itinerary to populate this field.</div>
-        )
+        <>
+          {onEditHotel ? (
+            <div>
+              <div>{dash(info.hotelName)}</div>
+              {info.hotelAddress && <div style={{ color: "#64748b" }}>{info.hotelAddress}</div>}
+              <button type="button" onClick={onEditHotel} style={linkBtnStyle}>Edit Hotel Item →</button>
+            </div>
+          ) : (
+            <div style={{ color: "#94a3b8" }}>Add a Hotel item to your itinerary to populate this field.</div>
+          )}
+          {renderConf("hotel", "Hotel Confirmation")}
+        </>
       ) : (
         <>
           <div>{dash(info.hotelName)}</div>
           {info.hotelAddress && <div style={{ color: "#64748b" }}>{info.hotelAddress}</div>}
           {info.hotelRooms && <div style={{ color: "#64748b" }}>{info.hotelRooms}</div>}
+          {editLink(onEditHotel, "Edit Hotel Item →")}
+          {renderConf("hotel", "Hotel Confirmation")}
         </>
       ),
     },
@@ -170,29 +326,31 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
           ) : (
             <div style={{ color: "#94a3b8" }}>Add a bus travel item to populate this field.</div>
           )}
+          {renderConf("bus", "Bus Confirmation")}
         </div>
-      ) : !info.hasBus ? (
-        <div style={{ color: "#94a3b8" }}>Add a bus travel item to populate this field.</div>
       ) : (
         <>
-          <div>{dash(info.busCompany)}</div>
-          {(info.busContactName || info.busContactPhone) && (
-            <div style={{ color: "#64748b" }}>
-              {info.busContactName}
-              {info.busContactName && info.busContactPhone ? " · " : null}
-              {info.busContactPhone && <a href={telHref(info.busContactPhone)} style={linkStyle}>{info.busContactPhone}</a>}
-            </div>
+          {info.hasBus ? (
+            <>
+              <div>{dash(info.busCompany)}</div>
+              {(info.busContactName || info.busContactPhone) && (
+                <div style={{ color: "#64748b" }}>
+                  {info.busContactName}
+                  {info.busContactName && info.busContactPhone ? " · " : null}
+                  {info.busContactPhone && <a href={telHref(info.busContactPhone)} style={linkStyle}>{info.busContactPhone}</a>}
+                </div>
+              )}
+              {info.busCapacity ? <div style={{ color: "#64748b" }}>{info.busCapacity} passengers</div> : null}
+            </>
+          ) : (
+            <div style={{ color: "#94a3b8" }}>{isHost ? "Add a bus travel item to populate this field." : "—"}</div>
           )}
-          {info.busCapacity ? <div style={{ color: "#64748b" }}>{info.busCapacity} passengers</div> : null}
+          {editLink(onEditBus, "Edit Bus Item →")}
+          {renderConf("bus", "Bus Confirmation")}
         </>
       ),
     },
   ];
-
-  // Host-only "Confirmations" row appended at the bottom (read + edit mode).
-  if (isHost && tourId) {
-    rows.push({ label: "Confirmations", content: <TripConfirmationsRow tourId={tourId} /> });
-  }
 
   return (
     <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,.04)", marginBottom: 16 }}>
