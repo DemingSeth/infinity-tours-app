@@ -676,11 +676,12 @@ interface AgendaTabProps {
   isOwner: boolean;
   onDaysChange: (days: AgendaDayWithItems[]) => void;
   onTourChange: (patch: Record<string, any>) => void;
+  onSaveHostPhone: (phone: string | null) => void | Promise<void>;
   recentlyAddedPersona?: string | null;
   onDismissAddedPersona?: () => void;
 }
 
-export default function AgendaTab({ tour, days, members, onDaysChange, onTourChange, recentlyAddedPersona, onDismissAddedPersona }: AgendaTabProps) {
+export default function AgendaTab({ tour, days, members, onDaysChange, onTourChange, onSaveHostPhone, recentlyAddedPersona, onDismissAddedPersona }: AgendaTabProps) {
   const [showAddDay, setShowAddDay] = useState(false);
   const [newDayDate, setNewDayDate] = useState("");
   const [addMultiple, setAddMultiple] = useState(false);
@@ -895,7 +896,8 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
   const itemLocs = days.flatMap(d => (d.agenda_items ?? []).map(item => ({ dayId: d.id, item })));
   const hotelLocs = itemLocs.filter(x => x.item.type === "hotel");
   const hotelLoc = hotelLocs.find(x => /[-–]/.test(x.item.title ?? "")) ?? hotelLocs[0] ?? null;
-  const busLoc = itemLocs.find(x => x.item.travel_method === "bus" && x.item.contact_name) ?? null;
+  const busLoc = itemLocs.find(x => x.item.travel_method === "bus" && (x.item.contact_name || x.item.contact_phone))
+    ?? itemLocs.find(x => x.item.travel_method === "bus") ?? null;
 
   return (
     <div>
@@ -963,7 +965,9 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
           hostPhone: (tour as any).tour_hosts?.phone ?? null,
         })}
         isHost
+        tourId={tour.id}
         onSaveTour={onTourChange}
+        onSaveHostPhone={onSaveHostPhone}
         onEditHotel={hotelLoc ? () => openEditItem(hotelLoc.dayId, hotelLoc.item) : null}
         onEditBus={busLoc ? () => openEditItem(busLoc.dayId, busLoc.item) : null}
       />

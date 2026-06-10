@@ -87,6 +87,15 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
     }
   }
 
+  // Phone lives on the tour_hosts row, not the tour. The host edits their own
+  // profile phone inline from the Itinerary tab, so scope the write to their
+  // own tour_hosts record (id === auth user id).
+  async function handleHostPhoneChange(phone: string | null) {
+    setTour((t: any) => (t.tour_hosts ? { ...t, tour_hosts: { ...t.tour_hosts, phone } } : t));
+    const supabase = createClient();
+    await supabase.from("tour_hosts").update({ phone }).eq("id", currentUserId);
+  }
+
   async function applyCascade(newStartDate: string) {
     const supabase = createClient();
     const startDate = new Date(newStartDate + "T12:00:00");
@@ -198,6 +207,7 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
           isOwner={isOwner}
           onDaysChange={setDays}
           onTourChange={handleTourChange}
+          onSaveHostPhone={handleHostPhoneChange}
           recentlyAddedPersona={addedPersona}
           onDismissAddedPersona={() => setAddedPersona(null)}
         />

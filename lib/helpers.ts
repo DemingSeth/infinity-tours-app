@@ -11,6 +11,14 @@ export const BRAND = {
   email: "info@infinitytours.us",
 } as const;
 
+// Banner header tile overlay. Single source of truth for the gradient + text
+// shadow used over the banner photo so text stays legible without hiding the
+// image. Referenced by every place that renders the banner header tile — tweak
+// here to change it everywhere (editing view, previews, public view, Settings
+// preview).
+export const BANNER_OVERLAY_GRADIENT = "linear-gradient(to bottom, rgba(0,0,0,0.10), rgba(0,0,0,0.45))";
+export const BANNER_TEXT_SHADOW = "0 1px 6px rgba(0,0,0,0.75)";
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 export const STATUSES = [
@@ -213,7 +221,7 @@ export function formatFullDate(value: string | null | undefined): string {
 export function buildTripInfo({ tour, members, days, hostName, hostPhone }: {
   tour: any;
   members: { type?: string | null }[];
-  days: { agenda_items?: { type?: string | null; travel_method?: string | null; title?: string | null; address?: string | null; contact_name?: string | null }[] }[];
+  days: { agenda_items?: { type?: string | null; travel_method?: string | null; title?: string | null; address?: string | null; contact_name?: string | null; contact_phone?: string | null }[] }[];
   hostName?: string | null;
   hostPhone?: string | null;
 }): TripInfo {
@@ -229,10 +237,12 @@ export function buildTripInfo({ tour, members, days, hostName, hostPhone }: {
     s.replace(/^\s*(check[\s-]*in|check[\s-]*out|arrive(?:\s+at)?|arrival(?:\s+at)?|depart(?:\s+for)?|return(?:\s+to)?|load\s+bus.*?depart(?:\s+for)?|meet.*?depart(?:\s+for)?)\b[\s:–-]*/i, "").trim();
   const hotelName = hotel?.title ? (stripAction(hotel.title) || hotel.title) : null;
 
-  // Bus: company name only comes from a charter vendor's contact field — item
-  // titles are trip legs, not company names. Capacity is on the tour record.
+  // Bus: prefer a bus item that carries vendor contact info. The company is the
+  // item title (stripped of the action verb) or the contact name; the driver/
+  // dispatch contact name + phone come from the item's contact fields.
   const busItems = items.filter(i => i.travel_method === "bus");
-  const busCompany = busItems.map(i => i.contact_name).find(Boolean) ?? null;
+  const bus = busItems.find(i => i.contact_name || i.contact_phone) ?? busItems[0] ?? null;
+  const busCompany = bus ? (stripAction(bus.title ?? "") || bus.contact_name || null) : null;
 
   const rc = (tour?.room_config as RoomConfig | null) || null;
   const roomBits: string[] = [];
@@ -262,7 +272,10 @@ export function buildTripInfo({ tour, members, days, hostName, hostPhone }: {
     hotelAddress: hotel?.address || null,
     hotelRooms: roomBits.length ? roomBits.join(" · ") : null,
     busCompany,
+    busContactName: bus?.contact_name || null,
+    busContactPhone: bus?.contact_phone || null,
     busCapacity: tour?.bus_capacity ?? null,
+    hasBus: busItems.length > 0,
   };
 }
 

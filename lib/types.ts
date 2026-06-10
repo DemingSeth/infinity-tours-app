@@ -289,7 +289,21 @@ export interface TripInfo {
   hotelAddress: string | null;
   hotelRooms: string | null;
   busCompany: string | null;
+  busContactName: string | null;
+  busContactPhone: string | null;
   busCapacity: number | null;
+  hasBus: boolean; // whether a bus travel item exists on the itinerary
+}
+
+// A confirmation document (flight/hotel/bus/other) uploaded for a tour.
+export interface TourConfirmationRow {
+  id: string;
+  tour_id: string;
+  type: string;
+  label: string | null;
+  file_url: string;
+  uploaded_by: string | null;
+  uploaded_at: string;
 }
 
 // ─── App-level types (with relations) ─────────────────────────────────────────

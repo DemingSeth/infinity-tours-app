@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
-import { BRAND, ROLES, DEFAULT_VISIBILITY, PERSONAS, activePersonaKeys, personaColors } from "@/lib/helpers";
+import { BRAND, ROLES, DEFAULT_VISIBILITY, PERSONAS, activePersonaKeys, personaColors, BANNER_OVERLAY_GRADIENT } from "@/lib/helpers";
 import { I, Field, Inp, Btn } from "@/components/tour/ui";
 import FocalPointPicker from "@/components/tour/FocalPointPicker";
 import BannerLibraryPicker from "@/components/tour/BannerLibraryPicker";
@@ -71,7 +71,7 @@ function BannerUploader({ tour, isOwner, onTourChange }: {
             <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 5 }}>Header preview</div>
             <div style={{ position: "relative", width: "100%", maxWidth: 360, height: 96, borderRadius: 8, overflow: "hidden", border: "1px solid #e2e8f0", background: "#f1f5f9" }}>
               <Image src={tour.banner_image_url} alt="Header preview" fill sizes="360px" style={{ objectFit: "cover", objectPosition: `${draft.x}% ${draft.y}%` }} />
-              <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.10), rgba(0,0,0,0.45))" }} />
+              <div style={{ position: "absolute", inset: 0, background: BANNER_OVERLAY_GRADIENT }} />
             </div>
           </div>
 

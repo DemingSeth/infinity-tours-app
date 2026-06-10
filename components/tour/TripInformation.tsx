@@ -3,6 +3,7 @@
 import { Fragment, useState } from "react";
 import { ChevronDown, ChevronRight, Pencil } from "lucide-react";
 import { BRAND, formatFullDate } from "@/lib/helpers";
+import TripConfirmationsRow from "@/components/tour/TripConfirmationsRow";
 import type { TripInfo } from "@/lib/types";
 
 const HOTLINE_DISPLAY = "(801) 477-8963";
@@ -24,31 +25,35 @@ const linkBtnStyle: React.CSSProperties = {
   ...linkStyle, background: "none", border: "none", padding: 0, marginTop: 4,
   cursor: "pointer", fontSize: 12, fontFamily: "inherit",
 };
-const noteStyle: React.CSSProperties = { color: "#94a3b8", fontSize: 11.5, marginTop: 2 };
 
 interface TripInformationProps {
   info: TripInfo;
-  /** When true (tour host / internal view) show the inline edit affordance. */
+  /** When true (tour host / internal view) show the inline edit affordance + confirmations. */
   isHost?: boolean;
+  /** Tour id — required for the host-only Confirmations row uploads. */
+  tourId?: string;
   /** Persists tour-record fields (contact_name, contact_email, traveling_tour_host, bus_capacity). */
   onSaveTour?: (patch: Record<string, any>) => void | Promise<void>;
+  /** Persists the tour host phone to the logged-in user's tour_hosts record. */
+  onSaveHostPhone?: (phone: string | null) => void | Promise<void>;
   /** Opens the hotel itinerary item's edit modal. Null when no hotel item exists. */
   onEditHotel?: (() => void) | null;
   /** Opens the bus itinerary item's edit modal. Null when no bus item exists. */
   onEditBus?: (() => void) | null;
 }
 
-export default function TripInformation({ info, isHost = false, onSaveTour, onEditHotel, onEditBus }: TripInformationProps) {
+export default function TripInformation({ info, isHost = false, tourId, onSaveTour, onSaveHostPhone, onEditHotel, onEditBus }: TripInformationProps) {
   const [open, setOpen] = useState(true); // expanded by default
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ teacherName: "", teacherEmail: "", tourHostName: "", busCapacity: "" });
+  const [form, setForm] = useState({ teacherName: "", teacherEmail: "", tourHostName: "", tourHostPhone: "", busCapacity: "" });
 
   function startEdit() {
     setForm({
       teacherName: info.teacherName ?? "",
       teacherEmail: info.teacherEmail ?? "",
       tourHostName: info.tourHostName ?? "",
+      tourHostPhone: info.tourHostPhone ?? "",
       busCapacity: info.busCapacity != null ? String(info.busCapacity) : "",
     });
     setOpen(true);
@@ -58,12 +63,15 @@ export default function TripInformation({ info, isHost = false, onSaveTour, onEd
   async function save() {
     setSaving(true);
     try {
-      await onSaveTour?.({
-        contact_name: form.teacherName.trim() || null,
-        contact_email: form.teacherEmail.trim() || null,
-        traveling_tour_host: form.tourHostName.trim() || null,
-        bus_capacity: Number(form.busCapacity) || 0,
-      });
+      await Promise.all([
+        onSaveTour?.({
+          contact_name: form.teacherName.trim() || null,
+          contact_email: form.teacherEmail.trim() || null,
+          traveling_tour_host: form.tourHostName.trim() || null,
+          bus_capacity: Number(form.busCapacity) || 0,
+        }),
+        onSaveHostPhone?.(form.tourHostPhone.trim() || null),
+      ]);
       setEditing(false);
     } finally {
       setSaving(false);
@@ -95,10 +103,8 @@ export default function TripInformation({ info, isHost = false, onSaveTour, onEd
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <input style={inputStyle} value={form.tourHostName} placeholder="Tour host name"
             onChange={e => setForm(f => ({ ...f, tourHostName: e.target.value }))} />
-          <div>
-            {dash(info.tourHostPhone)}
-            <div style={noteStyle}>Edit phone in your profile settings</div>
-          </div>
+          <input style={inputStyle} type="tel" value={form.tourHostPhone} placeholder="Tour host phone"
+            onChange={e => setForm(f => ({ ...f, tourHostPhone: e.target.value }))} />
           <div style={{ color: "#64748b", fontSize: 12 }}>
             Infinity Hotline {HOTLINE_DISPLAY}
           </div>
@@ -162,17 +168,31 @@ export default function TripInformation({ info, isHost = false, onSaveTour, onEd
               <button type="button" onClick={onEditBus} style={linkBtnStyle}>Edit Bus Item →</button>
             </div>
           ) : (
-            <div style={{ color: "#94a3b8" }}>Add a bus travel item with a contact name to populate this field.</div>
+            <div style={{ color: "#94a3b8" }}>Add a bus travel item to populate this field.</div>
           )}
         </div>
+      ) : !info.hasBus ? (
+        <div style={{ color: "#94a3b8" }}>Add a bus travel item to populate this field.</div>
       ) : (
-        <div>
-          {[info.busCompany, info.busCapacity ? `${info.busCapacity} passengers` : null]
-            .filter(Boolean).join(" · ") || "—"}
-        </div>
+        <>
+          <div>{dash(info.busCompany)}</div>
+          {(info.busContactName || info.busContactPhone) && (
+            <div style={{ color: "#64748b" }}>
+              {info.busContactName}
+              {info.busContactName && info.busContactPhone ? " · " : null}
+              {info.busContactPhone && <a href={telHref(info.busContactPhone)} style={linkStyle}>{info.busContactPhone}</a>}
+            </div>
+          )}
+          {info.busCapacity ? <div style={{ color: "#64748b" }}>{info.busCapacity} passengers</div> : null}
+        </>
       ),
     },
   ];
+
+  // Host-only "Confirmations" row appended at the bottom (read + edit mode).
+  if (isHost && tourId) {
+    rows.push({ label: "Confirmations", content: <TripConfirmationsRow tourId={tourId} /> });
+  }
 
   return (
     <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,.04)", marginBottom: 16 }}>
