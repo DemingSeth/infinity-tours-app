@@ -3,7 +3,7 @@
 import { useState } from "react";
 import AgendaRoleView from "@/components/tour/AgendaRoleView";
 import InfinityLogoImg from "@/components/shared/InfinityLogoImg";
-import { BRAND, ROLES, expandStateName, activePersonaKeys, personaLabel, getPersona } from "@/lib/helpers";
+import { BRAND, expandStateName, activePersonaKeys, personaLabel, personaColors, getPersona } from "@/lib/helpers";
 import type { AgendaDayWithItems, Role, AccessCodes, TripInfo } from "@/lib/types";
 
 interface Props {
@@ -109,7 +109,7 @@ export default function PublicTourViewClient({ tourName, tourDestination, tourDa
 
             <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
               {options.map(opt => {
-                const roleInfo = ROLES[opt.viewRole];
+                const c = personaColors(opt.key);
                 const selected = selectedPersona === opt.key;
                 return (
                   <button
@@ -117,16 +117,16 @@ export default function PublicTourViewClient({ tourName, tourDestination, tourDa
                     onClick={() => { setSelectedPersona(opt.key); setCode(""); setError(null); }}
                     style={{
                       display: "flex", alignItems: "center", gap: 12, padding: "10px 14px",
-                      border: `1.5px solid ${selected ? roleInfo.color : "#e2e8f0"}`,
-                      borderRadius: 10, background: selected ? roleInfo.bg : "#fff",
+                      border: `1.5px solid ${selected ? c.color : "#e2e8f0"}`,
+                      borderRadius: 10, background: selected ? c.bg : "#fff",
                       cursor: "pointer", fontFamily: "inherit", textAlign: "left", width: "100%",
                     }}
                   >
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: selected ? roleInfo.color : "#1e293b" }}>{opt.label}</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: selected ? c.color : "#1e293b" }}>{opt.label}</div>
                       <div style={{ fontSize: 11, color: "#94a3b8" }}>{opt.desc}</div>
                     </div>
-                    {selected && <div style={{ width: 8, height: 8, borderRadius: "50%", background: roleInfo.color, flexShrink: 0 }} />}
+                    {selected && <div style={{ width: 8, height: 8, borderRadius: "50%", background: c.color, flexShrink: 0 }} />}
                   </button>
                 );
               })}
