@@ -27,7 +27,7 @@ export default function AgendaImages({
               background: "#f1f5f9",
             }}
           >
-            <Image src={url} alt="Agenda item photo" fill sizes={`${size}px`} style={{ objectFit: "cover" }} />
+            <Image src={url} alt="Itinerary item photo" fill sizes={`${size}px`} style={{ objectFit: "cover" }} />
           </a>
           {onRemove && (
             <button

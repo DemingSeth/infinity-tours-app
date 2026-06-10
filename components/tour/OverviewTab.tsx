@@ -129,8 +129,8 @@ export default function OverviewTab({ tour, members, isOwner, onChange }: Props)
               ["Start Date",       tour.start_date || "—"],
               ["End Date",         tour.end_date || "—"],
               ["Date Flexible",    tour.date_flexible ? "Yes" : "No"],
-              ["Planning Host",    tour.planning_tour_host || "—"],
-              ["Traveling Host",   tour.traveling_tour_host || "—"],
+              ["Tour Consultant",  tour.planning_tour_host || "—"],
+              ["Tour Host",        tour.traveling_tour_host || "—"],
               ["Bus Capacity",     `${tour.bus_capacity ?? 55} seats`],
               ["Boys/Room",        tour.room_config?.boysPerRoom ?? 4],
               ["Girls/Room",       tour.room_config?.girlsPerRoom ?? 4],
@@ -181,10 +181,10 @@ export default function OverviewTab({ tour, members, isOwner, onChange }: Props)
             <Field label="End Date" half>
               <input style={inp} type="date" value={form.end_date || ""} onChange={e => f({ end_date: e.target.value || null })} />
             </Field>
-            <Field label="Planning Host" half>
+            <Field label="Tour Consultant" half>
               <input style={inp} value={form.planning_tour_host} onChange={e => f({ planning_tour_host: e.target.value })} />
             </Field>
-            <Field label="Traveling Host" half>
+            <Field label="Tour Host" half>
               <input style={inp} value={form.traveling_tour_host} onChange={e => f({ traveling_tour_host: e.target.value })} />
             </Field>
             <Field label="Bus Capacity" third>
