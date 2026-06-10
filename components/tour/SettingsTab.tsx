@@ -1,11 +1,63 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
+import Image from "next/image";
+import { createClient } from "@/lib/supabase/client";
 import { BRAND, ROLES, DEFAULT_VISIBILITY } from "@/lib/helpers";
 import { I, Field, Inp, Btn } from "@/components/tour/ui";
 import type { TourRow } from "@/lib/types";
 
 const ROLES_TYPED = ROLES as Record<string, { label: string; color: string; bg: string }>;
+
+// Reuse the existing public storage bucket / upload pattern.
+const STORAGE_BUCKET = "agenda-images";
+
+function BannerUploader({ tour, isOwner, onTourChange }: {
+  tour: TourRow; isOwner: boolean; onTourChange: (patch: Record<string, any>) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  async function handleFile(file: File | undefined) {
+    if (!file) return;
+    setUploading(true);
+    const supabase = createClient();
+    const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const path = `${tour.id}/banner/${Date.now()}-${safe}`;
+    const { error } = await supabase.storage.from(STORAGE_BUCKET).upload(path, file, { cacheControl: "3600", upsert: false });
+    if (error) {
+      console.error("Banner upload failed", error.message);
+    } else {
+      const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+      if (data?.publicUrl) onTourChange({ banner_image_url: data.publicUrl });
+    }
+    setUploading(false);
+    if (inputRef.current) inputRef.current.value = "";
+  }
+
+  return (
+    <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 14, padding: 20 }}>
+      <div style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: 15, fontWeight: 700, color: BRAND.navy, marginBottom: 6 }}>Banner Image</div>
+      <p style={{ fontSize: 12, color: "#64748b", margin: "0 0 12px", lineHeight: 1.6 }}>
+        Shown behind the itinerary header on the shared participant view. Leave empty for the default navy header.
+      </p>
+      {tour.banner_image_url && (
+        <div style={{ position: "relative", width: "100%", height: 130, borderRadius: 10, overflow: "hidden", border: "1px solid #e2e8f0", background: "#f1f5f9", marginBottom: 12 }}>
+          <Image src={tour.banner_image_url} alt="Tour banner" fill sizes="(max-width: 720px) 100vw, 680px" style={{ objectFit: "cover" }} />
+        </div>
+      )}
+      <input ref={inputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => handleFile(e.target.files?.[0])} />
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <Btn onClick={() => inputRef.current?.click()} disabled={!isOwner || uploading}>
+          <I n="upload" s={13} />{uploading ? "Uploading..." : tour.banner_image_url ? "Replace Banner Image" : "Upload Banner Image"}
+        </Btn>
+        {tour.banner_image_url && isOwner && (
+          <Btn variant="muted" onClick={() => onTourChange({ banner_image_url: null })} disabled={uploading}>Remove</Btn>
+        )}
+      </div>
+    </div>
+  );
+}
 
 const VIS_FIELDS = [
   { key: "detail",       label: "Detail / Notes" },
@@ -43,6 +95,9 @@ export default function SettingsTab({ tour, isOwner, onTourChange }: Props) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* Banner Image */}
+      <BannerUploader tour={tour} isOwner={isOwner} onTourChange={onTourChange} />
+
       {/* Room & Bus Configuration */}
       <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 14, padding: 20 }}>
         <div style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: 15, fontWeight: 700, color: BRAND.navy, marginBottom: 12 }}>Room &amp; Bus Configuration</div>

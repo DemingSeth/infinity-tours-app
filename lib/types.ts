@@ -124,6 +124,8 @@ export interface TourRow {
   activities: string[];
   notes: string | null;
   access_codes: AccessCodes;
+  // Optional banner photo shown behind the itinerary header tile. Null → solid navy.
+  banner_image_url: string | null;
   created_at: string;
   updated_at: string;
 }

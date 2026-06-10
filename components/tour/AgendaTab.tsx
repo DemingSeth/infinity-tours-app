@@ -810,6 +810,7 @@ export default function AgendaTab({ tour, days, onDaysChange, onTourChange }: Ag
         tourName={tour.name}
         tourDestination={tour.destination}
         tourDates={tour.dates}
+        bannerUrl={tour.banner_image_url}
         days={days}
         role={previewRole}
         onClose={() => setPreviewRole(null)}

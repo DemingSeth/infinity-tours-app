@@ -11,6 +11,7 @@ interface Props {
   tourName: string;
   tourDestination: string | null;
   tourDates: string | null;
+  tourBannerUrl: string | null;
   accessCodes: AccessCodes;
   days: AgendaDayWithItems[];
 }
@@ -22,7 +23,7 @@ const ROLE_OPTIONS: { role: Role; label: string; description: string }[] = [
   { role: "coordinator", label: "Tour Host",            description: "Full coordinator access" },
 ];
 
-export default function PublicTourViewClient({ tourName, tourDestination, tourDates, accessCodes, days }: Props) {
+export default function PublicTourViewClient({ tourName, tourDestination, tourDates, tourBannerUrl, accessCodes, days }: Props) {
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +48,7 @@ export default function PublicTourViewClient({ tourName, tourDestination, tourDa
           tourName={tourName}
           tourDestination={tourDestination}
           tourDates={tourDates}
+          bannerUrl={tourBannerUrl}
           days={days}
           role={unlocked}
         />
