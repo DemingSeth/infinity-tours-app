@@ -3,6 +3,7 @@
 import Image from "next/image";
 import TypeDot from "@/components/shared/TypeDot";
 import AgendaImages from "@/components/shared/AgendaImages";
+import ItemFeedback from "@/components/tour/ItemFeedback";
 import { BRAND, ROLES, DEFAULT_VISIBILITY, getMapUrl, TRAVEL_METHODS } from "@/lib/helpers";
 import type { AgendaDayWithItems, Role } from "@/lib/types";
 
@@ -19,6 +20,12 @@ interface Props {
 export default function AgendaRoleView({ tourName, tourDestination, tourDates, days, role, onClose, embedded }: Props) {
   const vis = DEFAULT_VISIBILITY[role] as Record<string, boolean>;
   const roleInfo = ROLES[role];
+
+  // Feedback is for participants rating activities. Show it for all participant
+  // roles (student/chaperone, teacher, tour host) and hide it only for the bus
+  // driver. Suppressed in the embedded admin preview so previewing never writes
+  // real feedback rows — coordinators manage feedback from the itinerary editor.
+  const showFeedback = role !== "driver" && !embedded;
 
   return (
     <div style={{ maxWidth: 680, margin: "0 auto" }}>
@@ -178,6 +185,9 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, d
                       )}
                     </div>
                   </div>
+                  {showFeedback && (
+                    <ItemFeedback itemId={item.id} tourId={item.tour_id} role={role} />
+                  )}
                 </div>
               ))}
             </div>
