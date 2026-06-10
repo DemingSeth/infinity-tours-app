@@ -173,6 +173,9 @@ export interface AgendaItemRow {
   stipend_amount: number | null;
   item_visibility: ItemVisibility | null;
   image_urls: string[];
+  // Confirmation documents (PDF or image) linked to this itinerary item.
+  // Stored in the shared agenda-images bucket; display-layer "Confirmations".
+  confirmation_urls: string[];
   created_at: string;
 }
 

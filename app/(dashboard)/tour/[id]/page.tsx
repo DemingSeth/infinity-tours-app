@@ -8,7 +8,7 @@ export default async function TourDetailPage({ params }: { params: Promise<{ id:
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: tour }, { data: members }, { data: days }, { data: postTrip }, { data: postTripReview }, { data: vendors }] = await Promise.all([
+  const [{ data: tour }, { data: members }, { data: days }, { data: postTrip }, { data: postTripReview }] = await Promise.all([
     supabase
       .from("tours")
       .select("*, tour_hosts(id, name, initials, phone, email)")
@@ -34,10 +34,6 @@ export default async function TourDetailPage({ params }: { params: Promise<{ id:
       .select("*")
       .eq("tour_id", id)
       .maybeSingle(),
-    supabase
-      .from("vendors")
-      .select("*")
-      .order("name"),
   ]);
 
   if (!tour) notFound();
@@ -49,7 +45,6 @@ export default async function TourDetailPage({ params }: { params: Promise<{ id:
       initialDays={days ?? []}
       initialPostTrip={postTrip ?? null}
       initialPostTripReview={postTripReview ?? null}
-      vendors={vendors ?? []}
       currentUserId={user.id}
     />
   );

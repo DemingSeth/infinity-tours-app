@@ -14,6 +14,7 @@ import {
   AGENDA_TYPE_COLORS, getAgendaTypeIcon, getSentimentIcon,
 } from "@/components/shared/agendaIcons";
 import AgendaImages from "@/components/shared/AgendaImages";
+import { ConfirmationStatus } from "@/components/tour/ConfirmationsTab";
 import { MapPin, Phone, Bus, Lock, Clock, ImagePlus } from "lucide-react";
 import type {
   TourRow, AgendaDayWithItems, AgendaItemWithFeedback,
@@ -434,6 +435,7 @@ function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onAddFeedback, onRe
           <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", marginBottom: 3 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: BRAND.navy }}>{item.title}</span>
             {travel && <span style={{ fontSize: 10, background: "#eff6ff", color: "#1e40af", borderRadius: 4, padding: "1px 6px", fontWeight: 600 }}>{travel}</span>}
+            <ConfirmationStatus linked={(item.confirmation_urls?.length ?? 0) > 0} />
           </div>
           {item.detail && <div style={{ fontSize: 12, color: "#475569", marginBottom: 3 }}>{item.detail}</div>}
           {item.public_note && (

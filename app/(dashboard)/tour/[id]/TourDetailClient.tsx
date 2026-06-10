@@ -9,7 +9,7 @@ import OverviewTab from "@/components/tour/OverviewTab";
 import InfinityLogoImg from "@/components/shared/InfinityLogoImg";
 import AgendaTab from "@/components/tour/AgendaTab";
 import RosterTab from "@/components/tour/RosterTab";
-import VendorsTab from "@/components/tour/VendorsTab";
+import ConfirmationsTab from "@/components/tour/ConfirmationsTab";
 import PostTripTab from "@/components/tour/PostTripTab";
 import SettingsTab from "@/components/tour/SettingsTab";
 
@@ -21,6 +21,7 @@ const ICONS: Record<string, string> = {
   flag:     "M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7",
   note:     "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2",
   settings: "M12 15a3 3 0 100-6 3 3 0 000 6zm6.93-3c0-.36-.04-.72-.09-1.06l2.3-1.8-2.2-3.8-2.7 1.08A7 7 0 0014 5.43V2.7h-4v2.73a7 7 0 00-2.24 1.27L5.07 5.62 2.87 9.42l2.3 1.8C5.04 11.58 5 11.78 5 12s.04.42.07.62L2.87 14.42l2.2 3.8 2.69-1.08A7 7 0 0010 18.57V21h4v-2.43a7 7 0 002.24-1.27l2.69 1.08 2.2-3.8-2.3-1.8c.05-.34.1-.7.1-1.08z",
+  check:    "M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z",
 };
 
 const I = ({ n, s = 13 }: { n: string; s?: number }) => (
@@ -33,7 +34,7 @@ const TABS = [
   { id: "overview", label: "Overview",  icon: "home"     },
   { id: "agenda",   label: "Itinerary", icon: "map"      },
   { id: "roster",   label: "Roster",    icon: "users"    },
-  { id: "vendors",  label: "Vendors",   icon: "flag"     },
+  { id: "vendors",  label: "Confirmations", icon: "check" },
   { id: "post",     label: "Post-Trip", icon: "note"     },
   { id: "settings", label: "Settings",  icon: "settings" },
 ];
@@ -44,11 +45,10 @@ interface Props {
   initialDays: any[];
   initialPostTrip: any;
   initialPostTripReview: any;
-  vendors: any[];
   currentUserId: string;
 }
 
-export default function TourDetailClient({ tour: initialTour, initialMembers, initialDays, initialPostTrip, initialPostTripReview, vendors, currentUserId }: Props) {
+export default function TourDetailClient({ tour: initialTour, initialMembers, initialDays, initialPostTrip, initialPostTripReview, currentUserId }: Props) {
   const router = useRouter();
   const [tour, setTour] = useState(initialTour);
   const [members, setMembers] = useState(initialMembers);
@@ -60,6 +60,13 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
   const [nameVal, setNameVal] = useState("");
 
   const isOwner = tour.tour_host_id === currentUserId;
+
+  // Count itinerary items with no linked confirmation — surfaced on the
+  // Confirmations tab label so consultants see outstanding work at a glance.
+  const unconfirmedCount = days.reduce(
+    (n, d) => n + d.agenda_items.filter((i: any) => !(i.confirmation_urls?.length)).length,
+    0,
+  );
 
   async function handleTourChange(patch: Record<string, any>) {
     const prevStartDate = tour.start_date;
@@ -159,6 +166,11 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
             }}
           >
             <I n={t.icon} />{t.label}
+            {t.id === "vendors" && unconfirmedCount > 0 && (
+              <span style={{ marginLeft: 2, background: "#f97316", color: "#fff", borderRadius: 10, fontSize: 10, fontWeight: 700, padding: "1px 7px", lineHeight: 1.5 }}>
+                {unconfirmedCount}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -190,7 +202,12 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
         />
       )}
       {tab === "vendors" && (
-        <VendorsTab vendors={vendors} />
+        <ConfirmationsTab
+          tourId={tour.id}
+          days={days}
+          onDaysChange={setDays}
+          isOwner={isOwner}
+        />
       )}
       {tab === "post" && (
         <PostTripTab
