@@ -16,6 +16,7 @@ import {
 } from "@/components/shared/agendaIcons";
 import AgendaImages from "@/components/shared/AgendaImages";
 import { ConfirmationStatus, NoConfirmationToggle } from "@/components/tour/ConfirmationsTab";
+import ItineraryHeaderTile from "@/components/tour/ItineraryHeaderTile";
 import { MapPin, Phone, Bus, Lock, Clock, ImagePlus } from "lucide-react";
 import type {
   TourRow, AgendaDayWithItems, AgendaItemWithFeedback,
@@ -829,6 +830,18 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
 
   return (
     <div>
+      {/* Header tile (incl. banner) — gives the host a live view without
+          entering a preview mode. Mirrors the preview/participant header. */}
+      <ItineraryHeaderTile
+        tourName={tour.name}
+        tourDestination={tour.destination}
+        tourDates={tour.dates}
+        bannerUrl={tour.banner_image_url}
+        badgeLabel="Tour Host"
+        badgeBg={ROLES_TYPED.coordinator.bg}
+        badgeColor={ROLES_TYPED.coordinator.color}
+      />
+
       {/* Preview role buttons — primary action, prominent at the top */}
       {days.length > 0 && (
         <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 12, padding: 16, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
