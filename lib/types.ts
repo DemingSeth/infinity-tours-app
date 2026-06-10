@@ -179,6 +179,13 @@ export interface AgendaItemRow {
   // Confirmation documents (PDF or image) linked to this itinerary item.
   // Stored in the shared agenda-images bucket; display-layer "Confirmations".
   confirmation_urls: string[];
+  // When true, the host has intentionally marked this item as not needing a
+  // confirmation, so it is not flagged as "Unconfirmed" or counted in the badge.
+  // FUTURE PHASE: auto-default this by item type/sub-type — confirmation-bearing
+  // travel/lodging (Flight, Hotel, Bus, Cruise, Ferry) → false (flag for action),
+  // while Meeting Point, Break, Walking, and Free Time → true (no confirmation
+  // expected). Not implemented yet; the data model already supports it.
+  confirmation_not_required: boolean;
   created_at: string;
 }
 

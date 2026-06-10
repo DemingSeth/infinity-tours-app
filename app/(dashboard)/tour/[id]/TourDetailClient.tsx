@@ -63,8 +63,10 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
 
   // Count itinerary items with no linked confirmation — surfaced on the
   // Confirmations tab label so consultants see outstanding work at a glance.
+  // Count only genuinely outstanding items: no confirmation linked AND not
+  // marked "no confirmation required".
   const unconfirmedCount = days.reduce(
-    (n, d) => n + d.agenda_items.filter((i: any) => !(i.confirmation_urls?.length)).length,
+    (n, d) => n + d.agenda_items.filter((i: any) => !(i.confirmation_urls?.length) && !i.confirmation_not_required).length,
     0,
   );
 

@@ -15,7 +15,7 @@ import {
   TRAVEL_SUBTYPE_ICONS, ACTIVITY_SUBTYPE_ICONS,
 } from "@/components/shared/agendaIcons";
 import AgendaImages from "@/components/shared/AgendaImages";
-import { ConfirmationStatus } from "@/components/tour/ConfirmationsTab";
+import { ConfirmationStatus, NoConfirmationToggle } from "@/components/tour/ConfirmationsTab";
 import { MapPin, Phone, Bus, Lock, Clock, ImagePlus } from "lucide-react";
 import type {
   TourRow, AgendaDayWithItems, AgendaItemWithFeedback,
@@ -240,6 +240,7 @@ type ItemFormState = {
   public_note: string; address: string; map_link: string; website: string;
   travel_method: TravelMethod; contact_name: string; contact_phone: string;
   contact_email: string; cost: string; cost_paid: boolean;
+  confirmation_not_required: boolean;
   driver_note: string; internal_note: string;
   meal_pay_type: MealPayType; stipend_amount: string;
   image_urls: string[];
@@ -249,7 +250,7 @@ const BLANK: ItemFormState = {
   time: "", type: "activity", activity_subtype: "", title: "", detail: "", public_note: "",
   address: "", map_link: "", website: "", travel_method: "",
   contact_name: "", contact_phone: "", contact_email: "",
-  cost: "", cost_paid: false, driver_note: "", internal_note: "",
+  cost: "", cost_paid: false, confirmation_not_required: false, driver_note: "", internal_note: "",
   meal_pay_type: "", stipend_amount: "", image_urls: [],
 };
 
@@ -427,9 +428,15 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
         <Field label="Driver Note" half>
           <Inp value={form.driver_note} onChange={e => f({ driver_note: e.target.value })} placeholder="Drop at main entrance..." />
         </Field>
-        <div style={{ width: "100%", display: "flex", alignItems: "center", gap: 8 }}>
-          <input type="checkbox" id="cpaid" checked={form.cost_paid} onChange={e => f({ cost_paid: e.target.checked })} style={{ accentColor: BRAND.navy }} />
-          <label htmlFor="cpaid" style={{ fontSize: 12, cursor: "pointer" }}>Cost paid / confirmed</label>
+        <div style={{ width: "100%", display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <input type="checkbox" id="cpaid" checked={form.cost_paid} onChange={e => f({ cost_paid: e.target.checked })} style={{ accentColor: BRAND.navy }} />
+            <label htmlFor="cpaid" style={{ fontSize: 12, cursor: "pointer" }}>Cost paid / confirmed</label>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <input type="checkbox" id="cnotreq" checked={form.confirmation_not_required} onChange={e => f({ confirmation_not_required: e.target.checked })} style={{ accentColor: BRAND.navy }} />
+            <label htmlFor="cnotreq" style={{ fontSize: 12, cursor: "pointer" }}>No confirmation required</label>
+          </div>
         </div>
       </div>
 
@@ -467,9 +474,10 @@ function ActionButton({ title, onClick, active, danger, children }: {
   );
 }
 
-function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onAddFeedback, onRemoveImage }: {
+function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onToggleNotRequired, onAddFeedback, onRemoveImage }: {
   item: AgendaItemWithFeedback;
   onEdit: () => void; onRemove: () => void; onToggleCostPaid: () => void;
+  onToggleNotRequired: (next: boolean) => void;
   onAddFeedback: (text: string, role: string, sentiment: string) => void;
   onRemoveImage: (url: string) => void;
 }) {
@@ -491,7 +499,10 @@ function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onAddFeedback, onRe
           <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", marginBottom: 3 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: BRAND.navy }}>{item.title}</span>
             {travel && <span style={{ fontSize: 10, background: "#eff6ff", color: "#1e40af", borderRadius: 4, padding: "1px 6px", fontWeight: 600 }}>{travel}</span>}
-            <ConfirmationStatus linked={(item.confirmation_urls?.length ?? 0) > 0} />
+            <ConfirmationStatus linked={(item.confirmation_urls?.length ?? 0) > 0} notRequired={item.confirmation_not_required} />
+            {(item.confirmation_urls?.length ?? 0) === 0 && (
+              <NoConfirmationToggle checked={!!item.confirmation_not_required} onChange={onToggleNotRequired} />
+            )}
           </div>
           {item.detail && <div style={{ fontSize: 12, color: "#475569", marginBottom: 3 }}>{item.detail}</div>}
           {item.public_note && (
@@ -654,7 +665,7 @@ export default function AgendaTab({ tour, days, onDaysChange, onTourChange }: Ag
       website: f.website || null, travel_method: f.travel_method || null,
       contact_name: f.contact_name || null, contact_phone: f.contact_phone || null,
       contact_email: f.contact_email || null, cost: parseFloat(f.cost) || 0,
-      cost_paid: f.cost_paid, driver_note: f.driver_note || null,
+      cost_paid: f.cost_paid, confirmation_not_required: f.confirmation_not_required, driver_note: f.driver_note || null,
       internal_note: f.internal_note || null,
       meal_pay_type: f.meal_pay_type || null,
       stipend_amount: f.stipend_amount ? parseFloat(f.stipend_amount) : null,
@@ -672,7 +683,7 @@ export default function AgendaTab({ tour, days, onDaysChange, onTourChange }: Ag
       contact_name: item.contact_name || "", contact_phone: item.contact_phone || "",
       contact_email: item.contact_email || "",
       cost: item.cost > 0 ? String(item.cost) : "",
-      cost_paid: item.cost_paid, driver_note: item.driver_note || "",
+      cost_paid: item.cost_paid, confirmation_not_required: !!item.confirmation_not_required, driver_note: item.driver_note || "",
       internal_note: item.internal_note || "",
       meal_pay_type: item.meal_pay_type || "",
       stipend_amount: item.stipend_amount ? String(item.stipend_amount) : "",
@@ -772,6 +783,12 @@ export default function AgendaTab({ tour, days, onDaysChange, onTourChange }: Ag
     const supabase = createClient();
     await supabase.from("agenda_items").update({ cost_paid: !item.cost_paid }).eq("id", item.id);
     onDaysChange(days.map(d => d.id === dayId ? { ...d, agenda_items: d.agenda_items.map(i => i.id === item.id ? { ...i, cost_paid: !i.cost_paid } : i) } : d));
+  }
+
+  async function toggleNotRequired(dayId: string, item: AgendaItemWithFeedback, next: boolean) {
+    const supabase = createClient();
+    await supabase.from("agenda_items").update({ confirmation_not_required: next }).eq("id", item.id);
+    onDaysChange(days.map(d => d.id === dayId ? { ...d, agenda_items: d.agenda_items.map(i => i.id === item.id ? { ...i, confirmation_not_required: next } : i) } : d));
   }
 
   async function addFeedback(dayId: string, itemId: string, text: string, role: string, sentiment: string) {
@@ -937,6 +954,7 @@ export default function AgendaTab({ tour, days, onDaysChange, onTourChange }: Ag
                       onEdit={() => { setEditCtx({ dayId: day.id, itemId: item.id }); setEditForm(itemToForm(item)); }}
                       onRemove={() => removeItem(day.id, item.id)}
                       onToggleCostPaid={() => toggleCostPaid(day.id, item)}
+                      onToggleNotRequired={next => toggleNotRequired(day.id, item, next)}
                       onAddFeedback={(text, role, sentiment) => addFeedback(day.id, item.id, text, role, sentiment)}
                       onRemoveImage={url => removeItemImage(day.id, item, url)}
                     />

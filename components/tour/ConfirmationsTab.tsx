@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { CheckCircle2, FileText, ImageIcon, Upload, X } from "lucide-react";
+import { CheckCircle2, FileText, ImageIcon, MinusCircle, Upload, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { BRAND } from "@/lib/helpers";
 import TypeDot from "@/components/shared/TypeDot";
@@ -34,21 +34,20 @@ interface Props {
 }
 
 export default function ConfirmationsTab({ tourId, days, onDaysChange, isOwner }: Props) {
-  const totalItems = days.reduce((n, d) => n + d.agenda_items.length, 0);
-  const confirmed = days.reduce(
-    (n, d) => n + d.agenda_items.filter(i => (i.confirmation_urls?.length ?? 0) > 0).length,
-    0,
-  );
-  const unconfirmed = totalItems - confirmed;
+  const allItems = days.flatMap(d => d.agenda_items);
+  const confirmed = allItems.filter(i => (i.confirmation_urls?.length ?? 0) > 0).length;
+  const notRequired = allItems.filter(i => !(i.confirmation_urls?.length) && i.confirmation_not_required).length;
+  // Only genuinely outstanding items — excludes those marked "no confirmation required".
+  const unconfirmed = allItems.length - confirmed - notRequired;
 
-  function patchItem(itemId: string, confirmation_urls: string[]) {
+  function patchItem(itemId: string, patch: Partial<AgendaItemWithFeedback>) {
     onDaysChange(days.map(d => ({
       ...d,
-      agenda_items: d.agenda_items.map(i => i.id === itemId ? { ...i, confirmation_urls } : i),
+      agenda_items: d.agenda_items.map(i => i.id === itemId ? { ...i, ...patch } : i),
     })));
   }
 
-  if (totalItems === 0) {
+  if (allItems.length === 0) {
     return (
       <div style={{ background: "#f8fafc", border: "2px dashed #e2e8f0", borderRadius: 12, padding: "40px 20px", textAlign: "center", color: "#94a3b8", fontSize: 13 }}>
         No itinerary items yet. Add items on the Itinerary tab to start linking confirmations.
@@ -68,6 +67,10 @@ export default function ConfirmationsTab({ tourId, days, onDaysChange, isOwner }
           <div style={{ fontSize: 11, fontWeight: 700, color: "#c2410c", textTransform: "uppercase", letterSpacing: 0.5 }}>Unconfirmed</div>
           <div style={{ fontSize: 24, fontWeight: 800, color: "#ea580c", fontFamily: "'Cormorant Garamond',Georgia,serif" }}>{unconfirmed}</div>
         </div>
+        <div style={{ flex: 1, minWidth: 160, background: "#f8fafc", border: "1.5px solid #e2e8f0", borderRadius: 12, padding: "12px 16px" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.5 }}>No Confirmation Needed</div>
+          <div style={{ fontSize: 24, fontWeight: 800, color: "#64748b", fontFamily: "'Cormorant Garamond',Georgia,serif" }}>{notRequired}</div>
+        </div>
       </div>
 
       {days.map(day => (
@@ -86,7 +89,7 @@ export default function ConfirmationsTab({ tourId, days, onDaysChange, isOwner }
                 item={item}
                 isOwner={isOwner}
                 topBorder={idx > 0}
-                onChange={urls => patchItem(item.id, urls)}
+                onPatch={patch => patchItem(item.id, patch)}
               />
             ))
           )}
@@ -96,17 +99,23 @@ export default function ConfirmationsTab({ tourId, days, onDaysChange, isOwner }
   );
 }
 
-function ConfirmationRow({ tourId, item, isOwner, topBorder, onChange }: {
+function ConfirmationRow({ tourId, item, isOwner, topBorder, onPatch }: {
   tourId: string;
   item: AgendaItemWithFeedback;
   isOwner: boolean;
   topBorder: boolean;
-  onChange: (urls: string[]) => void;
+  onPatch: (patch: Partial<AgendaItemWithFeedback>) => void;
 }) {
   const urls = item.confirmation_urls ?? [];
   const linked = urls.length > 0;
+  const notRequired = !!item.confirmation_not_required;
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  async function toggleNotRequired(next: boolean) {
+    await createClient().from("agenda_items").update({ confirmation_not_required: next }).eq("id", item.id);
+    onPatch({ confirmation_not_required: next });
+  }
 
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
@@ -124,7 +133,7 @@ function ConfirmationRow({ tourId, item, isOwner, topBorder, onChange }: {
     if (added.length) {
       const next = [...urls, ...added];
       await supabase.from("agenda_items").update({ confirmation_urls: next }).eq("id", item.id);
-      onChange(next);
+      onPatch({ confirmation_urls: next });
     }
     setUploading(false);
     if (inputRef.current) inputRef.current.value = "";
@@ -134,7 +143,7 @@ function ConfirmationRow({ tourId, item, isOwner, topBorder, onChange }: {
     const next = urls.filter(u => u !== url);
     const supabase = createClient();
     await supabase.from("agenda_items").update({ confirmation_urls: next }).eq("id", item.id);
-    onChange(next);
+    onPatch({ confirmation_urls: next });
     const path = storagePathFromUrl(url);
     if (path) { try { await supabase.storage.from(STORAGE_BUCKET).remove([path]); } catch {} }
   }
@@ -146,9 +155,12 @@ function ConfirmationRow({ tourId, item, isOwner, topBorder, onChange }: {
       </div>
       <TypeDot type={item.type} travelMethod={item.travel_method} subtype={item.activity_subtype} size={28} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <span style={{ fontSize: 13, fontWeight: 700, color: BRAND.navy }}>{item.title}</span>
-          <ConfirmationStatus linked={linked} />
+          <ConfirmationStatus linked={linked} notRequired={notRequired} />
+          {isOwner && !linked && (
+            <NoConfirmationToggle checked={notRequired} onChange={toggleNotRequired} />
+          )}
         </div>
 
         {/* Linked confirmation files */}
@@ -187,8 +199,12 @@ function ConfirmationRow({ tourId, item, isOwner, topBorder, onChange }: {
   );
 }
 
-// Shared status indicator: green check when linked, orange dot when not.
-export function ConfirmationStatus({ linked, size = 14 }: { linked: boolean; size?: number }) {
+// Shared status indicator: green check when a confirmation is linked, a neutral
+// gray "N/A" when the host marked it as not required, otherwise orange
+// "Unconfirmed".
+export function ConfirmationStatus({ linked, notRequired, size = 14 }: {
+  linked: boolean; notRequired?: boolean; size?: number;
+}) {
   if (linked) {
     return (
       <span title="Confirmation linked" style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "#16a34a", fontSize: 11, fontWeight: 700 }}>
@@ -196,9 +212,30 @@ export function ConfirmationStatus({ linked, size = 14 }: { linked: boolean; siz
       </span>
     );
   }
+  if (notRequired) {
+    return (
+      <span title="No confirmation needed for this item" style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "#64748b", fontSize: 11, fontWeight: 700 }}>
+        <MinusCircle size={size} />N/A
+      </span>
+    );
+  }
   return (
     <span title="No confirmation linked" style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "#ea580c", fontSize: 11, fontWeight: 700 }}>
       <span style={{ width: size - 6, height: size - 6, borderRadius: "50%", background: "#f97316", flexShrink: 0 }} />Unconfirmed
     </span>
+  );
+}
+
+// Small inline checkbox (host-only) for marking an item as not needing a
+// confirmation. Shown next to the "Unconfirmed"/"N/A" indicator.
+export function NoConfirmationToggle({ checked, onChange }: {
+  checked: boolean; onChange: (next: boolean) => void;
+}) {
+  return (
+    <label style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, color: "#64748b", cursor: "pointer", fontWeight: 600 }}>
+      <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)}
+        style={{ accentColor: BRAND.navy, width: 13, height: 13, cursor: "pointer" }} />
+      No confirmation needed
+    </label>
   );
 }
