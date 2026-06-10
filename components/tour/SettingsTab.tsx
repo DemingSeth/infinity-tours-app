@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
-import { BRAND, ROLES, DEFAULT_VISIBILITY, PERSONAS, activePersonaKeys } from "@/lib/helpers";
+import { BRAND, ROLES, DEFAULT_VISIBILITY, PERSONAS, activePersonaKeys, personaColors } from "@/lib/helpers";
 import { I, Field, Inp, Btn } from "@/components/tour/ui";
 import FocalPointPicker from "@/components/tour/FocalPointPicker";
 import BannerLibraryPicker from "@/components/tour/BannerLibraryPicker";
@@ -123,6 +123,29 @@ function PersonaConfig({ tour, isOwner, onTourChange, onPersonaAdded }: {
   const active = activePersonaKeys(tour.active_personas);
   const labels = (tour.persona_labels || {}) as Record<string, string>;
   const [draft, setDraft] = useState<Record<string, string>>({ ...labels });
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Persist the full label set (dropping blanks) so preview buttons / access
+  // codes / badges everywhere update from tour.persona_labels.
+  function persistDraft(d: Record<string, string>) {
+    const next: Record<string, string> = {};
+    for (const [k, v] of Object.entries(d)) { const t = v.trim(); if (t) next[k] = t; }
+    onTourChange({ persona_labels: next });
+  }
+  // Debounce while typing, and flush immediately on blur (so a quick tab switch
+  // can't lose an edit).
+  function onLabelChange(key: string, value: string) {
+    setDraft(prev => {
+      const d = { ...prev, [key]: value };
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      saveTimer.current = setTimeout(() => persistDraft(d), 400);
+      return d;
+    });
+  }
+  function onLabelBlur() {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    persistDraft(draft);
+  }
 
   function toggle(key: string) {
     const p = PERSONAS.find(x => x.key === key);
@@ -135,13 +158,6 @@ function PersonaConfig({ tour, isOwner, onTourChange, onPersonaAdded }: {
       createClient().rpc("add_persona_visibility", { p_tour: tour.id, p_key: key });
       onPersonaAdded(key);
     }
-  }
-
-  function saveLabel(key: string) {
-    const v = (draft[key] ?? "").trim();
-    const next = { ...labels };
-    if (v) next[key] = v; else delete next[key];
-    onTourChange({ persona_labels: next });
   }
 
   return (
@@ -163,14 +179,15 @@ function PersonaConfig({ tour, isOwner, onTourChange, onPersonaAdded }: {
                 title={p.locked ? "Tour Host is always on" : undefined}
                 style={{ accentColor: BRAND.navy, width: 16, height: 16, cursor: p.locked || !isOwner ? "default" : "pointer", flexShrink: 0 }}
               />
-              <div style={{ width: 96, flexShrink: 0, fontSize: 12.5, fontWeight: 700, color: on ? BRAND.navy : "#94a3b8" }}>
+              <span style={{ width: 10, height: 10, borderRadius: "50%", background: personaColors(p.key).color, flexShrink: 0 }} title={`${p.default} color`} />
+              <div style={{ width: 92, flexShrink: 0, fontSize: 12.5, fontWeight: 700, color: on ? BRAND.navy : "#94a3b8" }}>
                 {p.default}{p.locked && <span style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8" }}> 🔒</span>}
               </div>
               <Inp
                 value={draft[p.key] ?? ""}
                 placeholder={`Label (default: ${p.default})`}
-                onChange={e => setDraft(d => ({ ...d, [p.key]: e.target.value }))}
-                onBlur={() => saveLabel(p.key)}
+                onChange={e => onLabelChange(p.key, e.target.value)}
+                onBlur={onLabelBlur}
                 disabled={!isOwner}
                 style={{ flex: 1, padding: "6px 10px", fontSize: 12 }}
               />
