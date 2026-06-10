@@ -253,6 +253,26 @@ export interface PostTripReviewRow {
   submitted_at: string;
 }
 
+// Resolved "Trip Information" summary shown at the top of the itinerary view.
+export interface TripInfo {
+  teacherName: string | null;
+  teacherEmail: string | null;
+  tourHostName: string | null;
+  tourHostPhone: string | null;
+  performingStudents: number;
+  chaperones: number;
+  siblings: number;
+  tourHosts: number;
+  totalParticipants: number;
+  departure: string | null; // raw start date
+  returnDate: string | null; // raw end date
+  hotelName: string | null;
+  hotelAddress: string | null;
+  hotelRooms: string | null;
+  busCompany: string | null;
+  busCapacity: number | null;
+}
+
 // ─── App-level types (with relations) ─────────────────────────────────────────
 
 export interface TourWithRelations extends TourRow {

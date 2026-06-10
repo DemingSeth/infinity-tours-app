@@ -4,7 +4,7 @@ import { useState } from "react";
 import AgendaRoleView from "@/components/tour/AgendaRoleView";
 import InfinityLogoImg from "@/components/shared/InfinityLogoImg";
 import { BRAND, ROLES, expandStateName } from "@/lib/helpers";
-import type { AgendaDayWithItems, Role, AccessCodes } from "@/lib/types";
+import type { AgendaDayWithItems, Role, AccessCodes, TripInfo } from "@/lib/types";
 
 interface Props {
   tourId: string;
@@ -12,6 +12,7 @@ interface Props {
   tourDestination: string | null;
   tourDates: string | null;
   tourBannerUrl: string | null;
+  tripInfo: TripInfo | null;
   accessCodes: AccessCodes;
   days: AgendaDayWithItems[];
 }
@@ -23,7 +24,7 @@ const ROLE_OPTIONS: { role: Role; label: string; description: string }[] = [
   { role: "coordinator", label: "Tour Host",            description: "Full coordinator access" },
 ];
 
-export default function PublicTourViewClient({ tourName, tourDestination, tourDates, tourBannerUrl, accessCodes, days }: Props) {
+export default function PublicTourViewClient({ tourName, tourDestination, tourDates, tourBannerUrl, tripInfo, accessCodes, days }: Props) {
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -49,6 +50,7 @@ export default function PublicTourViewClient({ tourName, tourDestination, tourDa
           tourDestination={tourDestination}
           tourDates={tourDates}
           bannerUrl={tourBannerUrl}
+          tripInfo={tripInfo}
           days={days}
           role={unlocked}
         />

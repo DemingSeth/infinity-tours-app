@@ -4,21 +4,23 @@ import Image from "next/image";
 import TypeDot from "@/components/shared/TypeDot";
 import AgendaImages from "@/components/shared/AgendaImages";
 import ItemFeedback from "@/components/tour/ItemFeedback";
+import TripInformation from "@/components/tour/TripInformation";
 import { BRAND, ROLES, DEFAULT_VISIBILITY, getMapUrl, TRAVEL_METHODS, expandStateName } from "@/lib/helpers";
-import type { AgendaDayWithItems, Role } from "@/lib/types";
+import type { AgendaDayWithItems, Role, TripInfo } from "@/lib/types";
 
 interface Props {
   tourName: string;
   tourDestination?: string | null;
   tourDates?: string | null;
   bannerUrl?: string | null;
+  tripInfo?: TripInfo | null;
   days: AgendaDayWithItems[];
   role: Role;
   onClose?: () => void;
   embedded?: boolean;
 }
 
-export default function AgendaRoleView({ tourName, tourDestination, tourDates, bannerUrl, days, role, onClose, embedded }: Props) {
+export default function AgendaRoleView({ tourName, tourDestination, tourDates, bannerUrl, tripInfo, days, role, onClose, embedded }: Props) {
   const vis = DEFAULT_VISIBILITY[role] as Record<string, boolean>;
   const roleInfo = ROLES[role];
 
@@ -80,6 +82,9 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
           )}
         </div>
       </div>
+
+      {/* Trip Information — shown to all roles, expanded by default, above Day 1. */}
+      {tripInfo && <TripInformation info={tripInfo} />}
 
       {days.length === 0 && (
         <div style={{ background: "#f8fafc", border: "2px dashed #e2e8f0", borderRadius: 12, padding: "40px 20px", textAlign: "center", color: "#94a3b8", fontSize: 13 }}>

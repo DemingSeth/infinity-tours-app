@@ -191,6 +191,7 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
         <AgendaTab
           tour={tour}
           days={days}
+          members={members}
           isOwner={isOwner}
           onDaysChange={setDays}
           onTourChange={handleTourChange}

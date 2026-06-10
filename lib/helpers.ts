@@ -1,4 +1,4 @@
-import type { TourMemberRow, RoomConfig } from "@/lib/types";
+import type { TourMemberRow, RoomConfig, TripInfo } from "@/lib/types";
 
 // ─── Brand ────────────────────────────────────────────────────────────────────
 
@@ -121,6 +121,67 @@ export function expandStateName(dest: string | null | undefined): string {
     return parts.join(",");
   }
   return dest;
+}
+
+// ─── Trip Information ─────────────────────────────────────────────────────────
+
+// Spell a DATE column out in full, e.g. "Saturday, June 14, 2026".
+export function formatFullDate(value: string | null | undefined): string {
+  const d = parseISODate(value);
+  if (!d) return "—";
+  return d.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+}
+
+// Resolve the Trip Information summary from the tour record, roster, itinerary
+// items (hotel/bus), and host contact. Tolerant of missing data — callers render
+// fallback dashes rather than hiding the section.
+export function buildTripInfo({ tour, members, days, hostName, hostPhone }: {
+  tour: any;
+  members: { type?: string | null }[];
+  days: { agenda_items?: { type?: string | null; travel_method?: string | null; title?: string | null; address?: string | null; contact_name?: string | null }[] }[];
+  hostName?: string | null;
+  hostPhone?: string | null;
+}): TripInfo {
+  const items = (days ?? []).flatMap(d => d.agenda_items ?? []);
+  const m = members ?? [];
+
+  // Hotel: prefer a "Check In - <Name>" style item (carries the real hotel
+  // name), else the first hotel item. Strip the leading action verb so we show
+  // the hotel name rather than "Arrive at Hotel".
+  const hotelItems = items.filter(i => i.type === "hotel");
+  const hotel = hotelItems.find(i => /[-–]/.test(i.title ?? "")) ?? hotelItems[0];
+  const stripAction = (s: string) =>
+    s.replace(/^\s*(check[\s-]*in|check[\s-]*out|arrive(?:\s+at)?|arrival(?:\s+at)?|depart(?:\s+for)?|return(?:\s+to)?|load\s+bus.*?depart(?:\s+for)?|meet.*?depart(?:\s+for)?)\b[\s:–-]*/i, "").trim();
+  const hotelName = hotel?.title ? (stripAction(hotel.title) || hotel.title) : null;
+
+  // Bus: company name only comes from a charter vendor's contact field — item
+  // titles are trip legs, not company names. Capacity is on the tour record.
+  const busItems = items.filter(i => i.travel_method === "bus");
+  const busCompany = busItems.map(i => i.contact_name).find(Boolean) ?? null;
+
+  const rc = (tour?.room_config as RoomConfig | null) || null;
+  const roomBits: string[] = [];
+  if (rc?.boysPerRoom) roomBits.push(`${rc.boysPerRoom} boys/room`);
+  if (rc?.girlsPerRoom) roomBits.push(`${rc.girlsPerRoom} girls/room`);
+
+  return {
+    teacherName: tour?.contact_name || null,
+    teacherEmail: tour?.contact_email || null,
+    tourHostName: tour?.traveling_tour_host || hostName || null,
+    tourHostPhone: hostPhone || null,
+    performingStudents: m.filter(x => x.type === "student").length,
+    chaperones: m.filter(x => x.type === "chaperone").length,
+    siblings: m.filter(x => x.type === "sibling").length, // no dedicated type yet → 0
+    tourHosts: m.filter(x => x.type === "tour-host").length,
+    totalParticipants: m.length,
+    departure: tour?.start_date || null,
+    returnDate: tour?.end_date || null,
+    hotelName: hotelName || null,
+    hotelAddress: hotel?.address || null,
+    hotelRooms: roomBits.length ? roomBits.join(" · ") : null,
+    busCompany,
+    busCapacity: tour?.bus_capacity ?? null,
+  };
 }
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────

@@ -7,7 +7,7 @@ import TypeDot from "@/components/shared/TypeDot";
 import {
   BRAND, ROLES, AGENDA_TYPES, TRAVEL_METHODS, TRAVEL_SUBTYPES, ACTIVITY_SUBTYPES,
   isDayInPast, parseAgendaDate, formatAgendaDate, suggestNextDate,
-  toDateInput, getMapUrl, fmt$,
+  toDateInput, getMapUrl, fmt$, buildTripInfo,
 } from "@/lib/helpers";
 import AgendaRoleView from "@/components/tour/AgendaRoleView";
 import {
@@ -620,12 +620,13 @@ function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onToggleNotRequired
 interface AgendaTabProps {
   tour: TourRow;
   days: AgendaDayWithItems[];
+  members: { type?: string | null }[];
   isOwner: boolean;
   onDaysChange: (days: AgendaDayWithItems[]) => void;
   onTourChange: (patch: Record<string, any>) => void;
 }
 
-export default function AgendaTab({ tour, days, onDaysChange, onTourChange }: AgendaTabProps) {
+export default function AgendaTab({ tour, days, members, onDaysChange, onTourChange }: AgendaTabProps) {
   const [showAddDay, setShowAddDay] = useState(false);
   const [newDayDate, setNewDayDate] = useState("");
   const [addMultiple, setAddMultiple] = useState(false);
@@ -811,6 +812,13 @@ export default function AgendaTab({ tour, days, onDaysChange, onTourChange }: Ag
         tourDestination={tour.destination}
         tourDates={tour.dates}
         bannerUrl={tour.banner_image_url}
+        tripInfo={buildTripInfo({
+          tour,
+          members,
+          days,
+          hostName: (tour as any).tour_hosts?.name ?? null,
+          hostPhone: (tour as any).tour_hosts?.phone ?? null,
+        })}
         days={days}
         role={previewRole}
         onClose={() => setPreviewRole(null)}
