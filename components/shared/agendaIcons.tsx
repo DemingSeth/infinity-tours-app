@@ -1,8 +1,8 @@
 "use client";
 
 import {
-  Plane, Bus, TrainFront, CarTaxiFront, TramFront, Sailboat, Ship, Footprints,
-  RollerCoaster, Music, Hotel, Armchair, Coffee, MapPin,
+  Plane, Bus, TrainFront, CarTaxiFront, TramFront, Sailboat, Ship,
+  RollerCoaster, Music, Hotel, Armchair, MapPin,
   Smile, Meh, Frown, type LucideIcon,
 } from "lucide-react";
 
@@ -35,12 +35,17 @@ function Svg({ size = 24, strokeWidth = 2, color = "currentColor", style, classN
 function FantasyCastle(props: IconProps) {
   return (
     <Svg {...props}>
-      {/* Outline: left tower → wall → central spire tower → wall → right tower */}
-      <path d="M3 21 L3 9 L4 9 L4 10 L6 10 L6 9 L7 9 L7 13 L9 13 L9 8 L12 3 L15 8 L15 13 L17 13 L17 9 L18 9 L18 10 L20 10 L20 9 L21 9 L21 21 Z" />
-      {/* Arched gate */}
-      <path d="M10.5 21 L10.5 17.5 Q12 16 13.5 17.5 L13.5 21" />
-      {/* Pennant on the central spire */}
-      <path d="M12 3 L12 1.6 L13.7 2.2 L12 2.8" />
+      {/* Filled silhouette. Base wall with an arched gate carved out (evenodd),
+          two short pointed side turrets, and a central tower topped by a tall
+          thin spire flanked by two mini turrets — reads as a fairy-tale castle. */}
+      <path fill="currentColor" stroke="none" fillRule="evenodd"
+        d="M4 21 L4 12 L20 12 L20 21 Z M10.2 21 L10.2 16.5 Q12 14.3 13.8 16.5 L13.8 21 Z" />
+      <path fill="currentColor" stroke="none" d="M4.5 12 L4.5 9.5 L4 9.5 L6 6.3 L8 9.5 L7.5 9.5 L7.5 12 Z" />
+      <path fill="currentColor" stroke="none" d="M16.5 12 L16.5 9.5 L16 9.5 L18 6.3 L20 9.5 L19.5 9.5 L19.5 12 Z" />
+      <path fill="currentColor" stroke="none" d="M9 12 L9 8.6 L15 8.6 L15 12 Z" />
+      <path fill="currentColor" stroke="none" d="M9 8.6 L9 7 L9.7 6 L10.4 7 L10.4 8.6 Z" />
+      <path fill="currentColor" stroke="none" d="M13.6 8.6 L13.6 7 L14.3 6 L15 7 L15 8.6 Z" />
+      <path fill="currentColor" stroke="none" d="M10.6 8.6 L12 1.5 L13.4 8.6 Z" />
     </Svg>
   );
 }
@@ -67,24 +72,51 @@ function BeachUmbrella(props: IconProps) {
   );
 }
 
-// Clinic — treble clef.
+// Clinic (music clinic) — treble clef / G clef, filled silhouette.
 function TrebleClef(props: IconProps) {
   return (
     <Svg {...props}>
-      <path d="M13.5 3.5c-2.8 1-4.5 3.3-4.5 6.2 0 4.6 5 6.4 5 10.8a2.8 2.8 0 1 1-2.6-2.8" />
-      <path d="M11.2 9.2c3.6-.8 5.8 1.3 5.8 3.8a3.3 3.3 0 0 1-3.3 3.3" />
+      <path fill="currentColor" stroke="none" d="M14 2.6c-1.9.8-3.1 2.7-3.1 4.9 0 1.2.3 2.4.7 3.6-2 1.3-3.4 3.1-3.4 5.4 0 2.7 2.1 4.8 4.8 4.8.4 0 .8 0 1.2-.1.2 1.1.3 1.9.3 2.5 0 1.5-.8 2.3-1.9 2.3-.5 0-1-.2-1.3-.5.8-.1 1.4-.7 1.4-1.5 0-.9-.7-1.6-1.7-1.6s-1.9.8-1.9 2c0 1.5 1.4 2.8 3.5 2.8 2.2 0 3.6-1.6 3.6-3.9 0-.7-.1-1.6-.3-2.7 1.5-.7 2.5-2.1 2.5-3.8 0-1.9-1.4-3.5-3.3-3.7l-.4-2.7c1.5-1.3 2.4-2.8 2.4-4.5 0-1.6-.8-3-1.9-3.6zm.2 1.9c.4.3.6.8.6 1.5 0 1-.5 1.9-1.4 2.7l-.3-1.9c0-1.2.5-2.1 1.1-2.3zm-1.7 8.4c.3 0 .6 0 .9.1l.6 3.9c-.3.1-.6.1-.9.1-1.4 0-2.5-1.1-2.5-2.5 0-.8.4-1.4.9-1.7.3.1.6.1 1 0z" />
     </Svg>
   );
 }
 
-// Dining — plate flanked by a fork and knife (classic dining silhouette).
-function PlateUtensils(props: IconProps) {
+// Break — media-player pause: two solid vertical bars.
+function PauseBars(props: IconProps) {
   return (
     <Svg {...props}>
-      <circle cx="12" cy="13" r="5" />
-      <path d="M4 3v4a1.6 1.6 0 0 0 3.2 0V3" />
-      <path d="M5.6 7v14" />
-      <path d="M20 3c-1.5 0-2.3 1.9-2.3 4.1 0 1.6.9 2.4 2.3 2.4V21" />
+      <rect x="7" y="5" width="3.6" height="14" rx="0.8" fill="currentColor" stroke="none" />
+      <rect x="13.4" y="5" width="3.6" height="14" rx="0.8" fill="currentColor" stroke="none" />
+    </Svg>
+  );
+}
+
+// Walking (travel) — crosswalk-signal pedestrian: filled head over a striding,
+// forward-leaning body with arms and legs in a walking pose.
+function PedestrianWalk(props: IconProps) {
+  return (
+    <Svg {...props} strokeWidth={2.4}>
+      <circle cx="13" cy="4" r="2" fill="currentColor" stroke="none" />
+      <path d="M13 6.5 11 13" />
+      <path d="M11 13 13 17.5 14.8 21" />
+      <path d="M11 13 8.8 16.8 7 20.5" />
+      <path d="M12 8.4 15.5 11" />
+      <path d="M12.4 8 9 10.4" />
+    </Svg>
+  );
+}
+
+// Dining — a fork (left) and knife (right), both vertical, side by side.
+function ForkKnife(props: IconProps) {
+  return (
+    <Svg {...props}>
+      {/* Fork: three tines over a single handle */}
+      <path d="M6 3v4M8 3v4M10 3v4" />
+      <path d="M6 7h4" />
+      <path d="M8 7v14" />
+      {/* Knife: blade tapering into a handle */}
+      <path d="M16 3c-1.6 0-2.4 2-2.4 4.5S14.4 12 16 12" />
+      <path d="M16 3v18" />
     </Svg>
   );
 }
@@ -105,10 +137,10 @@ function MeetingPin(props: IconProps) {
 export const AGENDA_TYPE_ICONS: Record<string, AgendaIcon> = {
   travel: Plane,           // overridden by the travel sub-type when set
   activity: RollerCoaster, // default Activity icon (theme park)
-  food: PlateUtensils,     // plate with fork + knife
+  food: ForkKnife,         // fork + knife
   hotel: Hotel,
   free: Armchair,          // leisure / downtime
-  break: Coffee,           // short pause / rest stop
+  break: PauseBars,        // short pause / rest stop
   meeting: MeetingPin,     // gather-here location
 };
 
@@ -131,7 +163,7 @@ export const TRAVEL_SUBTYPE_ICONS: Record<string, AgendaIcon> = {
   subway: TramFront,
   ferry: Sailboat,
   cruise: Ship,
-  walking: Footprints,
+  walking: PedestrianWalk,
 };
 
 export const ACTIVITY_SUBTYPE_ICONS: Record<string, AgendaIcon> = {
