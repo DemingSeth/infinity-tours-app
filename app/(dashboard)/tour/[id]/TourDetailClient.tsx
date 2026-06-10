@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { BRAND, STATUSES, formatAgendaDate } from "@/lib/helpers";
+import { BRAND, STATUSES, formatAgendaDate, expandStateName } from "@/lib/helpers";
 import StatusPill from "@/components/shared/StatusPill";
 import OverviewTab from "@/components/tour/OverviewTab";
 import InfinityLogoImg from "@/components/shared/InfinityLogoImg";
@@ -137,7 +137,8 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
             {saving && <span style={{ fontSize: 11, color: "#94a3b8" }}>Saving...</span>}
           </div>
           <div style={{ color: "#64748b", fontSize: 12, marginTop: 3 }}>
-            {tour.school}{tour.destination ? ` · ${tour.destination}` : ""}{tour.dates ? ` · ${tour.dates}` : ""}
+            {/* School/group name omitted (redundant with the title); state names spelled out in full. */}
+            {[expandStateName(tour.destination), tour.dates].filter(Boolean).join(" · ")}
           </div>
         </div>
         {isOwner && (

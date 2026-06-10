@@ -5,13 +5,14 @@ import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
 import TypeDot from "@/components/shared/TypeDot";
 import {
-  BRAND, ROLES, AGENDA_TYPES, TRAVEL_METHODS,
+  BRAND, ROLES, AGENDA_TYPES, TRAVEL_METHODS, TRAVEL_SUBTYPES, ACTIVITY_SUBTYPES,
   isDayInPast, parseAgendaDate, formatAgendaDate, suggestNextDate,
   toDateInput, getMapUrl, fmt$,
 } from "@/lib/helpers";
 import AgendaRoleView from "@/components/tour/AgendaRoleView";
 import {
   AGENDA_TYPE_COLORS, getAgendaTypeIcon, getSentimentIcon,
+  TRAVEL_SUBTYPE_ICONS, ACTIVITY_SUBTYPE_ICONS,
 } from "@/components/shared/agendaIcons";
 import AgendaImages from "@/components/shared/AgendaImages";
 import { ConfirmationStatus } from "@/components/tour/ConfirmationsTab";
@@ -27,6 +28,7 @@ const ICONS: Record<string, string> = {
   edit:     "M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z",
   pencil:   "M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z",
   chevron:  "M19 9l-7 7-7-7",
+  chevronRight: "M9 18l6-6-6-6",
   plus:     "M12 5v14M5 12h14",
   link:     "M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71",
   eye:      "M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8zM12 9a3 3 0 100 6 3 3 0 000-6z",
@@ -198,33 +200,43 @@ function AccessCodeManager({ tour, onTourChange }: {
   const codes = (tour.access_codes as unknown as Record<string, string>) || { coordinator: "", teacher: "", driver: "", student: "" };
   const set = (role: string, val: string) => onTourChange({ access_codes: { ...codes, [role]: val } });
   const gen = (role: string) => set(role, Math.random().toString(36).slice(2, 8).toUpperCase());
+  const setCount = Object.values(codes).filter(Boolean).length;
+  const [open, setOpen] = useState(false);
 
+  // Subdued, collapsed-by-default secondary card (the preview buttons above are
+  // the primary action). Expands to manage the per-role codes.
   return (
-    <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 12, padding: 16, marginBottom: 16 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: BRAND.navy, fontFamily: "'Cormorant Garamond',Georgia,serif" }}>Access Codes</span>
-        <span style={{ fontSize: 11, color: "#94a3b8" }}>Share each code with the right group</span>
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
-        {Object.entries(ROLES_TYPED).map(([role, meta]) => (
-          <div key={role} style={{ background: meta.bg, border: `1.5px solid ${meta.color}22`, borderRadius: 9, padding: "10px 12px" }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: meta.color, textTransform: "uppercase", letterSpacing: .7, marginBottom: 6 }}>{meta.label}</div>
-            <div style={{ display: "flex", gap: 5 }}>
-              <input value={codes[role] || ""} onChange={e => set(role, e.target.value.toUpperCase())}
-                style={{ ...INP, fontFamily: "monospace", fontSize: 14, fontWeight: 700, letterSpacing: 2, color: meta.color, flex: 1, padding: "5px 8px" }}
-                placeholder="CODE" maxLength={12} />
-              <button onClick={() => gen(role)} style={{ background: meta.color, color: "#fff", border: "none", borderRadius: 6, padding: "5px 8px", cursor: "pointer", fontSize: 10, fontWeight: 700, fontFamily: "inherit", flexShrink: 0 }}>Gen</button>
+    <div style={{ background: "#f8fafc", border: "1px solid #eef2f7", borderRadius: 10, padding: "10px 14px", marginBottom: 16 }}>
+      <button onClick={() => setOpen(o => !o)}
+        style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}>
+        <I n={open ? "chevron" : "chevronRight"} s={13} />
+        <span style={{ fontSize: 12, fontWeight: 700, color: "#64748b" }}>Access Codes</span>
+        <span style={{ fontSize: 11, color: "#94a3b8", marginLeft: "auto" }}>
+          {setCount} of 4 set · share each with the right group
+        </span>
+      </button>
+      {open && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginTop: 12 }}>
+          {Object.entries(ROLES_TYPED).map(([role, meta]) => (
+            <div key={role} style={{ background: meta.bg, border: `1.5px solid ${meta.color}22`, borderRadius: 9, padding: "10px 12px" }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: meta.color, textTransform: "uppercase", letterSpacing: .7, marginBottom: 6 }}>{meta.label}</div>
+              <div style={{ display: "flex", gap: 5 }}>
+                <input value={codes[role] || ""} onChange={e => set(role, e.target.value.toUpperCase())}
+                  style={{ ...INP, fontFamily: "monospace", fontSize: 14, fontWeight: 700, letterSpacing: 2, color: meta.color, flex: 1, padding: "5px 8px" }}
+                  placeholder="CODE" maxLength={12} />
+                <button onClick={() => gen(role)} style={{ background: meta.color, color: "#fff", border: "none", borderRadius: 6, padding: "5px 8px", cursor: "pointer", fontSize: 10, fontWeight: 700, fontFamily: "inherit", flexShrink: 0 }}>Gen</button>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
 // ── Item form ──────────────────────────────────────────────────────────────────
 type ItemFormState = {
-  time: string; type: AgendaItemType; title: string; detail: string;
+  time: string; type: AgendaItemType; activity_subtype: string; title: string; detail: string;
   public_note: string; address: string; map_link: string; website: string;
   travel_method: TravelMethod; contact_name: string; contact_phone: string;
   contact_email: string; cost: string; cost_paid: boolean;
@@ -234,7 +246,7 @@ type ItemFormState = {
 };
 
 const BLANK: ItemFormState = {
-  time: "", type: "activity", title: "", detail: "", public_note: "",
+  time: "", type: "activity", activity_subtype: "", title: "", detail: "", public_note: "",
   address: "", map_link: "", website: "", travel_method: "",
   contact_name: "", contact_phone: "", contact_email: "",
   cost: "", cost_paid: false, driver_note: "", internal_note: "",
@@ -311,7 +323,7 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
       </div>
 
       <div style={{ marginBottom: 14 }}>
-        <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>Activity Type</label>
+        <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>Type</label>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {AGENDA_TYPES.map(t => {
             const bg = TYPE_COLORS[t.value] || "#6b7280";
@@ -327,13 +339,32 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
         </div>
       </div>
 
+      {(form.type === "travel" || form.type === "activity") && (
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>
+            {form.type === "travel" ? "Travel Method" : "Activity Sub-type"}
+          </label>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {(form.type === "travel" ? TRAVEL_SUBTYPES : ACTIVITY_SUBTYPES).map(st => {
+              const bg = TYPE_COLORS[form.type] || "#6b7280";
+              const isTravel = form.type === "travel";
+              const active = isTravel ? form.travel_method === st.value : form.activity_subtype === st.value;
+              const SubIcon = (isTravel ? TRAVEL_SUBTYPE_ICONS : ACTIVITY_SUBTYPE_ICONS)[st.value];
+              return (
+                <button key={st.value} type="button"
+                  onClick={() => isTravel ? f({ travel_method: st.value as TravelMethod }) : f({ activity_subtype: st.value })}
+                  style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 20, border: `2px solid ${active ? bg : "#e2e8f0"}`, background: active ? bg + "18" : "#fff", cursor: "pointer", fontSize: 12, fontWeight: active ? 700 : 400, color: active ? bg : "#64748b", fontFamily: "inherit" }}>
+                  {SubIcon && <SubIcon size={15} strokeWidth={2} />}{st.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 12 }}>
         <Field label="Time" third>
           <TimePicker value={form.time} onChange={v => f({ time: v })} />
-        </Field>
-        <Field label="Travel Method" third>
-          <Sel value={form.travel_method || ""} onChange={e => f({ travel_method: e.target.value as TravelMethod })}
-            options={TRAVEL_METHODS.map(m => ({ value: m.value, label: m.label }))} />
         </Field>
         <Field label="Title">
           <Inp value={form.title} onChange={e => f({ title: e.target.value })} placeholder="Museum, flight, restaurant..." autoFocus={!isEdit} />
@@ -341,7 +372,10 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
         <Field label="Details / Notes">
           <Inp value={form.detail} onChange={e => f({ detail: e.target.value })} placeholder="Instructions, confirmation numbers..." />
         </Field>
-        <Field label="Public Notes (visible to all roles)">
+        <Field label="Internal Note (Tour Host Only)">
+          <Inp value={form.internal_note} onChange={e => f({ internal_note: e.target.value })} placeholder="Booking refs, reminders..." />
+        </Field>
+        <Field label="Public Notes (Visible to All Roles)">
           <Tex value={form.public_note} onChange={e => f({ public_note: e.target.value })} placeholder="Directions, dress code, what to bring..." />
         </Field>
         <Field label="Images (visible to all roles)">
@@ -393,9 +427,6 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
         <Field label="Driver Note" half>
           <Inp value={form.driver_note} onChange={e => f({ driver_note: e.target.value })} placeholder="Drop at main entrance..." />
         </Field>
-        <Field label="Internal Note (Tour Host only)">
-          <Inp value={form.internal_note} onChange={e => f({ internal_note: e.target.value })} placeholder="Booking refs, reminders..." />
-        </Field>
         <div style={{ width: "100%", display: "flex", alignItems: "center", gap: 8 }}>
           <input type="checkbox" id="cpaid" checked={form.cost_paid} onChange={e => f({ cost_paid: e.target.checked })} style={{ accentColor: BRAND.navy }} />
           <label htmlFor="cpaid" style={{ fontSize: 12, cursor: "pointer" }}>Cost paid / confirmed</label>
@@ -411,6 +442,31 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
 }
 
 // ── ItemRow ────────────────────────────────────────────────────────────────────
+// Itinerary item action button — dark navy icon at 80% opacity (clearly
+// visible), with a distinct hover state (full opacity + subtle background;
+// red for the destructive delete action).
+function ActionButton({ title, onClick, active, danger, children }: {
+  title: string; onClick: () => void; active?: boolean; danger?: boolean; children: React.ReactNode;
+}) {
+  const [hover, setHover] = useState(false);
+  const color = active ? "#0369a1" : danger && hover ? "#dc2626" : BRAND.navy;
+  return (
+    <button
+      type="button" onClick={onClick} title={title}
+      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+      style={{
+        display: "inline-flex", alignItems: "center", justifyContent: "center",
+        background: active ? "#e0f2fe" : hover ? "#e2e8f0" : "transparent",
+        border: "none", cursor: "pointer", padding: 5, borderRadius: 6,
+        color, opacity: active || hover ? 1 : 0.8,
+        transition: "background .12s, opacity .12s, color .12s",
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
 function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onAddFeedback, onRemoveImage }: {
   item: AgendaItemWithFeedback;
   onEdit: () => void; onRemove: () => void; onToggleCostPaid: () => void;
@@ -430,7 +486,7 @@ function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onAddFeedback, onRe
         <div style={{ width: 56, fontSize: 11, fontWeight: 700, color: "#94a3b8", flexShrink: 0, paddingTop: 6, textAlign: "right" }}>
           {item.time || "-"}
         </div>
-        <TypeDot type={item.type} size={32} />
+        <TypeDot type={item.type} travelMethod={item.travel_method} subtype={item.activity_subtype} size={32} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", marginBottom: 3 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: BRAND.navy }}>{item.title}</span>
@@ -534,16 +590,15 @@ function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onAddFeedback, onRe
         </div>
 
         <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-          <button onClick={() => setShowFeedback(s => !s)} title="Leave feedback"
-            style={{ background: showFeedback ? "#eff6ff" : "none", border: "none", cursor: "pointer", color: showFeedback ? "#0369a1" : "#cbd5e1", padding: 4, borderRadius: 5 }}>
-            <I n="feedback" s={13} />
-          </button>
-          <button onClick={onEdit} style={{ background: "none", border: "none", cursor: "pointer", color: "#cbd5e1", padding: 4, borderRadius: 5 }}>
-            <I n="edit" s={13} />
-          </button>
-          <button onClick={onRemove} style={{ background: "none", border: "none", cursor: "pointer", color: "#cbd5e1", padding: 4, borderRadius: 5 }}>
-            <I n="trash" s={13} />
-          </button>
+          <ActionButton title="Leave feedback" onClick={() => setShowFeedback(s => !s)} active={showFeedback}>
+            <I n="feedback" s={14} />
+          </ActionButton>
+          <ActionButton title="Edit item" onClick={onEdit}>
+            <I n="edit" s={14} />
+          </ActionButton>
+          <ActionButton title="Delete item" onClick={onRemove} danger>
+            <I n="trash" s={14} />
+          </ActionButton>
         </div>
       </div>
     </div>
@@ -593,7 +648,7 @@ export default function AgendaTab({ tour, days, onDaysChange, onTourChange }: Ag
   function formToInsert(f: ItemFormState, dayId: string, sortOrder: number) {
     return {
       day_id: dayId, tour_id: tour.id, sort_order: sortOrder,
-      time: f.time || null, type: f.type, title: f.title,
+      time: f.time || null, type: f.type, activity_subtype: f.activity_subtype || null, title: f.title,
       detail: f.detail || null, public_note: f.public_note || null,
       address: f.address || null, map_link: f.map_link || null,
       website: f.website || null, travel_method: f.travel_method || null,
@@ -610,7 +665,7 @@ export default function AgendaTab({ tour, days, onDaysChange, onTourChange }: Ag
 
   function itemToForm(item: AgendaItemWithFeedback): ItemFormState {
     return {
-      time: item.time || "", type: item.type, title: item.title,
+      time: item.time || "", type: item.type, activity_subtype: item.activity_subtype || "", title: item.title,
       detail: item.detail || "", public_note: item.public_note || "",
       address: item.address || "", map_link: item.map_link || "",
       website: item.website || "", travel_method: item.travel_method || "",
@@ -748,6 +803,31 @@ export default function AgendaTab({ tour, days, onDaysChange, onTourChange }: Ag
 
   return (
     <div>
+      {/* Preview role buttons — primary action, prominent at the top */}
+      {days.length > 0 && (
+        <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 12, padding: 16, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: BRAND.navy, fontFamily: "'Cormorant Garamond',Georgia,serif", marginBottom: 2 }}>Preview the Itinerary</div>
+          <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 12 }}>See exactly what each role sees on the shared view, then share the link.</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {([
+              { role: "teacher", label: "Teacher",    bg: "#f5f3ff", color: "#5b21b6" },
+              { role: "driver",  label: "Bus Driver", bg: "#fef3c7", color: "#92400e" },
+              { role: "student", label: "Student",    bg: "#ecfdf5", color: "#065f46" },
+            ] as const).map(p => (
+              <button key={p.role} onClick={() => setPreviewRole(p.role)}
+                style={{ flex: "1 1 140px", minWidth: 130, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, background: p.bg, color: p.color, border: `1.5px solid ${p.color}22`, borderRadius: 10, padding: "12px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                <I n="eye" s={15} />Preview {p.label}
+              </button>
+            ))}
+            <button onClick={() => setShowShareModal(true)}
+              style={{ flex: "1 1 140px", minWidth: 130, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, background: BRAND.teal, color: "#fff", border: "none", borderRadius: 10, padding: "12px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                <I n="link" s={15} />Share View
+              </button>
+          </div>
+        </div>
+      )}
+
+      {/* Access codes — secondary, subdued and collapsed below the preview */}
       <AccessCodeManager tour={tour} onTourChange={onTourChange} />
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
@@ -763,14 +843,6 @@ export default function AgendaTab({ tour, days, onDaysChange, onTourChange }: Ag
           )}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-          {days.length > 0 && (
-            <>
-              <button onClick={() => setPreviewRole("teacher")} style={{ background: "#f5f3ff", color: "#5b21b6", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Preview Teacher</button>
-              <button onClick={() => setPreviewRole("driver")} style={{ background: "#fef3c7", color: "#92400e", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Preview Driver</button>
-              <button onClick={() => setPreviewRole("student")} style={{ background: "#ecfdf5", color: "#065f46", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Preview Student</button>
-              <button onClick={() => setShowShareModal(true)} style={{ background: BRAND.teal, color: "#fff", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Share View</button>
-            </>
-          )}
           <Btn onClick={openAddDay} small><I n="plus" s={12} />Add Day</Btn>
         </div>
       </div>

@@ -1,11 +1,16 @@
 "use client";
 
 import { getAgendaType } from "@/lib/helpers";
-import { getAgendaTypeIcon, getAgendaTypeColor } from "@/components/shared/agendaIcons";
+import { getItemIcon, getAgendaTypeColor } from "@/components/shared/agendaIcons";
 
-export default function TypeDot({ type, size = 28 }: { type: string; size?: number }) {
+export default function TypeDot({ type, travelMethod, subtype, size = 28 }: {
+  type: string;
+  travelMethod?: string | null;
+  subtype?: string | null;
+  size?: number;
+}) {
   const t = getAgendaType(type);
-  const Icon = getAgendaTypeIcon(type);
+  const Icon = getItemIcon(type, travelMethod, subtype);
   const color = getAgendaTypeColor(type);
   return (
     <div

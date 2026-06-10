@@ -20,16 +20,42 @@ export const STATUSES = [
   { id: "closed",      label: "Closed",      color: "#374151", bg: "#f3f4f6", dot: "#9ca3af" },
 ] as const;
 
+// Top-level itinerary item types. "Travel" and "Activity" have sub-types
+// (see TRAVEL_SUBTYPES / ACTIVITY_SUBTYPES) whose selection drives the icon.
 export const AGENDA_TYPES = [
-  { value: "travel",   label: "Travel",    emoji: "✈" },
-  { value: "activity", label: "Activity",  emoji: "🎭" },
-  { value: "food",     label: "Dining",    emoji: "🍽" },
-  { value: "hotel",    label: "Hotel",     emoji: "🏨" },
-  { value: "transit",  label: "Transit",   emoji: "🚇" },
-  { value: "free",     label: "Free Time", emoji: "🕐" },
-  { value: "meeting",  label: "Meeting",   emoji: "📋" },
+  { value: "travel",   label: "Travel",          emoji: "✈" },
+  { value: "activity", label: "Activity",        emoji: "🎢" },
+  { value: "food",     label: "Dining",          emoji: "🍽" },
+  { value: "hotel",    label: "Hotel",           emoji: "🏨" },
+  { value: "free",     label: "Free Time",       emoji: "🌴" },
+  { value: "break",    label: "Break",           emoji: "☕" },
+  { value: "meeting",  label: "Meeting Point",   emoji: "📍" },
 ] as const;
 
+// Travel sub-types — stored in the item's `travel_method` field.
+export const TRAVEL_SUBTYPES = [
+  { value: "bus",       label: "Bus" },
+  { value: "flight",    label: "Flight" },
+  { value: "train",     label: "Train" },
+  { value: "rideshare", label: "Uber / Rideshare" },
+  { value: "subway",    label: "Subway" },
+  { value: "ferry",     label: "Ferry" },
+  { value: "cruise",    label: "Cruise" },
+  { value: "walking",   label: "Walking" },
+] as const;
+
+// Activity sub-types — stored in the item's `activity_subtype` field.
+export const ACTIVITY_SUBTYPES = [
+  { value: "theme_park",     label: "Theme Park" },
+  { value: "disney",         label: "Disney" },
+  { value: "medieval_times", label: "Medieval Times" },
+  { value: "beach",          label: "Beach" },
+  { value: "clinic",         label: "Clinic" },
+  { value: "concert",        label: "Concert" },
+] as const;
+
+// Display labels for the travel-method badge shown on items. Mirrors the
+// TRAVEL_SUBTYPES values (the empty option means "not specified").
 export const TRAVEL_METHODS = [
   { value: "",          label: "Not specified" },
   { value: "bus",       label: "Charter Bus" },
@@ -39,6 +65,7 @@ export const TRAVEL_METHODS = [
   { value: "walking",   label: "Walking" },
   { value: "rideshare", label: "Taxi / Rideshare" },
   { value: "ferry",     label: "Ferry" },
+  { value: "cruise",    label: "Cruise" },
 ] as const;
 
 export const MEMBER_TYPES = [
@@ -64,6 +91,37 @@ export const DEFAULT_VISIBILITY = {
   driver:      { address: true, mapLink: true, contactName: false, contactPhone: false, contactEmail: false, cost: false, costPaid: false, driverNote: true, detail: false, internalNote: false },
   student:     { address: true, mapLink: true, contactName: false, contactPhone: false, contactEmail: false, cost: false, costPaid: false, driverNote: false, detail: true, internalNote: false },
 } as const;
+
+// ─── Location formatting ──────────────────────────────────────────────────────
+
+const US_STATES: Record<string, string> = {
+  AL: "Alabama", AK: "Alaska", AZ: "Arizona", AR: "Arkansas", CA: "California",
+  CO: "Colorado", CT: "Connecticut", DE: "Delaware", FL: "Florida", GA: "Georgia",
+  HI: "Hawaii", ID: "Idaho", IL: "Illinois", IN: "Indiana", IA: "Iowa",
+  KS: "Kansas", KY: "Kentucky", LA: "Louisiana", ME: "Maine", MD: "Maryland",
+  MA: "Massachusetts", MI: "Michigan", MN: "Minnesota", MS: "Mississippi", MO: "Missouri",
+  MT: "Montana", NE: "Nebraska", NV: "Nevada", NH: "New Hampshire", NJ: "New Jersey",
+  NM: "New Mexico", NY: "New York", NC: "North Carolina", ND: "North Dakota", OH: "Ohio",
+  OK: "Oklahoma", OR: "Oregon", PA: "Pennsylvania", RI: "Rhode Island", SC: "South Carolina",
+  SD: "South Dakota", TN: "Tennessee", TX: "Texas", UT: "Utah", VT: "Vermont",
+  VA: "Virginia", WA: "Washington", WV: "West Virginia", WI: "Wisconsin", WY: "Wyoming",
+  DC: "District of Columbia",
+};
+
+// Expand a trailing 2-letter US state abbreviation to its full name, e.g.
+// "Anaheim, CA" → "Anaheim, California". Only the final comma-delimited
+// segment is touched, so city names are never altered. Non-US / already-full
+// destinations pass through unchanged.
+export function expandStateName(dest: string | null | undefined): string {
+  if (!dest) return dest ?? "";
+  const parts = dest.split(",");
+  const last = parts[parts.length - 1].trim();
+  if (last.length === 2 && US_STATES[last.toUpperCase()]) {
+    parts[parts.length - 1] = ` ${US_STATES[last.toUpperCase()]}`;
+    return parts.join(",");
+  }
+  return dest;
+}
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
 

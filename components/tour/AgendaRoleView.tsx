@@ -4,7 +4,7 @@ import Image from "next/image";
 import TypeDot from "@/components/shared/TypeDot";
 import AgendaImages from "@/components/shared/AgendaImages";
 import ItemFeedback from "@/components/tour/ItemFeedback";
-import { BRAND, ROLES, DEFAULT_VISIBILITY, getMapUrl, TRAVEL_METHODS } from "@/lib/helpers";
+import { BRAND, ROLES, DEFAULT_VISIBILITY, getMapUrl, TRAVEL_METHODS, expandStateName } from "@/lib/helpers";
 import type { AgendaDayWithItems, Role } from "@/lib/types";
 
 interface Props {
@@ -64,7 +64,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, d
         </h1>
         {(tourDestination || tourDates) && (
           <div style={{ color: "#7dd3d8", fontSize: 13 }}>
-            {[tourDestination, tourDates].filter(Boolean).join(" · ")}
+            {[expandStateName(tourDestination), tourDates].filter(Boolean).join(" · ")}
           </div>
         )}
       </div>
@@ -93,7 +93,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, d
                     {item.time && (
                       <span style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", minWidth: 52, paddingTop: 4, flexShrink: 0 }}>{item.time}</span>
                     )}
-                    <TypeDot type={item.type} size={24} />
+                    <TypeDot type={item.type} travelMethod={item.travel_method} subtype={item.activity_subtype} size={24} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
                         <span style={{ fontSize: 14, fontWeight: 700, color: BRAND.navy }}>{item.title}</span>

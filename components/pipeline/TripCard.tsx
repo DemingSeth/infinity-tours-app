@@ -1,6 +1,6 @@
 "use client";
 
-import { BRAND } from "@/lib/helpers";
+import { BRAND, expandStateName } from "@/lib/helpers";
 import StatusPill from "@/components/shared/StatusPill";
 
 interface Props {
@@ -30,7 +30,7 @@ export default function TripCard({ tour, currentHostId, isDuplicating, onClick, 
         </div>
         <div style={{ fontSize: 12, color: "#64748b", marginBottom: 6 }}>{tour.school}</div>
         <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 8 }}>
-          {tour.destination}{tour.dates ? ` · ${tour.dates}` : ""}
+          {expandStateName(tour.destination)}{tour.dates ? ` · ${tour.dates}` : ""}
         </div>
         <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 8 }}>
           <StatusPill status={tour.status} />

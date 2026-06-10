@@ -144,7 +144,7 @@ function ConfirmationRow({ tourId, item, isOwner, topBorder, onChange }: {
       <div style={{ width: 52, fontSize: 11, fontWeight: 700, color: "#94a3b8", flexShrink: 0, paddingTop: 4, textAlign: "right" }}>
         {item.time || "-"}
       </div>
-      <TypeDot type={item.type} size={28} />
+      <TypeDot type={item.type} travelMethod={item.travel_method} subtype={item.activity_subtype} size={28} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <span style={{ fontSize: 13, fontWeight: 700, color: BRAND.navy }}>{item.title}</span>

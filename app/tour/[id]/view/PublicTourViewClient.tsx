@@ -3,7 +3,7 @@
 import { useState } from "react";
 import AgendaRoleView from "@/components/tour/AgendaRoleView";
 import InfinityLogoImg from "@/components/shared/InfinityLogoImg";
-import { BRAND, ROLES } from "@/lib/helpers";
+import { BRAND, ROLES, expandStateName } from "@/lib/helpers";
 import type { AgendaDayWithItems, Role, AccessCodes } from "@/lib/types";
 
 interface Props {
@@ -74,7 +74,7 @@ export default function PublicTourViewClient({ tourName, tourDestination, tourDa
             </div>
             {(tourDestination || tourDates) && (
               <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>
-                {[tourDestination, tourDates].filter(Boolean).join(" · ")}
+                {[expandStateName(tourDestination), tourDates].filter(Boolean).join(" · ")}
               </div>
             )}
           </div>

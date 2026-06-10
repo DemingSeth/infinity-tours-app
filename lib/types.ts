@@ -137,9 +137,9 @@ export interface AgendaDayRow {
   sort_order: number;
 }
 
-export type AgendaItemType = "travel" | "activity" | "food" | "hotel" | "transit" | "free" | "meeting";
+export type AgendaItemType = "travel" | "activity" | "food" | "hotel" | "free" | "break" | "meeting";
 export type MealPayType = "group" | "stipend" | "";
-export type TravelMethod = "bus" | "flight" | "subway" | "train" | "walking" | "rideshare" | "ferry" | "";
+export type TravelMethod = "bus" | "flight" | "subway" | "train" | "walking" | "rideshare" | "ferry" | "cruise" | "";
 
 export interface ItemVisibility {
   coordinator: Record<string, boolean>;
@@ -155,6 +155,9 @@ export interface AgendaItemRow {
   sort_order: number;
   time: string | null;
   type: AgendaItemType;
+  // For travel items the sub-type is stored in travel_method; for activity
+  // items it is stored here (theme_park, disney, medieval_times, beach, etc.).
+  activity_subtype: string | null;
   title: string;
   detail: string | null;
   public_note: string | null;
