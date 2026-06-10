@@ -19,14 +19,14 @@ export default function ItineraryHeaderTile({
   badgeBg: string;
   badgeColor: string;
 }) {
-  const textShadow = bannerUrl ? "0 1px 4px rgba(0,0,0,0.7)" : undefined;
+  const textShadow = bannerUrl ? "0 1px 6px rgba(0,0,0,0.75)" : undefined;
   return (
     <div style={{ position: "relative", background: BRAND.navy, borderRadius: 12, padding: "20px 24px", marginBottom: 18, overflow: "hidden" }}>
       {/* Banner background photo + dark gradient overlay for text legibility */}
       {bannerUrl && (
         <>
           <Image src={bannerUrl} alt="" fill sizes="(max-width: 720px) 100vw, 680px" style={{ objectFit: "cover", objectPosition: `${focusX}% ${focusY}%` }} />
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.45), rgba(0,0,0,0.70))" }} />
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(0,0,0,0.10), rgba(0,0,0,0.45))" }} />
         </>
       )}
       <div style={{ position: "relative", zIndex: 1 }}>

@@ -8,6 +8,10 @@ import type { TripInfo } from "@/lib/types";
 const HOTLINE_DISPLAY = "(801) 477-8963";
 const HOTLINE_TEL = "8014778963";
 
+// Infinity Tours brand blue (the periwinkle/slate band from the website footer).
+const INFINITY_BLUE = "#6B7FD7";
+const INFINITY_BLUE_DEEP = "#4f63c4";
+
 const linkStyle: React.CSSProperties = { color: "#0369a1", textDecoration: "none", fontWeight: 600 };
 const dash = (v: string | null | undefined) => (v && v.trim() ? v : "—");
 const telHref = (phone: string) => `tel:${phone.replace(/[^\d]/g, "")}`;
@@ -118,7 +122,7 @@ export default function TripInformation({ info, isHost = false, onSaveTour, onEd
       content: (
         <>
           <div>{info.participants.map(p => `${p.count} ${p.label}`).join(", ") || "—"}</div>
-          <div style={{ color: BRAND.teal, fontWeight: 700, marginTop: 2 }}>
+          <div style={{ color: INFINITY_BLUE_DEEP, fontWeight: 700, marginTop: 2 }}>
             {info.totalParticipants} Total Participants
           </div>
         </>
@@ -172,7 +176,8 @@ export default function TripInformation({ info, isHost = false, onSaveTour, onEd
 
   return (
     <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,.04)", marginBottom: 16 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px" }}>
+      {/* Brand-blue header bar (Infinity footer periwinkle) */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px", background: INFINITY_BLUE }}>
         <button
           onClick={() => setOpen(o => !o)}
           aria-expanded={open}
@@ -181,8 +186,8 @@ export default function TripInformation({ info, isHost = false, onSaveTour, onEd
             background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textAlign: "left",
           }}
         >
-          {open ? <ChevronDown size={18} color="#64748b" /> : <ChevronRight size={18} color="#64748b" />}
-          <span style={{ fontSize: 16, fontWeight: 700, color: BRAND.navy, fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
+          {open ? <ChevronDown size={18} color="#ffffff" /> : <ChevronRight size={18} color="#ffffff" />}
+          <span style={{ fontSize: 16, fontWeight: 700, color: "#ffffff", fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
             Trip Information
           </span>
         </button>
@@ -192,9 +197,9 @@ export default function TripInformation({ info, isHost = false, onSaveTour, onEd
             onClick={startEdit}
             title="Edit Trip Information"
             style={{
-              display: "inline-flex", alignItems: "center", gap: 5, background: "#f1f5f9",
-              border: "none", borderRadius: 7, padding: "6px 10px", fontSize: 12, fontWeight: 600,
-              color: "#475569", cursor: "pointer", fontFamily: "inherit",
+              display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,0.15)",
+              border: "1px solid rgba(255,255,255,0.45)", borderRadius: 7, padding: "5px 10px", fontSize: 12, fontWeight: 600,
+              color: "#ffffff", cursor: "pointer", fontFamily: "inherit",
             }}
           >
             <Pencil size={13} /> Edit
@@ -208,10 +213,10 @@ export default function TripInformation({ info, isHost = false, onSaveTour, onEd
             {rows.map((r, i) => (
               <Fragment key={r.label}>
                 <div style={{
-                  padding: "10px 16px", fontSize: 11.5, fontWeight: 700, color: "#94a3b8",
+                  padding: "10px 16px", fontSize: 11.5, fontWeight: 700, color: "#64748b",
                   textTransform: "uppercase", letterSpacing: 0.4,
                   borderTop: i === 0 ? "none" : "1px solid #f1f5f9",
-                  background: "#fbfcfe",
+                  background: "#fafbff",
                 }}>
                   {r.label}
                 </div>
@@ -226,7 +231,7 @@ export default function TripInformation({ info, isHost = false, onSaveTour, onEd
           </div>
 
           {editing && (
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, padding: "12px 16px", borderTop: "1px solid #f1f5f9", background: "#fbfcfe" }}>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, padding: "12px 16px", borderTop: "1px solid #f1f5f9", background: "#fafbff" }}>
               <button
                 type="button"
                 onClick={() => setEditing(false)}
