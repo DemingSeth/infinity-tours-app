@@ -29,13 +29,18 @@ function Svg({ size = 24, strokeWidth = 2, color = "currentColor", style, classN
   );
 }
 
-// Disney — Mickey Mouse ears silhouette.
-function MickeyEars(props: IconProps) {
+// Disney — generic fairy-tale castle silhouette (crenellated side towers, a
+// central spire with a pennant, and a gate). Intentionally not a reproduction
+// of any real branded castle.
+function FantasyCastle(props: IconProps) {
   return (
     <Svg {...props}>
-      <circle cx="6" cy="6.5" r="3.5" />
-      <circle cx="18" cy="6.5" r="3.5" />
-      <circle cx="12" cy="14" r="6.5" />
+      {/* Outline: left tower → wall → central spire tower → wall → right tower */}
+      <path d="M3 21 L3 9 L4 9 L4 10 L6 10 L6 9 L7 9 L7 13 L9 13 L9 8 L12 3 L15 8 L15 13 L17 13 L17 9 L18 9 L18 10 L20 10 L20 9 L21 9 L21 21 Z" />
+      {/* Arched gate */}
+      <path d="M10.5 21 L10.5 17.5 Q12 16 13.5 17.5 L13.5 21" />
+      {/* Pennant on the central spire */}
+      <path d="M12 3 L12 1.6 L13.7 2.2 L12 2.8" />
     </Svg>
   );
 }
@@ -131,7 +136,7 @@ export const TRAVEL_SUBTYPE_ICONS: Record<string, AgendaIcon> = {
 
 export const ACTIVITY_SUBTYPE_ICONS: Record<string, AgendaIcon> = {
   theme_park: RollerCoaster,
-  disney: MickeyEars,
+  disney: FantasyCastle,
   medieval_times: MedievalJoust,
   beach: BeachUmbrella,
   clinic: TrebleClef,
