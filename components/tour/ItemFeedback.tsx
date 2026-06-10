@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { MessageCircle, Check, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getSentimentIcon } from "@/components/shared/agendaIcons";
 import { BRAND } from "@/lib/helpers";
@@ -16,20 +17,28 @@ const OPTIONS = [
 type Status = "idle" | "saving" | "done" | "error";
 
 // Compact, mobile-first feedback control shown under each itinerary item in the
-// public view. A row of three tap-friendly buttons (Good / OK / Poor); choosing
-// one expands an optional comment field + Submit. The participant's role is
-// captured alongside the rating so admins can later filter by role.
-export default function ItemFeedback({ itemId, tourId, role }: {
+// participant views. Collapsed by default to a small speech-bubble button at the
+// end of the card; tapping it expands a row of three rating buttons (Good / OK /
+// Poor) with an optional comment field + Submit. Once submitted it collapses to a
+// green "Thanks!" indicator. The participant's role is captured alongside the
+// rating so admins can later filter by role.
+//
+// `preview` is set in the embedded admin preview so coordinators can see the
+// control without writing real feedback rows — submitting is a no-op there.
+export default function ItemFeedback({ itemId, tourId, role, preview = false }: {
   itemId: string;
   tourId: string;
   role: Role;
+  preview?: boolean;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const [sentiment, setSentiment] = useState<string | null>(null);
   const [text, setText] = useState("");
   const [status, setStatus] = useState<Status>("idle");
 
   async function submit() {
     if (!sentiment || status === "saving") return;
+    if (preview) { setStatus("done"); return; } // don't write real rows from a preview
     setStatus("saving");
     const supabase = createClient();
     const { error } = await supabase.from("agenda_feedback").insert({
@@ -42,18 +51,51 @@ export default function ItemFeedback({ itemId, tourId, role }: {
     setStatus(error ? "error" : "done");
   }
 
+  // Once submitted, replace the control with a small acknowledgement.
   if (status === "done") {
     return (
-      <div style={{ marginTop: 10, padding: "8px 12px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, fontSize: 12, color: "#15803d", fontWeight: 600 }}>
-        Thanks for your feedback!
+      <div style={{ marginTop: 8, display: "flex", justifyContent: "flex-end" }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 700, color: "#15803d", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 999, padding: "4px 11px" }}>
+          <Check size={14} /> Thanks!
+        </span>
+      </div>
+    );
+  }
+
+  // Collapsed: just a small icon button at the end of the card.
+  if (!expanded) {
+    return (
+      <div style={{ marginTop: 8, display: "flex", justifyContent: "flex-end" }}>
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          title="How was this?"
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 6, background: "#f8fafc",
+            border: "1px solid #e2e8f0", borderRadius: 999, padding: "5px 12px", fontSize: 12,
+            fontWeight: 600, color: "#64748b", cursor: "pointer", fontFamily: "inherit",
+          }}
+        >
+          <MessageCircle size={15} /> How was this?
+        </button>
       </div>
     );
   }
 
   return (
-    <div style={{ marginTop: 10, padding: "10px 12px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8 }}>
-      <div style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8 }}>
-        How was this?
+    <div style={{ marginTop: 8, padding: "10px 12px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6 }}>
+          How was this?
+        </div>
+        <button
+          type="button"
+          onClick={() => setExpanded(false)}
+          aria-label="Close feedback"
+          style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 2, display: "inline-flex", fontFamily: "inherit" }}
+        >
+          <X size={16} />
+        </button>
       </div>
 
       {/* Row of three tap-friendly rating buttons — wraps-free at ~390px */}

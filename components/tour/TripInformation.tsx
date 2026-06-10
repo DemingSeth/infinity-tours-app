@@ -133,7 +133,7 @@ export default function TripInformation({ info, isHost = false, onSaveTour, onEd
           <div>
             <div>{dash(info.hotelName)}</div>
             {info.hotelAddress && <div style={{ color: "#64748b" }}>{info.hotelAddress}</div>}
-            <button type="button" onClick={onEditHotel} style={linkBtnStyle}>Edit hotel item →</button>
+            <button type="button" onClick={onEditHotel} style={linkBtnStyle}>Edit Hotel Item →</button>
           </div>
         ) : (
           <div style={{ color: "#94a3b8" }}>Add a Hotel item to your itinerary to populate this field.</div>
@@ -155,10 +155,10 @@ export default function TripInformation({ info, isHost = false, onSaveTour, onEd
           {onEditBus ? (
             <div>
               <div>{dash(info.busCompany)}</div>
-              <button type="button" onClick={onEditBus} style={linkBtnStyle}>Edit bus item →</button>
+              <button type="button" onClick={onEditBus} style={linkBtnStyle}>Edit Bus Item →</button>
             </div>
           ) : (
-            <div style={{ color: "#94a3b8" }}>Add a Bus item to your itinerary to set the bus company.</div>
+            <div style={{ color: "#94a3b8" }}>Add a bus travel item with a contact name to populate this field.</div>
           )}
         </div>
       ) : (

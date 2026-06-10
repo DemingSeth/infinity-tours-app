@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import TypeDot from "@/components/shared/TypeDot";
 import AgendaImages from "@/components/shared/AgendaImages";
 import ItemFeedback from "@/components/tour/ItemFeedback";
 import TripInformation from "@/components/tour/TripInformation";
 import ItineraryHeaderTile from "@/components/tour/ItineraryHeaderTile";
-import { BRAND, ROLES, DEFAULT_VISIBILITY, getMapUrl, TRAVEL_METHODS, isItemVisibleTo } from "@/lib/helpers";
+import { BRAND, ROLES, DEFAULT_VISIBILITY, getMapUrl, TRAVEL_METHODS, isItemVisibleTo, personaColors } from "@/lib/helpers";
 import type { AgendaDayWithItems, Role, TripInfo } from "@/lib/types";
 
 interface Props {
@@ -28,19 +30,29 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
   const vis = DEFAULT_VISIBILITY[role] as Record<string, boolean>;
   const roleInfo = ROLES[role];
   const label = roleLabel || roleInfo.label; // persona label override
+  // Use the persona's own color (so Chaperone ≠ Student) when a persona is known.
+  const colors = personaKey ? personaColors(personaKey) : { color: roleInfo.color, bg: roleInfo.bg };
 
   // Feedback is for participants rating activities. Show it for all participant
-  // roles (student/chaperone, teacher, tour host) and hide it only for the bus
-  // driver. Suppressed in the embedded admin preview so previewing never writes
-  // real feedback rows — coordinators manage feedback from the itinerary editor.
-  const showFeedback = role !== "driver" && !embedded;
+  // roles (student/chaperone, teacher) and hide it only for the bus driver. It's
+  // collapsed by default behind an icon on each item (see ItemFeedback). In the
+  // embedded admin preview it's shown too, but submitting is a no-op so previewing
+  // never writes real feedback rows.
+  const showFeedback = role !== "driver";
+
+  // Days are collapsible in every view. Seed from the host's saved collapsed flag,
+  // then toggle locally — participants/public never write this back to the DB.
+  const [collapsedDays, setCollapsedDays] = useState<Record<string, boolean>>(
+    () => Object.fromEntries(days.map(d => [d.id, !!d.collapsed])),
+  );
+  const toggleDay = (id: string) => setCollapsedDays(c => ({ ...c, [id]: !c[id] }));
 
   return (
     <div style={{ maxWidth: 680, margin: "0 auto" }}>
       {embedded && (
         <div style={{ marginBottom: 14, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ background: roleInfo.bg, color: roleInfo.color, borderRadius: 6, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>
+            <div style={{ background: colors.bg, color: colors.color, borderRadius: 6, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>
               Previewing: {label}
             </div>
             <span style={{ fontSize: 11, color: "#94a3b8" }}>This is what {label.toLowerCase()}s see on the shared view.</span>
@@ -62,8 +74,8 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
         focusX={bannerFocusX}
         focusY={bannerFocusY}
         badgeLabel={label}
-        badgeBg={roleInfo.bg}
-        badgeColor={roleInfo.color}
+        badgeBg={colors.bg}
+        badgeColor={colors.color}
       />
 
       {/* Trip Information — shown to all roles, expanded by default, above Day 1. */}
@@ -80,13 +92,23 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
           // Strict per-persona filtering: only items where visibility[persona] === true.
           const items = personaKey ? day.agenda_items.filter(i => isItemVisibleTo(i, personaKey)) : day.agenda_items;
           if (items.length === 0) return null; // hide days with nothing visible to this persona
+          const collapsed = !!collapsedDays[day.id];
           return (
           <div key={day.id} style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
-            <div style={{ background: BRAND.navy, padding: "10px 16px", display: "flex", alignItems: "center", gap: 10 }}>
+            <div
+              onClick={() => toggleDay(day.id)}
+              role="button"
+              aria-expanded={!collapsed}
+              style={{ background: BRAND.navy, padding: "10px 16px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}
+            >
+              {collapsed
+                ? <ChevronRight size={16} color="rgba(255,255,255,.7)" style={{ flexShrink: 0 }} />
+                : <ChevronDown size={16} color="rgba(255,255,255,.7)" style={{ flexShrink: 0 }} />}
               <span style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", color: "#fff", fontWeight: 700, fontSize: 15 }}>Day {day.day_number}</span>
               <span style={{ color: "#7dd3d8", fontSize: 13 }}>{day.date}</span>
               <span style={{ color: "rgba(255,255,255,.4)", fontSize: 11 }}>{items.length} item{items.length !== 1 ? "s" : ""}</span>
             </div>
+            {!collapsed && (
             <div>
               {items.map((item, idx) => (
                 <div key={item.id} style={{ padding: "12px 16px", borderTop: idx > 0 ? "1px solid #f1f5f9" : undefined }}>
@@ -187,11 +209,12 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                     </div>
                   </div>
                   {showFeedback && (
-                    <ItemFeedback itemId={item.id} tourId={item.tour_id} role={role} />
+                    <ItemFeedback itemId={item.id} tourId={item.tour_id} role={role} preview={!!embedded} />
                   )}
                 </div>
               ))}
             </div>
+            )}
           </div>
           );
         })}

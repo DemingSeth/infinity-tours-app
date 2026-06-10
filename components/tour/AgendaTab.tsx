@@ -8,7 +8,7 @@ import {
   BRAND, ROLES, AGENDA_TYPES, TRAVEL_METHODS, TRAVEL_SUBTYPES, ACTIVITY_SUBTYPES,
   isDayInPast, parseAgendaDate, formatAgendaDate, suggestNextDate,
   toDateInput, getMapUrl, fmt$, buildTripInfo,
-  activePersonaKeys, personaLabel, getPersona, PERSONAS, defaultPersonaVisibility,
+  activePersonaKeys, personaLabel, personaColors, getPersona, PERSONAS, defaultPersonaVisibility,
 } from "@/lib/helpers";
 import AgendaRoleView from "@/components/tour/AgendaRoleView";
 import TripInformation from "@/components/tour/TripInformation";
@@ -208,7 +208,7 @@ function AccessCodeManager({ tour, onTourChange }: {
   // One code row per active persona, labelled with the tour's custom labels.
   const rows = activePersonaKeys(tour.active_personas).map(key => {
     const p = getPersona(key)!;
-    const meta = ROLES_TYPED[p.viewRole];
+    const meta = personaColors(key);
     return { key, codeKey: p.codeKey, label: personaLabel(key, tour.persona_labels), color: meta.color, bg: meta.bg };
   });
   const setCount = rows.filter(r => codes[r.codeKey]).length;
@@ -561,17 +561,12 @@ function ActionButton({ title, onClick, active, danger, children }: {
   );
 }
 
-function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onToggleNotRequired, onAddFeedback, onRemoveImage }: {
+function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onToggleNotRequired, onRemoveImage }: {
   item: AgendaItemWithFeedback;
   onEdit: () => void; onRemove: () => void; onToggleCostPaid: () => void;
   onToggleNotRequired: (next: boolean) => void;
-  onAddFeedback: (text: string, role: string, sentiment: string) => void;
   onRemoveImage: (url: string) => void;
 }) {
-  const [showFeedback, setShowFeedback] = useState(false);
-  const [fbText, setFbText] = useState("");
-  const [fbRole, setFbRole] = useState("student");
-  const [fbSentiment, setFbSentiment] = useState("😊");
   const travel = TRAVEL_METHODS.find(t => t.value === item.travel_method)?.label || "";
   const mapUrl = getMapUrl(item.map_link, item.address);
 
@@ -658,39 +653,9 @@ function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onToggleNotRequired
             </div>
           )}
 
-          {showFeedback && (
-            <div style={{ marginTop: 8, padding: "10px 12px", background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", marginBottom: 8, textTransform: "uppercase", letterSpacing: .6 }}>Leave Feedback</div>
-              <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
-                {[{ v: "😊", l: "Good" }, { v: "😐", l: "OK" }, { v: "😞", l: "Poor" }].map(opt => {
-                  const { Icon, color } = getSentimentIcon(opt.v);
-                  const active = fbSentiment === opt.v;
-                  return (
-                    <button key={opt.v} onClick={() => setFbSentiment(opt.v)}
-                      style={{ flex: 1, padding: "6px 4px", borderRadius: 8, border: `2px solid ${active ? "#0369a1" : "#e2e8f0"}`, background: active ? "#eff6ff" : "#fff", cursor: "pointer", lineHeight: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
-                      <Icon size={22} color={active ? color : "#94a3b8"} />
-                      <span style={{ fontSize: 9, color: active ? "#0369a1" : "#94a3b8", fontWeight: 600, fontFamily: "inherit" }}>{opt.l}</span>
-                    </button>
-                  );
-                })}
-              </div>
-              <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-                <Sel options={Object.entries(ROLES_TYPED).map(([v, r]) => ({ value: v, label: r.label }))} value={fbRole} onChange={e => setFbRole(e.target.value)} style={{ width: 165, padding: "4px 8px", fontSize: 11 }} />
-                <input value={fbText} onChange={e => setFbText(e.target.value)}
-                  onKeyDown={e => { if (e.key === "Enter" && fbText.trim()) { onAddFeedback(fbText, fbRole, fbSentiment); setFbText(""); setShowFeedback(false); } }}
-                  placeholder="Add a comment (optional)..."
-                  style={{ ...INP, flex: 1, minWidth: 140, padding: "4px 8px", fontSize: 11 }} />
-                <Btn onClick={() => { onAddFeedback(fbText, fbRole, fbSentiment); setFbText(""); setShowFeedback(false); }} small>Submit</Btn>
-                <Btn onClick={() => setShowFeedback(false)} variant="muted" small>Cancel</Btn>
-              </div>
-            </div>
-          )}
         </div>
 
         <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-          <ActionButton title="Leave feedback" onClick={() => setShowFeedback(s => !s)} active={showFeedback}>
-            <I n="feedback" s={14} />
-          </ActionButton>
           <ActionButton title="Edit item" onClick={onEdit}>
             <I n="edit" s={14} />
           </ActionButton>
@@ -883,18 +848,6 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
     onDaysChange(days.map(d => d.id === dayId ? { ...d, agenda_items: d.agenda_items.map(i => i.id === item.id ? { ...i, confirmation_not_required: next } : i) } : d));
   }
 
-  async function addFeedback(dayId: string, itemId: string, text: string, role: string, sentiment: string) {
-    const supabase = createClient();
-    const { data } = await supabase.from("agenda_feedback").insert({
-      item_id: itemId, tour_id: tour.id, role, sentiment, text: text || null,
-    }).select().single();
-    if (data) {
-      onDaysChange(days.map(d => d.id === dayId ? {
-        ...d, agenda_items: d.agenda_items.map(i => i.id === itemId ? { ...i, agenda_feedback: [...(i.agenda_feedback || []), data] } : i),
-      } : d));
-    }
-  }
-
   // Bulk-apply persona visibility to a day (dayId) or the whole tour (null).
   // Tour Host always stays visible.
   async function applyBulkVisibility(dayId: string | null, overrides: Record<string, boolean>) {
@@ -942,7 +895,7 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
   const itemLocs = days.flatMap(d => (d.agenda_items ?? []).map(item => ({ dayId: d.id, item })));
   const hotelLocs = itemLocs.filter(x => x.item.type === "hotel");
   const hotelLoc = hotelLocs.find(x => /[-–]/.test(x.item.title ?? "")) ?? hotelLocs[0] ?? null;
-  const busLoc = itemLocs.find(x => x.item.travel_method === "bus") ?? null;
+  const busLoc = itemLocs.find(x => x.item.travel_method === "bus" && x.item.contact_name) ?? null;
 
   return (
     <div>
@@ -968,9 +921,9 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
         bannerUrl={tour.banner_image_url}
         focusX={tour.banner_focus_x ?? 50}
         focusY={tour.banner_focus_y ?? 50}
-        badgeLabel="Tour Host"
-        badgeBg={ROLES_TYPED.coordinator.bg}
-        badgeColor={ROLES_TYPED.coordinator.color}
+        badgeLabel={personaLabel("tour_host", tour.persona_labels)}
+        badgeBg={personaColors("tour_host").bg}
+        badgeColor={personaColors("tour_host").color}
       />
 
       {/* Preview role buttons — primary action, prominent at the top */}
@@ -981,7 +934,7 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {/* One preview per active participant persona (Tour Host = the editor). */}
             {activePersonaKeys(tour.active_personas).filter(k => k !== "tour_host").map(key => {
-              const meta = ROLES_TYPED[getPersona(key)?.viewRole ?? "student"];
+              const meta = personaColors(key);
               return (
                 <button key={key} onClick={() => setPreviewPersona(key)}
                   style={{ flex: "1 1 140px", minWidth: 130, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, background: meta.bg, color: meta.color, border: `1.5px solid ${meta.color}22`, borderRadius: 10, padding: "12px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
@@ -1129,7 +1082,6 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
                       onRemove={() => removeItem(day.id, item.id)}
                       onToggleCostPaid={() => toggleCostPaid(day.id, item)}
                       onToggleNotRequired={next => toggleNotRequired(day.id, item, next)}
-                      onAddFeedback={(text, role, sentiment) => addFeedback(day.id, item.id, text, role, sentiment)}
                       onRemoveImage={url => removeItemImage(day.id, item, url)}
                     />
                   ))}
