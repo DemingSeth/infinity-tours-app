@@ -8,26 +8,17 @@ export default async function PublicTourViewPage({ params }: { params: Promise<{
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: tour }, { data: rawDays }, { data: members }] = await Promise.all([
-    supabase
-      .from("tours")
-      .select("id, name, destination, dates, access_codes, banner_image_url, contact_name, contact_email, traveling_tour_host, start_date, end_date, bus_capacity, room_config, tour_hosts(name, phone)")
-      .eq("id", id)
-      .single(),
-    supabase
-      .from("agenda_days")
-      .select("*, agenda_items(*)")
-      .eq("tour_id", id)
-      .order("sort_order"),
-    supabase
-      .from("tour_members")
-      .select("type")
-      .eq("tour_id", id),
-  ]);
+  // The shared view is public (no login). RLS restricts the underlying tables to
+  // authenticated users, so we read the curated, participant-safe payload through
+  // a SECURITY DEFINER RPC keyed on the (unguessable) tour id. Returns null when
+  // the tour doesn't exist.
+  const { data } = await supabase.rpc("get_shared_tour", { p_tour_id: id });
+  if (!data) notFound();
 
-  if (!tour) notFound();
+  const tour = data.tour;
+  const host = data.host;
 
-  const days: AgendaDayWithItems[] = (rawDays ?? []).map((day: any) => ({
+  const days: AgendaDayWithItems[] = (data.days ?? []).map((day: any) => ({
     ...day,
     agenda_items: (day.agenda_items ?? []).map((item: any) => ({
       ...item,
@@ -35,10 +26,9 @@ export default async function PublicTourViewPage({ params }: { params: Promise<{
     })),
   }));
 
-  const host = (tour as any).tour_hosts;
   const tripInfo = buildTripInfo({
     tour,
-    members: members ?? [],
+    members: data.members ?? [],
     days,
     hostName: host?.name ?? null,
     hostPhone: host?.phone ?? null,
