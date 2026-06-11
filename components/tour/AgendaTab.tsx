@@ -7,7 +7,7 @@ import TypeDot from "@/components/shared/TypeDot";
 import {
   BRAND, ROLES, AGENDA_TYPES, TRAVEL_METHODS, TRAVEL_SUBTYPES, ACTIVITY_SUBTYPES,
   isDayInPast, parseAgendaDate, formatAgendaDate, suggestNextDate,
-  toDateInput, getMapUrl, fmt$, buildTripInfo, sanitizeFilename,
+  toDateInput, getMapUrl, fmt$, buildTripInfo,
   activePersonaKeys, personaLabel, personaColors, getPersona, PERSONAS, defaultPersonaVisibility,
 } from "@/lib/helpers";
 import AgendaRoleView from "@/components/tour/AgendaRoleView";
@@ -19,7 +19,7 @@ import {
 import AgendaImages from "@/components/shared/AgendaImages";
 import { ConfirmationStatus, NoConfirmationToggle } from "@/components/tour/ConfirmationsTab";
 import ItineraryHeaderTile from "@/components/tour/ItineraryHeaderTile";
-import { MapPin, Phone, Bus, Lock, Clock, ImagePlus, Download } from "lucide-react";
+import { MapPin, Phone, Bus, Lock, Clock, ImagePlus, Printer } from "lucide-react";
 import type {
   TourRow, AgendaDayWithItems, AgendaItemWithFeedback,
   AgendaItemType, TravelMethod, MealPayType, Role,
@@ -697,35 +697,11 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
   const [showShareModal, setShowShareModal] = useState(false);
   const [editingDayId, setEditingDayId] = useState<string | null>(null);
   const [editingDayDateVal, setEditingDayDateVal] = useState("");
-  const [pdfLoading, setPdfLoading] = useState(false);
 
-  // Server-side PDF export of the itinerary (host full view). Streams the file
-  // back from the /pdf route and triggers a download.
-  async function downloadPdf() {
-    if (pdfLoading) return;
-    setPdfLoading(true);
-    try {
-      const res = await fetch(`/tour/${tour.id}/pdf`);
-      if (!res.ok) {
-        const detail = await res.text().catch(() => "");
-        console.error("Itinerary PDF generation failed:", detail || res.status);
-        throw new Error(detail || `HTTP ${res.status}`);
-      }
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${sanitizeFilename(tour.name)}-Itinerary.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message.split("\n")[0] : "";
-      alert(`Sorry, the itinerary PDF could not be generated. Please try again.${msg ? `\n\n(${msg})` : ""}`);
-    } finally {
-      setPdfLoading(false);
-    }
+  // Open the print-optimized itinerary view in a new tab; it auto-triggers the
+  // browser's print dialog (Save as PDF). Reliable, no server-side rendering.
+  function openPrintView() {
+    window.open(`/tour/${tour.id}/print`, "_blank", "noopener");
   }
 
   const pastDays = days.filter(d => isDayInPast(d.date));
@@ -980,10 +956,10 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
               style={{ flex: "1 1 140px", minWidth: 130, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, background: BRAND.teal, color: "#fff", border: "none", borderRadius: 10, padding: "12px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                 <I n="link" s={15} />Share View
               </button>
-            <button onClick={downloadPdf} disabled={pdfLoading}
-              title="Download a branded PDF of the full itinerary"
-              style={{ flex: "1 1 140px", minWidth: 130, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, background: BRAND.navy, color: "#fff", border: "none", borderRadius: 10, padding: "12px 16px", fontSize: 13, fontWeight: 700, cursor: pdfLoading ? "default" : "pointer", fontFamily: "inherit", opacity: pdfLoading ? 0.7 : 1 }}>
-                <Download size={15} />{pdfLoading ? "Generating…" : "Download PDF"}
+            <button onClick={openPrintView}
+              title="Open a print-ready view of the full itinerary to save as PDF"
+              style={{ flex: "1 1 140px", minWidth: 130, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, background: BRAND.navy, color: "#fff", border: "none", borderRadius: 10, padding: "12px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                <Printer size={15} />Print / Save as PDF
               </button>
           </div>
         </div>

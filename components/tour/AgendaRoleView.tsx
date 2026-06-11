@@ -101,11 +101,12 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
           if (items.length === 0) return null; // hide days with nothing visible to this persona
           const collapsed = print ? false : !!collapsedDays[day.id];
           return (
-          <div key={day.id} style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
+          <div key={day.id} className={print ? "print-day" : undefined} style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
             <div
               onClick={print ? undefined : () => toggleDay(day.id)}
               role="button"
               aria-expanded={!collapsed}
+              className={print ? "print-day-header" : undefined}
               style={{ background: BRAND.navy, padding: "10px 16px", display: "flex", alignItems: "center", gap: 10, cursor: print ? "default" : "pointer", breakInside: print ? "avoid" : undefined }}
             >
               {!print && (collapsed
@@ -118,7 +119,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
             {!collapsed && (
             <div>
               {items.map((item, idx) => (
-                <div key={item.id} style={{ padding: "12px 16px", borderTop: idx > 0 ? "1px solid #f1f5f9" : undefined, breakInside: print ? "avoid" : undefined }}>
+                <div key={item.id} className={print ? "print-item" : undefined} style={{ padding: "12px 16px", borderTop: idx > 0 ? "1px solid #f1f5f9" : undefined, breakInside: print ? "avoid" : undefined }}>
                   <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                     {item.time && (
                       <span style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", minWidth: 52, paddingTop: 4, flexShrink: 0 }}>{item.time}</span>
