@@ -67,15 +67,20 @@ export default async function ItineraryPrintPage({
         html, body { margin: 0; padding: 0; background: #ffffff; }
         img { max-width: 100%; }
 
-        @page { size: Letter; margin: 0.5in; }
+        /* Controls page spacing; also nudges the browser's own header/footer to
+           the margins (it can only be fully removed via the print dialog). */
+        @page { size: Letter; margin: 12mm 10mm; }
 
         @media print {
-          /* Hide on-screen-only chrome (the floating Print button). */
+          /* Hide on-screen-only chrome (the floating Print button + tip). */
           .no-print { display: none !important; }
           /* Let day cards break across pages but keep each item intact. */
           .print-day { break-inside: auto; }
           .print-day-header { break-inside: avoid; break-after: avoid; }
-          .print-item { break-inside: avoid; }
+          .print-item { break-inside: avoid; page-break-inside: avoid; }
+          /* Whole image, smaller in print so one photo never fills a page,
+             and never split across a page break. */
+          .agenda-photo { max-height: 260px !important; break-inside: avoid; page-break-inside: avoid; }
         }
       `}</style>
       <PrintLauncher />

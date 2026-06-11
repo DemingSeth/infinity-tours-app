@@ -38,7 +38,7 @@ export default function PrintLauncher() {
   }, []);
 
   return (
-    <div className="no-print" style={{ position: "fixed", top: 12, right: 12, zIndex: 1000 }}>
+    <div className="no-print" style={{ position: "fixed", top: 12, right: 12, zIndex: 1000, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, maxWidth: 260 }}>
       <button
         type="button"
         onClick={() => window.print()}
@@ -50,6 +50,12 @@ export default function PrintLauncher() {
       >
         <Printer size={15} /> Print / Save as PDF
       </button>
+      <p style={{
+        margin: 0, fontSize: 11, lineHeight: 1.4, color: "#475569", background: "rgba(255,255,255,.9)",
+        borderRadius: 8, padding: "6px 10px", textAlign: "right", boxShadow: "0 1px 4px rgba(0,0,0,.12)",
+      }}>
+        For a clean copy, turn off &ldquo;Headers and footers&rdquo; in your browser&rsquo;s print dialog.
+      </p>
     </div>
   );
 }

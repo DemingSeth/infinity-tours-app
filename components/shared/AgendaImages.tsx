@@ -5,8 +5,15 @@ import { createPortal } from "react-dom";
 import Image from "next/image";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 
-// Height of the in-card landscape preview; the full image is shown in the lightbox.
-const PREVIEW_H = 220;
+// Activity photos render whole (never cropped) at their natural aspect ratio,
+// capped to a medium height. The `agenda-photo` class lets the print page tighten
+// the cap in @media print without touching this shared component.
+const AGENDA_PHOTO_CLASS = "agenda-photo";
+const photoStyle: React.CSSProperties = {
+  display: "block", maxWidth: "100%", maxHeight: 360, width: "auto", height: "auto",
+  objectFit: "contain", borderRadius: 10, border: "1px solid #e2e8f0", background: "#f1f5f9",
+  margin: "0 auto",
+};
 
 export default function AgendaImages({
   urls,
@@ -33,17 +40,12 @@ export default function AgendaImages({
   if (!urls || urls.length === 0) return null;
 
   if (print) {
+    // Static, eagerly-loaded whole images (no lightbox / interactivity).
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
         {urls.map((url, i) => (
           // eslint-disable-next-line @next/next/no-img-element
-          <img
-            key={`${url}-${i}`}
-            src={url}
-            alt="Itinerary item photo"
-            loading="eager"
-            style={{ width: "100%", maxHeight: 320, objectFit: "cover", borderRadius: 10, border: "1px solid #e2e8f0", display: "block", breakInside: "avoid" }}
-          />
+          <img key={`${url}-${i}`} className={AGENDA_PHOTO_CLASS} src={url} alt="Itinerary item photo" loading="eager" style={photoStyle} />
         ))}
       </div>
     );
@@ -54,46 +56,36 @@ export default function AgendaImages({
       <>
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
           {urls.map((url, i) => (
-            <div key={`${url}-${i}`} style={{ position: "relative", width: "100%" }}>
-              <button
-                type="button"
-                onClick={() => setLightboxIndex(i)}
-                title="View full image"
-                style={{
-                  display: "block", width: "100%", padding: 0, border: "none",
-                  background: "none", cursor: "zoom-in", borderRadius: 10, overflow: "hidden",
-                }}
-              >
-                <div style={{
-                  position: "relative", width: "100%", height: PREVIEW_H,
-                  borderRadius: 10, overflow: "hidden",
-                  border: "1px solid #e2e8f0", background: "#f1f5f9",
-                }}>
-                  <Image
-                    src={url}
-                    alt="Itinerary item photo"
-                    fill
-                    sizes="(max-width: 680px) 100vw, 640px"
-                    style={{ objectFit: "cover" }}
-                  />
-                </div>
-              </button>
-              {onRemove && (
+            // Center each photo; the inline-block wrapper shrinks to the image so
+            // the remove "x" sits on the image corner, not the column edge.
+            <div key={`${url}-${i}`} style={{ textAlign: "center" }}>
+              <div style={{ position: "relative", display: "inline-block", maxWidth: "100%" }}>
                 <button
                   type="button"
-                  title="Remove image"
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); onRemove(url); }}
-                  style={{
-                    position: "absolute", top: 8, right: 8, width: 24, height: 24,
-                    borderRadius: "50%", background: "rgba(15,33,55,.75)", color: "#fff",
-                    border: "none", cursor: "pointer", padding: 0,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    lineHeight: 1, boxShadow: "0 1px 4px rgba(0,0,0,.35)",
-                  }}
+                  onClick={() => setLightboxIndex(i)}
+                  title="View full image"
+                  style={{ display: "block", padding: 0, border: "none", background: "none", cursor: "zoom-in", borderRadius: 10, maxWidth: "100%" }}
                 >
-                  <X size={13} strokeWidth={3} />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img className={AGENDA_PHOTO_CLASS} src={url} alt="Itinerary item photo" style={photoStyle} />
                 </button>
-              )}
+                {onRemove && (
+                  <button
+                    type="button"
+                    title="Remove image"
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); onRemove(url); }}
+                    style={{
+                      position: "absolute", top: 8, right: 8, width: 24, height: 24,
+                      borderRadius: "50%", background: "rgba(15,33,55,.75)", color: "#fff",
+                      border: "none", cursor: "pointer", padding: 0,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      lineHeight: 1, boxShadow: "0 1px 4px rgba(0,0,0,.35)",
+                    }}
+                  >
+                    <X size={13} strokeWidth={3} />
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
