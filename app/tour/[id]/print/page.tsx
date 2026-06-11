@@ -80,7 +80,7 @@ export default async function ItineraryPrintPage({
           .print-item { break-inside: avoid; page-break-inside: avoid; }
           /* Whole image, smaller in print so one photo never fills a page,
              and never split across a page break. */
-          .agenda-photo { max-height: 260px !important; break-inside: avoid; page-break-inside: avoid; }
+          .agenda-photo { max-height: 190px !important; break-inside: avoid; page-break-inside: avoid; }
         }
       `}</style>
       <PrintLauncher />

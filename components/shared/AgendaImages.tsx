@@ -10,7 +10,7 @@ import { X, ChevronLeft, ChevronRight } from "lucide-react";
 // the cap in @media print without touching this shared component.
 const AGENDA_PHOTO_CLASS = "agenda-photo";
 const photoStyle: React.CSSProperties = {
-  display: "block", maxWidth: "100%", maxHeight: 360, width: "auto", height: "auto",
+  display: "block", maxWidth: "100%", maxHeight: 300, width: "auto", height: "auto",
   objectFit: "contain", borderRadius: 10, border: "1px solid #e2e8f0", background: "#f1f5f9",
   margin: "0 auto",
 };
