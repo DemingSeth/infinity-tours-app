@@ -7,7 +7,7 @@ import AgendaImages from "@/components/shared/AgendaImages";
 import ItemFeedback from "@/components/tour/ItemFeedback";
 import TripInformation from "@/components/tour/TripInformation";
 import ItineraryHeaderTile from "@/components/tour/ItineraryHeaderTile";
-import { BRAND, ROLES, DEFAULT_VISIBILITY, getMapUrl, TRAVEL_METHODS, isItemVisibleTo, personaColors } from "@/lib/helpers";
+import { BRAND, ROLES, DEFAULT_VISIBILITY, getMapUrl, TRAVEL_METHODS, isItemVisibleTo, personaColors, sortAgendaItemsByTime } from "@/lib/helpers";
 import type { AgendaDayWithItems, Role, TripInfo } from "@/lib/types";
 
 interface Props {
@@ -97,7 +97,10 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {days.map(day => {
           // Strict per-persona filtering: only items where visibility[persona] === true.
-          const items = personaKey ? day.agenda_items.filter(i => isItemVisibleTo(i, personaKey)) : day.agenda_items;
+          // Then order chronologically by time (sort_order is insertion order, not time).
+          const items = sortAgendaItemsByTime(
+            personaKey ? day.agenda_items.filter(i => isItemVisibleTo(i, personaKey)) : day.agenda_items,
+          );
           if (items.length === 0) return null; // hide days with nothing visible to this persona
           const collapsed = print ? false : !!collapsedDays[day.id];
           return (

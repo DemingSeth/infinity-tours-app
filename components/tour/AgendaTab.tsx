@@ -7,7 +7,7 @@ import TypeDot from "@/components/shared/TypeDot";
 import {
   BRAND, ROLES, AGENDA_TYPES, TRAVEL_METHODS, TRAVEL_SUBTYPES, ACTIVITY_SUBTYPES,
   isDayInPast, parseAgendaDate, formatAgendaDate, suggestNextDate,
-  toDateInput, getMapUrl, fmt$, buildTripInfo,
+  toDateInput, getMapUrl, fmt$, buildTripInfo, sortAgendaItemsByTime,
   activePersonaKeys, personaLabel, personaColors, getPersona, PERSONAS, defaultPersonaVisibility,
 } from "@/lib/helpers";
 import AgendaRoleView from "@/components/tour/AgendaRoleView";
@@ -1092,7 +1092,7 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
                   {day.agenda_items.length === 0 && addingItem !== day.id && (
                     <div style={{ color: "#cbd5e1", fontSize: 12, padding: "14px 16px", textAlign: "center" }}>No items yet</div>
                   )}
-                  {day.agenda_items.map(item => (
+                  {sortAgendaItemsByTime(day.agenda_items).map(item => (
                     <ItemRow
                       key={item.id}
                       item={item}

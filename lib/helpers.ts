@@ -314,6 +314,48 @@ export function buildTripInfo({ tour, members, days, hostName, hostPhone, confir
   };
 }
 
+// ─── Agenda item time ordering ────────────────────────────────────────────────
+
+// Parse a display time string ("5:20 AM", "9:00 PM", "12:00 AM", "14:30") into
+// minutes since midnight (0–1439). Returns null for empty/unparseable values so
+// callers can sort those to a stable position rather than crashing.
+export function timeToMinutes(time: string | null | undefined): number | null {
+  if (!time) return null;
+  const m = time.trim().match(/^(\d{1,2})(?::(\d{2}))?\s*([ap])\.?m\.?$/i)
+    ?? time.trim().match(/^(\d{1,2}):(\d{2})$/); // 24-hour fallback
+  if (!m) return null;
+  let h = parseInt(m[1], 10);
+  const min = m[2] ? parseInt(m[2], 10) : 0;
+  if (Number.isNaN(h) || Number.isNaN(min) || min > 59) return null;
+  const mer = m[3]?.toLowerCase();
+  if (mer === "a") { if (h === 12) h = 0; }       // 12 AM = midnight
+  else if (mer === "p") { if (h !== 12) h += 12; } // PM (except 12 PM = noon)
+  else if (h > 23) return null;                    // 24-hour out of range
+  if (h > 23) return null;
+  return h * 60 + min;
+}
+
+// Order a day's agenda items chronologically by their time. Timed items come
+// first (ascending); untimed items keep their existing order and sort to the end.
+// Ties (same time, or both untimed) fall back to sort_order, then original index,
+// for a stable result. Pure — returns a new array.
+export function sortAgendaItemsByTime<T extends { time?: string | null; sort_order?: number | null }>(items: T[]): T[] {
+  return items
+    .map((item, idx) => ({ item, idx, mins: timeToMinutes(item.time) }))
+    .sort((a, b) => {
+      if (a.mins !== b.mins) {
+        if (a.mins === null) return 1;   // untimed after timed
+        if (b.mins === null) return -1;
+        return a.mins - b.mins;
+      }
+      const ao = a.item.sort_order ?? 0;
+      const bo = b.item.sort_order ?? 0;
+      if (ao !== bo) return ao - bo;
+      return a.idx - b.idx;
+    })
+    .map(x => x.item);
+}
+
 // ─── Date helpers ─────────────────────────────────────────────────────────────
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
