@@ -175,6 +175,30 @@ export function isItemVisibleTo(
   return item.persona_visibility?.[personaKey] === true;
 }
 
+// ─── Roster ───────────────────────────────────────────────────────────────────
+
+// Which roster role-sections a viewer may see. Reuses the existing persona/role
+// model (PersonaDef.viewRole) rather than a parallel visibility system. The
+// host/coordinator sees every active section; other roles will get filtered
+// roster views later — they map to the personas that share their itinerary view
+// role. Roster v1 only renders the host view, so only the coordinator branch is
+// exercised today; the rest is the foundation for role-filtered views.
+export function visibleRosterPersonas(personaKeys: string[], viewerRole: Role): string[] {
+  if (viewerRole === "coordinator") return personaKeys;
+  return personaKeys.filter(k => getPersona(k)?.viewRole === viewerRole);
+}
+
+// Expected headcount for a persona's roster section, pulled from the tour's
+// planning numbers. Only students carry a planned count today; other roles
+// return null (the header shows the actual count without an "of N").
+export function expectedCountForPersona(
+  key: string,
+  tour: { student_count?: number | null },
+): number | null {
+  if (key === "student") return tour.student_count ?? null;
+  return null;
+}
+
 // ─── Location formatting ──────────────────────────────────────────────────────
 
 const US_STATES: Record<string, string> = {

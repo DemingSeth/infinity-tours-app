@@ -103,8 +103,34 @@ create table if not exists tour_members (
   gender text,
   waiver boolean default false,
   notes text,
+  -- Structured roster fields (previously crammed into `notes`).
+  dietary_restrictions text,
+  allergies text,
+  custom_attributes jsonb not null default '{}'::jsonb,
   sort_order integer default 0
 );
+
+-- Participant grouping foundation. A participant can belong to one or more
+-- groups; a group has a type (chaperone today; bus / rooming later) and may be
+-- led by a chaperone (a tour_member). Adding a group type is additive — no
+-- schema rework. NO grouping UI ships in roster v1; v1 groups only by role.
+create table if not exists participant_groups (
+  id uuid primary key default gen_random_uuid(),
+  tour_id uuid references tours(id) on delete cascade not null,
+  type text not null default 'chaperone' check (type in ('chaperone','bus','rooming','other')),
+  name text not null,
+  chaperone_member_id uuid references tour_members(id) on delete set null,
+  sort_order integer default 0,
+  created_at timestamptz default now()
+);
+create index if not exists participant_groups_tour_id_idx on participant_groups(tour_id);
+
+create table if not exists participant_group_members (
+  group_id uuid references participant_groups(id) on delete cascade not null,
+  member_id uuid references tour_members(id) on delete cascade not null,
+  primary key (group_id, member_id)
+);
+create index if not exists participant_group_members_member_id_idx on participant_group_members(member_id);
 
 create table if not exists vendors (
   id uuid primary key default gen_random_uuid(),
@@ -164,6 +190,8 @@ alter table agenda_days enable row level security;
 alter table agenda_items enable row level security;
 alter table agenda_feedback enable row level security;
 alter table tour_members enable row level security;
+alter table participant_groups enable row level security;
+alter table participant_group_members enable row level security;
 alter table vendors enable row level security;
 alter table post_trip enable row level security;
 alter table banner_image_library enable row level security;
@@ -257,6 +285,29 @@ create policy "Tour hosts update tour members"
 create policy "Tour hosts delete tour members"
   on tour_members for delete to authenticated
   using (exists (select 1 from tours where id = tour_id and tour_host_id = auth.uid()));
+
+-- participant_groups / participant_group_members — mirror tour_members:
+-- authenticated read, only the tour's host writes.
+create policy "Read participant groups"
+  on participant_groups for select to authenticated using (true);
+create policy "Tour hosts insert participant groups"
+  on participant_groups for insert to authenticated
+  with check (exists (select 1 from tours where id = tour_id and tour_host_id = auth.uid()));
+create policy "Tour hosts update participant groups"
+  on participant_groups for update to authenticated
+  using (exists (select 1 from tours where id = tour_id and tour_host_id = auth.uid()));
+create policy "Tour hosts delete participant groups"
+  on participant_groups for delete to authenticated
+  using (exists (select 1 from tours where id = tour_id and tour_host_id = auth.uid()));
+
+create policy "Read participant group members"
+  on participant_group_members for select to authenticated using (true);
+create policy "Tour hosts insert participant group members"
+  on participant_group_members for insert to authenticated
+  with check (exists (select 1 from participant_groups g join tours t on t.id = g.tour_id where g.id = group_id and t.tour_host_id = auth.uid()));
+create policy "Tour hosts delete participant group members"
+  on participant_group_members for delete to authenticated
+  using (exists (select 1 from participant_groups g join tours t on t.id = g.tour_id where g.id = group_id and t.tour_host_id = auth.uid()));
 
 -- vendors
 create policy "Authenticated users read vendors"

@@ -45,6 +45,18 @@ export interface Database {
         Update: Partial<Omit<TourMemberRow, "id">>;
         Relationships: [];
       };
+      participant_groups: {
+        Row: ParticipantGroupRow;
+        Insert: Omit<ParticipantGroupRow, "id" | "created_at">;
+        Update: Partial<Omit<ParticipantGroupRow, "id" | "created_at">>;
+        Relationships: [];
+      };
+      participant_group_members: {
+        Row: ParticipantGroupMemberRow;
+        Insert: ParticipantGroupMemberRow;
+        Update: Partial<ParticipantGroupMemberRow>;
+        Relationships: [];
+      };
       vendors: {
         Row: VendorRow;
         Insert: Omit<VendorRow, "id" | "created_at">;
@@ -224,7 +236,32 @@ export interface TourMemberRow {
   gender: string | null;
   waiver: boolean;
   notes: string | null;
+  // Structured roster fields (previously crammed into `notes`).
+  dietary_restrictions: string | null;
+  allergies: string | null;
+  // Free-form extra attributes (label → value), e.g. { "T-Shirt": "L" }.
+  custom_attributes: Record<string, string>;
   sort_order: number;
+}
+
+// ─── Participant grouping (foundation; no grouping UI in roster v1) ────────────
+// A participant can belong to one or more groups. A group has a type — chaperone
+// today, bus / rooming later — and may be led by a chaperone (a tour_member).
+export type ParticipantGroupType = "chaperone" | "bus" | "rooming" | "other";
+
+export interface ParticipantGroupRow {
+  id: string;
+  tour_id: string;
+  type: ParticipantGroupType;
+  name: string;
+  chaperone_member_id: string | null;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface ParticipantGroupMemberRow {
+  group_id: string;
+  member_id: string;
 }
 
 export interface VendorRow {

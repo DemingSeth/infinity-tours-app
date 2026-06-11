@@ -217,6 +217,7 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
           tour={tour}
           members={members}
           isOwner={isOwner}
+          viewerRole="coordinator"
           onMembersChange={setMembers}
         />
       )}

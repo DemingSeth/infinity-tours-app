@@ -706,7 +706,11 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
     setPdfLoading(true);
     try {
       const res = await fetch(`/tour/${tour.id}/pdf`);
-      if (!res.ok) throw new Error(`PDF request failed (${res.status})`);
+      if (!res.ok) {
+        const detail = await res.text().catch(() => "");
+        console.error("Itinerary PDF generation failed:", detail || res.status);
+        throw new Error(detail || `HTTP ${res.status}`);
+      }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -716,8 +720,9 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-    } catch {
-      alert("Sorry, the itinerary PDF could not be generated. Please try again.");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message.split("\n")[0] : "";
+      alert(`Sorry, the itinerary PDF could not be generated. Please try again.${msg ? `\n\n(${msg})` : ""}`);
     } finally {
       setPdfLoading(false);
     }
