@@ -206,6 +206,15 @@ export function expandStateName(dest: string | null | undefined): string {
   return dest;
 }
 
+// Turn a tour name into a safe download filename stem (no extension), e.g.
+// "Anaheim Trip 2026!" → "Anaheim-Trip-2026". Used for the itinerary PDF.
+export function sanitizeFilename(name: string | null | undefined): string {
+  return (name || "Tour")
+    .replace(/[^a-zA-Z0-9-_ ]/g, "")
+    .trim()
+    .replace(/\s+/g, "-") || "Tour";
+}
+
 // ─── Trip Information ─────────────────────────────────────────────────────────
 
 // Spell a DATE column out in full, e.g. "Saturday, June 14, 2026".

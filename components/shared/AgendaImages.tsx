@@ -13,6 +13,7 @@ export default function AgendaImages({
   size = 76,
   fullWidth = false,
   onRemove,
+  print = false,
 }: {
   urls: string[] | null | undefined;
   size?: number;
@@ -22,10 +23,31 @@ export default function AgendaImages({
   // (thumbnail grid) is kept for the upload/management UI in the editor.
   fullWidth?: boolean;
   onRemove?: (url: string) => void;
+  // Print mode: static, eagerly-loaded plain <img> (no next/image optimizer,
+  // no lazy-loading, no lightbox) so headless Chromium renders every photo
+  // into the PDF regardless of where it falls on the page.
+  print?: boolean;
 }) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   if (!urls || urls.length === 0) return null;
+
+  if (print) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+        {urls.map((url, i) => (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            key={`${url}-${i}`}
+            src={url}
+            alt="Itinerary item photo"
+            loading="eager"
+            style={{ width: "100%", maxHeight: 320, objectFit: "cover", borderRadius: 10, border: "1px solid #e2e8f0", display: "block", breakInside: "avoid" }}
+          />
+        ))}
+      </div>
+    );
+  }
 
   if (fullWidth) {
     return (

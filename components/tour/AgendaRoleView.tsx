@@ -27,9 +27,12 @@ interface Props {
   personaKey?: string;
   onClose?: () => void;
   embedded?: boolean;
+  // Print mode (PDF export): all days forced open, no interactive chrome
+  // (chevrons/feedback), eager non-optimized images, and page-break hints.
+  print?: boolean;
 }
 
-export default function AgendaRoleView({ tourName, tourDestination, tourDates, bannerUrl, bannerFocusX = 50, bannerFocusY = 50, tripInfo, days, confTourId, role, roleLabel, personaKey, onClose, embedded }: Props) {
+export default function AgendaRoleView({ tourName, tourDestination, tourDates, bannerUrl, bannerFocusX = 50, bannerFocusY = 50, tripInfo, days, confTourId, role, roleLabel, personaKey, onClose, embedded, print = false }: Props) {
   const vis = DEFAULT_VISIBILITY[role] as Record<string, boolean>;
   const roleInfo = ROLES[role];
   const label = roleLabel || roleInfo.label; // persona label override
@@ -41,7 +44,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
   // collapsed by default behind an icon on each item (see ItemFeedback). In the
   // embedded admin preview it's shown too, but submitting is a no-op so previewing
   // never writes real feedback rows.
-  const showFeedback = role !== "driver";
+  const showFeedback = role !== "driver" && !print;
 
   // Days are collapsible in every view. Seed from the host's saved collapsed flag,
   // then toggle locally — participants/public never write this back to the DB.
@@ -79,6 +82,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
         badgeLabel={label}
         badgeBg={colors.bg}
         badgeColor={colors.color}
+        print={print}
       />
 
       {/* Trip Information — shown to all roles, expanded by default, above Day 1. */}
@@ -95,18 +99,18 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
           // Strict per-persona filtering: only items where visibility[persona] === true.
           const items = personaKey ? day.agenda_items.filter(i => isItemVisibleTo(i, personaKey)) : day.agenda_items;
           if (items.length === 0) return null; // hide days with nothing visible to this persona
-          const collapsed = !!collapsedDays[day.id];
+          const collapsed = print ? false : !!collapsedDays[day.id];
           return (
           <div key={day.id} style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
             <div
-              onClick={() => toggleDay(day.id)}
+              onClick={print ? undefined : () => toggleDay(day.id)}
               role="button"
               aria-expanded={!collapsed}
-              style={{ background: BRAND.navy, padding: "10px 16px", display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}
+              style={{ background: BRAND.navy, padding: "10px 16px", display: "flex", alignItems: "center", gap: 10, cursor: print ? "default" : "pointer", breakInside: print ? "avoid" : undefined }}
             >
-              {collapsed
+              {!print && (collapsed
                 ? <ChevronRight size={16} color="rgba(255,255,255,.7)" style={{ flexShrink: 0 }} />
-                : <ChevronDown size={16} color="rgba(255,255,255,.7)" style={{ flexShrink: 0 }} />}
+                : <ChevronDown size={16} color="rgba(255,255,255,.7)" style={{ flexShrink: 0 }} />)}
               <span style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", color: "#fff", fontWeight: 700, fontSize: 15 }}>Day {day.day_number}</span>
               <span style={{ color: "#7dd3d8", fontSize: 13 }}>{day.date}</span>
               <span style={{ color: "rgba(255,255,255,.4)", fontSize: 11 }}>{items.length} item{items.length !== 1 ? "s" : ""}</span>
@@ -114,7 +118,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
             {!collapsed && (
             <div>
               {items.map((item, idx) => (
-                <div key={item.id} style={{ padding: "12px 16px", borderTop: idx > 0 ? "1px solid #f1f5f9" : undefined }}>
+                <div key={item.id} style={{ padding: "12px 16px", borderTop: idx > 0 ? "1px solid #f1f5f9" : undefined, breakInside: print ? "avoid" : undefined }}>
                   <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                     {item.time && (
                       <span style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", minWidth: 52, paddingTop: 4, flexShrink: 0 }}>{item.time}</span>
@@ -145,7 +149,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                         </div>
                       )}
 
-                      <AgendaImages urls={item.image_urls} fullWidth />
+                      <AgendaImages urls={item.image_urls} fullWidth print={print} />
 
 
                       {vis.address && item.address && (
