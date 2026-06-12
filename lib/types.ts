@@ -157,6 +157,9 @@ export interface TourRow {
   // Manual per-persona participant count overrides, e.g. { student: 26 }. When a
   // key is present, Trip Information uses it instead of the roster-derived count.
   participant_counts: Record<string, number>;
+  // Free-text override for the Participants row in Trip Information. When non-empty
+  // it replaces the structured per-persona breakdown + total (host-controlled).
+  participants_display_override: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -337,6 +340,9 @@ export interface TripInfo {
   // persona key (e.g. "student") so the host can edit each count inline.
   participants: { key: string; label: string; count: number }[];
   totalParticipants: number;
+  // Host free-text override for the Participants row. Non-empty → render verbatim
+  // in place of the breakdown + total. Null/empty → use the breakdown.
+  participantsOverride: string | null;
   departure: string | null; // raw start date
   returnDate: string | null; // raw end date
   flightName: string | null;

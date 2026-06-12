@@ -14,6 +14,8 @@ type ConfItem = { id?: string; type: string; label: string | null; file_url: str
 type TripForm = {
   teacherName: string; teacherEmail: string; tourHostName: string; tourHostPhone: string;
   busCapacity: string;
+  // Free-text override for the Participants row; blank = use the counts below.
+  participantsOverride: string;
   // Per-persona manual counts keyed by persona key; blank = use the roster count.
   participantCounts: Record<string, string>;
 };
@@ -71,7 +73,7 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<TripForm>({
-    teacherName: "", teacherEmail: "", tourHostName: "", tourHostPhone: "", busCapacity: "", participantCounts: {},
+    teacherName: "", teacherEmail: "", tourHostName: "", tourHostPhone: "", busCapacity: "", participantsOverride: "", participantCounts: {},
   });
 
   function startEdit() {
@@ -81,6 +83,7 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
       tourHostName: info.tourHostName ?? "",
       tourHostPhone: info.tourHostPhone ?? "",
       busCapacity: info.busCapacity != null ? String(info.busCapacity) : "",
+      participantsOverride: info.participantsOverride ?? "",
       participantCounts: Object.fromEntries(info.participants.map(p => [p.key, String(p.count)])),
     });
     setOpen(true);
@@ -104,6 +107,7 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
           traveling_tour_host: form.tourHostName.trim() || null,
           bus_capacity: Number(form.busCapacity) || 0,
           participant_counts,
+          participants_display_override: form.participantsOverride.trim() || null,
         }),
         onSaveHostPhone?.(form.tourHostPhone.trim() || null),
       ]);
@@ -266,6 +270,10 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
       label: "Participants",
       content: editing ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b" }}>Participants (custom text)</div>
+          <input style={inputStyle} value={form.participantsOverride} placeholder="e.g. 42 travelers (final count pending)"
+            onChange={e => setForm(f => ({ ...f, participantsOverride: e.target.value }))} />
+          <div style={{ fontSize: 11, color: "#94a3b8" }}>Overrides the breakdown below. Leave blank to use the counts.</div>
           {info.participants.map(p => (
             <div key={p.key} style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <input type="number" min={0} style={{ ...inputStyle, width: 80 }}
@@ -277,6 +285,10 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
           ))}
           <div style={{ fontSize: 11, color: "#94a3b8" }}>Leave a field blank to use the count from the roster.</div>
         </div>
+      ) : info.participantsOverride && info.participantsOverride.trim() ? (
+        // Host override: render the custom text verbatim; suppress the total line
+        // so a possibly-contradictory computed count is never shown alongside it.
+        <div style={{ whiteSpace: "pre-wrap" }}>{info.participantsOverride}</div>
       ) : (
         <>
           <div>{info.participants.map(p => `${p.count} ${p.label}`).join(", ") || "—"}</div>

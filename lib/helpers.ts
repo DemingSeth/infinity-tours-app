@@ -339,6 +339,7 @@ export function buildTripInfo({ tour, members, days, hostName, hostPhone, confir
     tourHostPhone: hostPhone || null,
     participants,
     totalParticipants: participants.reduce((s, p) => s + p.count, 0),
+    participantsOverride: tour?.participants_display_override ?? null,
     departure: tour?.start_date || null,
     returnDate: tour?.end_date || null,
     flightName: flightName || null,
