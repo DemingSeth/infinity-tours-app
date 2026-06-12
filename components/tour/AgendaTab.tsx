@@ -17,7 +17,7 @@ import {
   AGENDA_TYPE_COLORS, getAgendaTypeIcon, getSentimentIcon, getSubtypeIcon,
 } from "@/components/shared/agendaIcons";
 import AgendaImages from "@/components/shared/AgendaImages";
-import { ConfirmationStatus, NoConfirmationToggle } from "@/components/tour/ConfirmationsTab";
+import ItemConfirmationControl, { ConfirmationFileChips, type ConfirmationPatch } from "@/components/tour/itemConfirmation";
 import ItineraryHeaderTile from "@/components/tour/ItineraryHeaderTile";
 import { MapPin, Phone, Bus, Lock, Clock, ImagePlus, Printer } from "lucide-react";
 import type {
@@ -322,13 +322,17 @@ function ImageUploader({ tourId, itemId, urls, onChange }: {
   );
 }
 
-function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, itemId, activePersonas, personaLabels }: {
+function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, itemId, activePersonas, personaLabels, confirmationControl }: {
   form: ItemFormState;
   setForm: React.Dispatch<React.SetStateAction<ItemFormState>>;
   onSave: () => void; onCancel: () => void; isEdit?: boolean; saving?: boolean;
   tourId: string; itemId: string;
   activePersonas: string[];
   personaLabels: Record<string, string>;
+  // When provided (edit modal), confirmation upload/status is managed by this
+  // control — which writes the same agenda_items record as the Confirmations
+  // page — and the inline "No confirmation required" checkbox is hidden.
+  confirmationControl?: React.ReactNode;
 }) {
   const f = (v: Partial<ItemFormState>) => setForm(p => ({ ...p, ...v }));
   // For NEW items, recompute the smart defaults when type/travel changes:
@@ -498,11 +502,22 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
             <input type="checkbox" id="cpaid" checked={form.cost_paid} onChange={e => f({ cost_paid: e.target.checked })} style={{ accentColor: BRAND.navy }} />
             <label htmlFor="cpaid" style={{ fontSize: 12, cursor: "pointer" }}>Cost paid / confirmed</label>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <input type="checkbox" id="cnotreq" checked={form.confirmation_not_required} onChange={e => f({ confirmation_not_required: e.target.checked })} style={{ accentColor: BRAND.navy }} />
-            <label htmlFor="cnotreq" style={{ fontSize: 12, cursor: "pointer" }}>No confirmation required</label>
-          </div>
+          {/* Inline checkbox only when there's no full confirmation control
+              (i.e. the New Item form). In the edit modal the control below
+              owns the "no confirmation needed" status. */}
+          {!confirmationControl && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input type="checkbox" id="cnotreq" checked={form.confirmation_not_required} onChange={e => f({ confirmation_not_required: e.target.checked })} style={{ accentColor: BRAND.navy }} />
+              <label htmlFor="cnotreq" style={{ fontSize: 12, cursor: "pointer" }}>No confirmation required</label>
+            </div>
+          )}
         </div>
+
+        {confirmationControl && (
+          <Field label="Confirmation">
+            {confirmationControl}
+          </Field>
+        )}
       </div>
 
       <div style={{ display: "flex", gap: 8 }}>
@@ -586,10 +601,9 @@ function ActionButton({ title, onClick, active, danger, children }: {
   );
 }
 
-function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onToggleNotRequired, onRemoveImage }: {
+function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onRemoveImage }: {
   item: AgendaItemWithFeedback;
   onEdit: () => void; onRemove: () => void; onToggleCostPaid: () => void;
-  onToggleNotRequired: (next: boolean) => void;
   onRemoveImage: (url: string) => void;
 }) {
   const travel = TRAVEL_METHODS.find(t => t.value === item.travel_method)?.label || "";
@@ -605,10 +619,9 @@ function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onToggleNotRequired
           <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", marginBottom: 3 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: BRAND.navy }}>{item.title}</span>
             {travel && <span style={{ fontSize: 10, background: "#eff6ff", color: "#1e40af", borderRadius: 4, padding: "1px 6px", fontWeight: 600 }}>{travel}</span>}
-            <ConfirmationStatus linked={(item.confirmation_urls?.length ?? 0) > 0} notRequired={item.confirmation_not_required} />
-            {(item.confirmation_urls?.length ?? 0) === 0 && (
-              <NoConfirmationToggle checked={!!item.confirmation_not_required} onChange={onToggleNotRequired} />
-            )}
+            {/* Attached confirmations show only as compact links here; all
+                uploading / status lives in the edit modal and Confirmations page. */}
+            <ConfirmationFileChips urls={item.confirmation_urls ?? []} />
           </div>
           {item.address && <div style={{ fontSize: 12, color: "#64748b", marginBottom: 3, display: "flex", alignItems: "center", gap: 4 }}><MapPin size={12} style={{ flexShrink: 0 }} />{item.address}</div>}
           {item.detail && <div style={{ fontSize: 12, color: "#475569", marginBottom: 3 }}>{item.detail}</div>}
@@ -847,7 +860,10 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
   async function updateItem() {
     if (!editCtx || !editForm.title.trim()) return;
     setSaving(true);
-    const { day_id, tour_id, sort_order, ...patch } = formToInsert(editForm, editCtx.dayId, 0);
+    // confirmation_not_required is managed live by ItemConfirmationControl (which
+    // writes immediately), so exclude it here to avoid overwriting it with the
+    // form's stale value on save.
+    const { day_id, tour_id, sort_order, confirmation_not_required, ...patch } = formToInsert(editForm, editCtx.dayId, 0);
     const supabase = createClient();
     await supabase.from("agenda_items").update(patch).eq("id", editCtx.itemId);
     onDaysChange(days.map(d => d.id === editCtx.dayId ? {
@@ -878,10 +894,11 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
     onDaysChange(days.map(d => d.id === dayId ? { ...d, agenda_items: d.agenda_items.map(i => i.id === item.id ? { ...i, cost_paid: !i.cost_paid } : i) } : d));
   }
 
-  async function toggleNotRequired(dayId: string, item: AgendaItemWithFeedback, next: boolean) {
-    const supabase = createClient();
-    await supabase.from("agenda_items").update({ confirmation_not_required: next }).eq("id", item.id);
-    onDaysChange(days.map(d => d.id === dayId ? { ...d, agenda_items: d.agenda_items.map(i => i.id === item.id ? { ...i, confirmation_not_required: next } : i) } : d));
+  // Reflect a confirmation change (made by ItemConfirmationControl, which has
+  // already written the agenda_items row) into local state, so the row, the
+  // edit modal, and the Confirmations page all stay in sync.
+  function patchConfirmation(dayId: string, itemId: string, patch: ConfirmationPatch) {
+    onDaysChange(days.map(d => d.id === dayId ? { ...d, agenda_items: d.agenda_items.map(i => i.id === itemId ? { ...i, ...patch } : i) } : d));
   }
 
   // Bulk-apply persona visibility to a day (dayId) or the whole tour (null).
@@ -1131,7 +1148,6 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
                       onEdit={() => { setEditCtx({ dayId: day.id, itemId: item.id }); setEditForm(itemToForm(item)); }}
                       onRemove={() => removeItem(day.id, item.id)}
                       onToggleCostPaid={() => toggleCostPaid(day.id, item)}
-                      onToggleNotRequired={next => toggleNotRequired(day.id, item, next)}
                       onRemoveImage={url => removeItemImage(day.id, item, url)}
                     />
                   ))}
@@ -1196,19 +1212,31 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
         </Modal>
       )}
 
-      {editCtx && (
-        <Modal title="Edit Itinerary Item" onClose={() => setEditCtx(null)} wide>
-          <ItemForm
-            form={editForm} setForm={setEditForm}
-            onSave={updateItem}
-            onCancel={() => setEditCtx(null)}
-            isEdit saving={saving}
-            tourId={tour.id} itemId={editCtx.itemId}
-            activePersonas={activePersonaKeys(tour.active_personas)}
-            personaLabels={tour.persona_labels || {}}
-          />
-        </Modal>
-      )}
+      {editCtx && (() => {
+        const editItem = days.find(d => d.id === editCtx.dayId)?.agenda_items.find(i => i.id === editCtx.itemId);
+        return (
+          <Modal title="Edit Itinerary Item" onClose={() => setEditCtx(null)} wide>
+            <ItemForm
+              form={editForm} setForm={setEditForm}
+              onSave={updateItem}
+              onCancel={() => setEditCtx(null)}
+              isEdit saving={saving}
+              tourId={tour.id} itemId={editCtx.itemId}
+              activePersonas={activePersonaKeys(tour.active_personas)}
+              personaLabels={tour.persona_labels || {}}
+              confirmationControl={editItem && (
+                <ItemConfirmationControl
+                  tourId={tour.id}
+                  itemId={editCtx.itemId}
+                  urls={editItem.confirmation_urls ?? []}
+                  notRequired={!!editItem.confirmation_not_required}
+                  onPatch={patch => patchConfirmation(editCtx.dayId, editCtx.itemId, patch)}
+                />
+              )}
+            />
+          </Modal>
+        );
+      })()}
 
       {showShareModal && (
         <Modal title="Share Itinerary" onClose={() => setShowShareModal(false)}>

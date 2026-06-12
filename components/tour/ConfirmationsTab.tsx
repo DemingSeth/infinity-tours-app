@@ -1,30 +1,12 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { CheckCircle2, FileText, ImageIcon, MinusCircle, Upload, X } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { FileText, ImageIcon, Upload, X } from "lucide-react";
 import { BRAND } from "@/lib/helpers";
 import TypeDot from "@/components/shared/TypeDot";
+import {
+  ConfirmationStatus, NoConfirmationToggle, useItemConfirmation, fileLabel, isPdf,
+} from "@/components/tour/itemConfirmation";
 import type { AgendaDayWithItems, AgendaItemWithFeedback } from "@/lib/types";
-
-// Reuse the existing agenda-images storage bucket for confirmation documents
-// (public bucket, no MIME restriction — accepts both images and PDFs).
-const STORAGE_BUCKET = "agenda-images";
-const STORAGE_MARKER = `/${STORAGE_BUCKET}/`;
-
-function storagePathFromUrl(url: string): string | null {
-  const idx = url.indexOf(STORAGE_MARKER);
-  return idx >= 0 ? decodeURIComponent(url.slice(idx + STORAGE_MARKER.length)) : null;
-}
-
-// Strip the "<timestamp>-" prefix we add at upload time for a friendlier label.
-function fileLabel(url: string): string {
-  const path = storagePathFromUrl(url) ?? url;
-  const base = path.split("/").pop() ?? path;
-  return decodeURIComponent(base).replace(/^\d+-/, "");
-}
-
-const isPdf = (url: string) => /\.pdf(\?|$)/i.test(url);
 
 interface Props {
   tourId: string;
@@ -109,44 +91,8 @@ function ConfirmationRow({ tourId, item, isOwner, topBorder, onPatch }: {
   const urls = item.confirmation_urls ?? [];
   const linked = urls.length > 0;
   const notRequired = !!item.confirmation_not_required;
-  const [uploading, setUploading] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  async function toggleNotRequired(next: boolean) {
-    await createClient().from("agenda_items").update({ confirmation_not_required: next }).eq("id", item.id);
-    onPatch({ confirmation_not_required: next });
-  }
-
-  async function handleFiles(files: FileList | null) {
-    if (!files || files.length === 0) return;
-    setUploading(true);
-    const supabase = createClient();
-    const added: string[] = [];
-    for (const file of Array.from(files)) {
-      const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const path = `${tourId}/${item.id}/confirmations/${Date.now()}-${safe}`;
-      const { error } = await supabase.storage.from(STORAGE_BUCKET).upload(path, file, { cacheControl: "3600", upsert: false });
-      if (error) { console.error("Confirmation upload failed", error.message); continue; }
-      const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
-      if (data?.publicUrl) added.push(data.publicUrl);
-    }
-    if (added.length) {
-      const next = [...urls, ...added];
-      await supabase.from("agenda_items").update({ confirmation_urls: next }).eq("id", item.id);
-      onPatch({ confirmation_urls: next });
-    }
-    setUploading(false);
-    if (inputRef.current) inputRef.current.value = "";
-  }
-
-  async function removeFile(url: string) {
-    const next = urls.filter(u => u !== url);
-    const supabase = createClient();
-    await supabase.from("agenda_items").update({ confirmation_urls: next }).eq("id", item.id);
-    onPatch({ confirmation_urls: next });
-    const path = storagePathFromUrl(url);
-    if (path) { try { await supabase.storage.from(STORAGE_BUCKET).remove([path]); } catch {} }
-  }
+  const { uploading, inputRef, handleFiles, removeFile, toggleNotRequired } =
+    useItemConfirmation({ tourId, itemId: item.id, urls, onPatch });
 
   return (
     <div style={{ padding: "12px 16px", borderTop: topBorder ? "1px solid #f1f5f9" : undefined, display: "flex", gap: 12, alignItems: "flex-start" }}>
@@ -196,46 +142,5 @@ function ConfirmationRow({ tourId, item, isOwner, topBorder, onPatch }: {
         )}
       </div>
     </div>
-  );
-}
-
-// Shared status indicator: green check when a confirmation is linked, a neutral
-// gray "N/A" when the host marked it as not required, otherwise orange
-// "Unconfirmed".
-export function ConfirmationStatus({ linked, notRequired, size = 14 }: {
-  linked: boolean; notRequired?: boolean; size?: number;
-}) {
-  if (linked) {
-    return (
-      <span title="Confirmation linked" style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "#16a34a", fontSize: 11, fontWeight: 700 }}>
-        <CheckCircle2 size={size} />Confirmed
-      </span>
-    );
-  }
-  if (notRequired) {
-    return (
-      <span title="No confirmation needed for this item" style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "#64748b", fontSize: 11, fontWeight: 700 }}>
-        <MinusCircle size={size} />N/A
-      </span>
-    );
-  }
-  return (
-    <span title="No confirmation linked" style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "#ea580c", fontSize: 11, fontWeight: 700 }}>
-      <span style={{ width: size - 6, height: size - 6, borderRadius: "50%", background: "#f97316", flexShrink: 0 }} />Unconfirmed
-    </span>
-  );
-}
-
-// Small inline checkbox (host-only) for marking an item as not needing a
-// confirmation. Shown next to the "Unconfirmed"/"N/A" indicator.
-export function NoConfirmationToggle({ checked, onChange }: {
-  checked: boolean; onChange: (next: boolean) => void;
-}) {
-  return (
-    <label style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, color: "#64748b", cursor: "pointer", fontWeight: 600 }}>
-      <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)}
-        style={{ accentColor: BRAND.navy, width: 13, height: 13, cursor: "pointer" }} />
-      No confirmation needed
-    </label>
   );
 }
