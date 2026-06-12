@@ -174,7 +174,7 @@ export interface AgendaDayRow {
 }
 
 export type AgendaItemType = "travel" | "activity" | "food" | "hotel" | "free" | "break" | "meeting" | "instructions" | "general";
-export type MealPayType = "group" | "stipend" | "";
+export type MealPayType = "group" | "stipend" | "disney_dining" | "";
 export type TravelMethod = "bus" | "flight" | "subway" | "train" | "walking" | "rideshare" | "ferry" | "cruise" | "";
 
 export interface ItemVisibility {

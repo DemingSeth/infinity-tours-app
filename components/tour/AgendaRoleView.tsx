@@ -186,11 +186,21 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                           </span>
                         )}
                         {item.type === "food" && item.meal_pay_type && (
-                          <span style={{ fontSize: 10, fontWeight: 700, color: BRAND.teal, background: "#f0fdfa", borderRadius: 4, padding: "1px 6px" }}>
-                            {item.meal_pay_type === "group" ? "Group Meal" : item.stipend_amount ? `Stipend $${item.stipend_amount}` : "Stipend"}
-                          </span>
+                          item.meal_pay_type === "disney_dining" ? (
+                            <span style={{ fontSize: 10, fontWeight: 700, color: "#4338ca", background: "#eef2ff", borderRadius: 4, padding: "1px 6px" }}>
+                              Disney Dining Card
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: 10, fontWeight: 700, color: BRAND.teal, background: "#f0fdfa", borderRadius: 4, padding: "1px 6px" }}>
+                              {item.meal_pay_type === "group" ? "Group Meal" : item.stipend_amount ? `Stipend $${item.stipend_amount}` : "Stipend"}
+                            </span>
+                          )
                         )}
                       </div>
+
+                      {vis.address && item.address?.trim() && (
+                        <div style={{ fontSize: 12, color: "#475569", marginTop: 4 }}>{item.address}</div>
+                      )}
 
                       {vis.detail && item.detail && (
                         <div style={{ fontSize: 12, color: "#475569", marginTop: 3 }}>{item.detail}</div>
@@ -202,17 +212,13 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                         </div>
                       )}
 
-                      <AgendaImages urls={item.image_urls} fullWidth print={print} />
-
-
-                      {vis.address && item.address?.trim() && (
-                        <div style={{ fontSize: 12, color: "#475569", marginTop: 4 }}>
-                          {item.address}
-                          {vis.mapLink && (
-                            <GoogleMapsLink address={item.address} mapLink={item.map_link} color={BRAND.teal} fontSize={11} style={{ marginLeft: 8 }} />
-                          )}
+                      {vis.address && vis.mapLink && item.address?.trim() && (
+                        <div style={{ marginTop: 4 }}>
+                          <GoogleMapsLink address={item.address} mapLink={item.map_link} color={BRAND.teal} fontSize={11} />
                         </div>
                       )}
+
+                      <AgendaImages urls={item.image_urls} fullWidth print={print} />
 
                       {item.website && (
                         <div style={{ fontSize: 12, marginTop: 3 }}>

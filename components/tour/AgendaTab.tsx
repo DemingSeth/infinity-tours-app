@@ -428,14 +428,20 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
         <Field label="Title">
           <Inp value={form.title} onChange={e => f({ title: e.target.value })} placeholder="Museum, flight, restaurant..." autoFocus={!isEdit} />
         </Field>
+        <Field label="Address">
+          <Inp value={form.address} onChange={e => f({ address: e.target.value })} placeholder="Full street address" />
+        </Field>
         <Field label="Details / Notes">
           <Inp value={form.detail} onChange={e => f({ detail: e.target.value })} placeholder="Instructions, confirmation numbers..." />
         </Field>
-        <Field label="Internal Note (Tour Host Only)">
-          <Inp value={form.internal_note} onChange={e => f({ internal_note: e.target.value })} placeholder="Booking refs, reminders..." />
-        </Field>
         <Field label="Public Notes (Visible to All Roles)">
           <Tex value={form.public_note} onChange={e => f({ public_note: e.target.value })} placeholder="Directions, dress code, what to bring..." />
+        </Field>
+        <Field label="Google Maps Link" half>
+          <Inp value={form.map_link} onChange={e => f({ map_link: e.target.value })} placeholder="https://maps.app.goo.gl/..." />
+        </Field>
+        <Field label="Internal Note (Tour Host Only)">
+          <Inp value={form.internal_note} onChange={e => f({ internal_note: e.target.value })} placeholder="Booking refs, reminders..." />
         </Field>
         <Field label="Images (visible to all roles)">
           <ImageUploader tourId={tourId} itemId={itemId} urls={form.image_urls} onChange={urls => f({ image_urls: urls })} />
@@ -444,11 +450,11 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
         {form.type === "food" && (
           <div style={{ width: "100%", background: "#fff8f0", border: "1.5px solid #fed7aa", borderRadius: 10, padding: "12px 14px", display: "flex", flexWrap: "wrap", gap: 10 }}>
             <div style={{ width: "100%", fontSize: 11, fontWeight: 700, color: "#92400e", textTransform: "uppercase", letterSpacing: .7 }}>Meal Payment</div>
-            <Field label="How is this meal paid?" half>
-              <div style={{ display: "flex", gap: 6 }}>
-                {[{ value: "stipend", label: "Meal Stipend (Till Card)" }, { value: "group", label: "Group Meal (Tour Host pays)" }].map(opt => (
+            <Field label="How is this meal paid?">
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {[{ value: "stipend", label: "Meal Stipend (Till Card)" }, { value: "group", label: "Group Meal" }, { value: "disney_dining", label: "Disney Dining Card" }].map(opt => (
                   <button key={opt.value} type="button" onClick={() => f({ meal_pay_type: opt.value as MealPayType })}
-                    style={{ flex: 1, padding: "6px 8px", borderRadius: 8, border: `2px solid ${form.meal_pay_type === opt.value ? "#92400e" : "#e2e8f0"}`, background: form.meal_pay_type === opt.value ? "#fef3c7" : "#fff", cursor: "pointer", fontSize: 11, fontWeight: form.meal_pay_type === opt.value ? 700 : 400, color: form.meal_pay_type === opt.value ? "#92400e" : "#64748b", fontFamily: "inherit", textAlign: "center", lineHeight: 1.3 }}>
+                    style={{ flex: "1 1 110px", padding: "6px 8px", borderRadius: 8, border: `2px solid ${form.meal_pay_type === opt.value ? "#92400e" : "#e2e8f0"}`, background: form.meal_pay_type === opt.value ? "#fef3c7" : "#fff", cursor: "pointer", fontSize: 11, fontWeight: form.meal_pay_type === opt.value ? 700 : 400, color: form.meal_pay_type === opt.value ? "#92400e" : "#64748b", fontFamily: "inherit", textAlign: "center", lineHeight: 1.3 }}>
                     {opt.label}
                   </button>
                 ))}
@@ -462,12 +468,6 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
           </div>
         )}
 
-        <Field label="Address">
-          <Inp value={form.address} onChange={e => f({ address: e.target.value })} placeholder="Full street address" />
-        </Field>
-        <Field label="Google Maps Link" half>
-          <Inp value={form.map_link} onChange={e => f({ map_link: e.target.value })} placeholder="https://maps.app.goo.gl/..." />
-        </Field>
         <Field label="Website" half>
           <Inp value={form.website} onChange={e => f({ website: e.target.value })} placeholder="https://venue.com" />
         </Field>
@@ -610,25 +610,32 @@ function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onToggleNotRequired
               <NoConfirmationToggle checked={!!item.confirmation_not_required} onChange={onToggleNotRequired} />
             )}
           </div>
+          {item.address && <div style={{ fontSize: 12, color: "#64748b", marginBottom: 3, display: "flex", alignItems: "center", gap: 4 }}><MapPin size={12} style={{ flexShrink: 0 }} />{item.address}</div>}
           {item.detail && <div style={{ fontSize: 12, color: "#475569", marginBottom: 3 }}>{item.detail}</div>}
           {item.public_note && (
             <div style={{ fontSize: 12, background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 7, padding: "5px 10px", marginBottom: 5, color: "#0c4a6e", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
               {item.public_note}
             </div>
           )}
-          {item.type === "food" && item.meal_pay_type && (
+          {item.address && (
             <div style={{ marginBottom: 4 }}>
-              {item.meal_pay_type === "stipend"
-                ? <span style={{ fontSize: 11, background: "#fef3c7", color: "#92400e", borderRadius: 6, padding: "2px 9px", fontWeight: 700 }}>
-                    Meal Stipend{item.stipend_amount ? ` - $${item.stipend_amount} on Till Card` : ""}
-                  </span>
-                : <span style={{ fontSize: 11, background: "#f0fdf4", color: "#166534", borderRadius: 6, padding: "2px 9px", fontWeight: 700 }}>Group Meal - Tour Host pays</span>
-              }
+              <GoogleMapsLink address={item.address} mapLink={item.map_link} color="#0369a1" fontSize={11} />
             </div>
           )}
-          {item.address && <div style={{ fontSize: 12, color: "#64748b", marginBottom: 3, display: "flex", alignItems: "center", gap: 4 }}><MapPin size={12} style={{ flexShrink: 0 }} />{item.address}</div>}
+          {item.type === "food" && item.meal_pay_type && (
+            <div style={{ marginBottom: 4 }}>
+              {item.meal_pay_type === "stipend" ? (
+                <span style={{ fontSize: 11, background: "#fef3c7", color: "#92400e", borderRadius: 6, padding: "2px 9px", fontWeight: 700 }}>
+                  Meal Stipend{item.stipend_amount ? ` - $${item.stipend_amount} on Till Card` : ""}
+                </span>
+              ) : item.meal_pay_type === "disney_dining" ? (
+                <span style={{ fontSize: 11, background: "#eef2ff", color: "#4338ca", borderRadius: 6, padding: "2px 9px", fontWeight: 700 }}>Disney Dining Card</span>
+              ) : (
+                <span style={{ fontSize: 11, background: "#f0fdf4", color: "#166534", borderRadius: 6, padding: "2px 9px", fontWeight: 700 }}>Group Meal</span>
+              )}
+            </div>
+          )}
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 4, alignItems: "center" }}>
-            <GoogleMapsLink address={item.address} mapLink={item.map_link} color="#0369a1" fontSize={11} />
             {item.website && (
               <a href={item.website} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: "#5b21b6", display: "inline-flex", alignItems: "center", gap: 3, textDecoration: "none", fontWeight: 600 }}>
                 <I n="eye" s={10} />Website
