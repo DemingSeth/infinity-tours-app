@@ -62,6 +62,13 @@ export const ACTIVITY_SUBTYPES = [
   { value: "concert",        label: "Concert" },
 ] as const;
 
+// An item counts as an "Activity" if its type is the Activity type or it carries
+// an Activity sub-type. Drives the default for the per-item student-feedback toggle.
+export function isActivityType(type: string | null | undefined, activitySubtype?: string | null): boolean {
+  if (type === "activity") return true;
+  return !!activitySubtype && ACTIVITY_SUBTYPES.some(s => s.value === activitySubtype);
+}
+
 // Display labels for the travel-method badge shown on items. Mirrors the
 // TRAVEL_SUBTYPES values (the empty option means "not specified").
 export const TRAVEL_METHODS = [

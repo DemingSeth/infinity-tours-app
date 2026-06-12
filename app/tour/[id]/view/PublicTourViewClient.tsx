@@ -4,7 +4,7 @@ import { useState } from "react";
 import AgendaRoleView from "@/components/tour/AgendaRoleView";
 import InfinityLogoImg from "@/components/shared/InfinityLogoImg";
 import { BRAND, expandStateName, activePersonaKeys, personaLabel, personaColors, getPersona } from "@/lib/helpers";
-import type { AgendaDayWithItems, Role, AccessCodes, TripInfo } from "@/lib/types";
+import type { AgendaDayWithItems, Role, TripInfo } from "@/lib/types";
 
 interface Props {
   tourId: string;
@@ -15,7 +15,9 @@ interface Props {
   tourBannerFocusX: number;
   tourBannerFocusY: number;
   tripInfo: TripInfo | null;
-  accessCodes: AccessCodes;
+  // Set server-side when a valid session cookie already exists for this tour, so
+  // we render the itinerary immediately and never show the access-code prompt.
+  initialUnlocked: { role: Role; label: string; personaKey: string } | null;
   activePersonas: string[];
   personaLabels: Record<string, string>;
   days: AgendaDayWithItems[];
@@ -29,11 +31,12 @@ const PERSONA_DESC: Record<string, string> = {
   bus_driver: "Addresses and driving notes",
 };
 
-export default function PublicTourViewClient({ tourName, tourDestination, tourDates, tourBannerUrl, tourBannerFocusX, tourBannerFocusY, tripInfo, accessCodes, activePersonas, personaLabels, days }: Props) {
+export default function PublicTourViewClient({ tourId, tourName, tourDestination, tourDates, tourBannerUrl, tourBannerFocusX, tourBannerFocusY, tripInfo, initialUnlocked, activePersonas, personaLabels, days }: Props) {
   const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [unlocked, setUnlocked] = useState<{ role: Role; label: string; personaKey: string } | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [unlocked, setUnlocked] = useState<{ role: Role; label: string; personaKey: string } | null>(initialUnlocked);
 
   // Selectable personas (active ones), each mapped to its itinerary view + code.
   const options = activePersonaKeys(activePersonas).map(key => {
@@ -41,16 +44,35 @@ export default function PublicTourViewClient({ tourName, tourDestination, tourDa
     return { key, label: personaLabel(key, personaLabels), viewRole: p.viewRole, codeKey: p.codeKey, desc: PERSONA_DESC[key] ?? "" };
   });
 
-  function handleSubmit(e: React.FormEvent) {
+  // Validate the code server-side. On success the route sets a signed httpOnly
+  // cookie so a refresh skips this prompt for the rest of the day on this device.
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const opt = options.find(o => o.key === selectedPersona);
-    if (!opt) return;
-    const codes = accessCodes as unknown as Record<string, string>;
-    const expected = codes[opt.codeKey];
-    if (expected && code.trim() === expected) {
-      setUnlocked({ role: opt.viewRole, label: opt.label, personaKey: opt.key });
-    } else {
-      setError("Incorrect access code. Please try again.");
+    if (!opt || submitting) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      // Seconds until 11:59:59 PM in the viewer's local timezone.
+      const endOfDay = new Date();
+      endOfDay.setHours(23, 59, 59, 999);
+      const maxAgeSeconds = Math.max(60, Math.ceil((endOfDay.getTime() - Date.now()) / 1000));
+
+      const res = await fetch("/api/tour-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tourId, personaKey: opt.key, code: code.trim(), maxAgeSeconds }),
+      });
+      if (res.ok) {
+        setUnlocked({ role: opt.viewRole, label: opt.label, personaKey: opt.key });
+      } else {
+        const body = await res.json().catch(() => ({}));
+        setError((body as { error?: string }).error || "Incorrect access code. Please try again.");
+      }
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -155,13 +177,15 @@ export default function PublicTourViewClient({ tourName, tourDestination, tourDa
 
                 <button
                   type="submit"
+                  disabled={submitting || !code.trim()}
                   style={{
                     background: BRAND.navy, color: "#fff", border: "none", borderRadius: 8,
-                    padding: "12px 0", fontSize: 14, fontWeight: 600, cursor: "pointer",
-                    fontFamily: "inherit", marginTop: 4,
+                    padding: "12px 0", fontSize: 14, fontWeight: 600,
+                    cursor: submitting || !code.trim() ? "default" : "pointer",
+                    fontFamily: "inherit", marginTop: 4, opacity: submitting || !code.trim() ? 0.7 : 1,
                   }}
                 >
-                  View Itinerary
+                  {submitting ? "Verifying…" : "View Itinerary"}
                 </button>
               </form>
             )}

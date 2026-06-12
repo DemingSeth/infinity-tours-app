@@ -1,8 +1,10 @@
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import PublicTourViewClient from "./PublicTourViewClient";
-import { buildTripInfo } from "@/lib/helpers";
-import type { AgendaDayWithItems } from "@/lib/types";
+import { buildTripInfo, getPersona, personaLabel, activePersonaKeys } from "@/lib/helpers";
+import { verifyTourSession, TOUR_SESSION_COOKIE } from "@/lib/tourSession";
+import type { AgendaDayWithItems, Role } from "@/lib/types";
 
 export default async function PublicTourViewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -35,6 +37,22 @@ export default async function PublicTourViewPage({ params }: { params: Promise<{
     confirmations: data.confirmations ?? [],
   });
 
+  // Skip the access-code prompt when this device already holds a valid, unexpired
+  // session cookie for THIS tour and the unlocked persona is still active. The
+  // access codes themselves are never sent to the browser.
+  const session = verifyTourSession((await cookies()).get(TOUR_SESSION_COOKIE)?.value);
+  let initialUnlocked: { role: Role; label: string; personaKey: string } | null = null;
+  if (session && session.t === id) {
+    const persona = getPersona(session.p);
+    if (persona && activePersonaKeys(tour.active_personas).includes(session.p)) {
+      initialUnlocked = {
+        role: persona.viewRole,
+        label: personaLabel(session.p, tour.persona_labels ?? {}),
+        personaKey: session.p,
+      };
+    }
+  }
+
   return (
     <PublicTourViewClient
       tourId={id}
@@ -45,7 +63,7 @@ export default async function PublicTourViewPage({ params }: { params: Promise<{
       tourBannerFocusX={tour.banner_focus_x ?? 50}
       tourBannerFocusY={tour.banner_focus_y ?? 50}
       tripInfo={tripInfo}
-      accessCodes={tour.access_codes}
+      initialUnlocked={initialUnlocked}
       activePersonas={tour.active_personas ?? []}
       personaLabels={tour.persona_labels ?? {}}
       days={days}

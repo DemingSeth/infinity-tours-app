@@ -7,9 +7,10 @@ import TypeDot from "@/components/shared/TypeDot";
 import {
   BRAND, ROLES, AGENDA_TYPES, TRAVEL_METHODS, TRAVEL_SUBTYPES, ACTIVITY_SUBTYPES,
   isDayInPast, parseAgendaDate, formatAgendaDate, suggestNextDate,
-  toDateInput, getMapUrl, fmt$, buildTripInfo, sortAgendaItemsByTime,
-  activePersonaKeys, personaLabel, personaColors, getPersona, PERSONAS, defaultPersonaVisibility,
+  toDateInput, fmt$, buildTripInfo, sortAgendaItemsByTime,
+  activePersonaKeys, personaLabel, personaColors, getPersona, PERSONAS, defaultPersonaVisibility, isActivityType,
 } from "@/lib/helpers";
+import GoogleMapsLink from "@/components/shared/GoogleMapsLink";
 import AgendaRoleView from "@/components/tour/AgendaRoleView";
 import TripInformation from "@/components/tour/TripInformation";
 import {
@@ -254,6 +255,7 @@ type ItemFormState = {
   driver_note: string; internal_note: string;
   meal_pay_type: MealPayType; stipend_amount: string;
   persona_visibility: Record<string, boolean>;
+  feedback_enabled: boolean;
   image_urls: string[];
 };
 
@@ -262,7 +264,8 @@ const BLANK: ItemFormState = {
   address: "", map_link: "", website: "", travel_method: "",
   contact_name: "", contact_phone: "", contact_email: "",
   cost: "", cost_paid: false, confirmation_not_required: false, driver_note: "", internal_note: "",
-  meal_pay_type: "", stipend_amount: "", persona_visibility: defaultPersonaVisibility("activity", ""), image_urls: [],
+  meal_pay_type: "", stipend_amount: "", persona_visibility: defaultPersonaVisibility("activity", ""),
+  feedback_enabled: isActivityType("activity", ""), image_urls: [],
 };
 
 const TYPE_COLORS = AGENDA_TYPE_COLORS;
@@ -329,11 +332,16 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
   personaLabels: Record<string, string>;
 }) {
   const f = (v: Partial<ItemFormState>) => setForm(p => ({ ...p, ...v }));
-  // For NEW items, recompute the smart visibility default when type/travel changes.
+  // For NEW items, recompute the smart defaults when type/travel changes:
+  // per-persona visibility, and the student-feedback default (on for Activities).
+  // Either default can still be overridden by the host afterward.
   const fT = (v: Partial<ItemFormState>) => setForm(p => {
     const next = { ...p, ...v };
     if (!isEdit && ("type" in v || "travel_method" in v)) {
       next.persona_visibility = defaultPersonaVisibility(next.type, next.travel_method);
+    }
+    if (!isEdit && "type" in v) {
+      next.feedback_enabled = isActivityType(next.type, next.activity_subtype);
     }
     return next;
   });
@@ -401,6 +409,17 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
             );
           })}
         </div>
+      </div>
+
+      {/* Per-item student feedback toggle. Defaults on for Activities (set when
+          the type changes), but the host can override it for any item type. */}
+      <div style={{ marginBottom: 14 }}>
+        <label style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12, fontWeight: 600, color: form.feedback_enabled ? "#1e293b" : "#64748b", cursor: "pointer" }}>
+          <input type="checkbox" checked={form.feedback_enabled}
+            onChange={() => f({ feedback_enabled: !form.feedback_enabled })}
+            style={{ accentColor: BRAND.navy, width: 15, height: 15, cursor: "pointer" }} />
+          Collect student feedback for this item
+        </label>
       </div>
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 12 }}>
@@ -568,7 +587,6 @@ function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onToggleNotRequired
   onRemoveImage: (url: string) => void;
 }) {
   const travel = TRAVEL_METHODS.find(t => t.value === item.travel_method)?.label || "";
-  const mapUrl = getMapUrl(item.map_link, item.address);
 
   return (
     <div style={{ padding: "14px 16px", borderBottom: "1px solid #f8fafc", background: "#fff" }} onClick={e => e.stopPropagation()}>
@@ -604,11 +622,7 @@ function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onToggleNotRequired
           )}
           {item.address && <div style={{ fontSize: 12, color: "#64748b", marginBottom: 3, display: "flex", alignItems: "center", gap: 4 }}><MapPin size={12} style={{ flexShrink: 0 }} />{item.address}</div>}
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 4, alignItems: "center" }}>
-            {mapUrl && (
-              <a href={mapUrl} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: "#0369a1", display: "inline-flex", alignItems: "center", gap: 3, textDecoration: "none", fontWeight: 600 }}>
-                <I n="link" s={10} />Google Maps
-              </a>
-            )}
+            <GoogleMapsLink address={item.address} mapLink={item.map_link} color="#0369a1" fontSize={11} />
             {item.website && (
               <a href={item.website} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: "#5b21b6", display: "inline-flex", alignItems: "center", gap: 3, textDecoration: "none", fontWeight: 600 }}>
                 <I n="eye" s={10} />Website
@@ -733,6 +747,7 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
       stipend_amount: f.stipend_amount ? parseFloat(f.stipend_amount) : null,
       item_visibility: null,
       persona_visibility: f.persona_visibility,
+      feedback_enabled: f.feedback_enabled,
       image_urls: f.image_urls,
     };
   }
@@ -751,6 +766,7 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
       meal_pay_type: item.meal_pay_type || "",
       stipend_amount: item.stipend_amount ? String(item.stipend_amount) : "",
       persona_visibility: item.persona_visibility ?? defaultPersonaVisibility(item.type, item.travel_method),
+      feedback_enabled: item.feedback_enabled ?? isActivityType(item.type, item.activity_subtype),
       image_urls: item.image_urls || [],
     };
   }

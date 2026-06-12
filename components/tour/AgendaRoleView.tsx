@@ -7,7 +7,8 @@ import AgendaImages from "@/components/shared/AgendaImages";
 import ItemFeedback from "@/components/tour/ItemFeedback";
 import TripInformation from "@/components/tour/TripInformation";
 import ItineraryHeaderTile from "@/components/tour/ItineraryHeaderTile";
-import { BRAND, ROLES, DEFAULT_VISIBILITY, getMapUrl, TRAVEL_METHODS, isItemVisibleTo, personaColors, sortAgendaItemsByTime } from "@/lib/helpers";
+import GoogleMapsLink from "@/components/shared/GoogleMapsLink";
+import { BRAND, ROLES, DEFAULT_VISIBILITY, TRAVEL_METHODS, isItemVisibleTo, personaColors, sortAgendaItemsByTime } from "@/lib/helpers";
 import type { AgendaDayWithItems, Role, TripInfo } from "@/lib/types";
 
 interface Props {
@@ -156,18 +157,11 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                       <AgendaImages urls={item.image_urls} fullWidth print={print} />
 
 
-                      {vis.address && item.address && (
+                      {vis.address && item.address?.trim() && (
                         <div style={{ fontSize: 12, color: "#475569", marginTop: 4 }}>
                           {item.address}
-                          {vis.mapLink && getMapUrl(item.map_link, item.address) && (
-                            <a
-                              href={getMapUrl(item.map_link, item.address)!}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              style={{ marginLeft: 8, fontSize: 11, color: BRAND.teal, textDecoration: "none", fontWeight: 600 }}
-                            >
-                              Map
-                            </a>
+                          {vis.mapLink && (
+                            <GoogleMapsLink address={item.address} mapLink={item.map_link} color={BRAND.teal} fontSize={11} style={{ marginLeft: 8 }} />
                           )}
                         </div>
                       )}
@@ -219,7 +213,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                       )}
                     </div>
                   </div>
-                  {showFeedback && (
+                  {showFeedback && item.feedback_enabled && (
                     <ItemFeedback itemId={item.id} tourId={item.tour_id} role={role} preview={!!embedded} />
                   )}
                 </div>

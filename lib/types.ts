@@ -211,6 +211,9 @@ export interface AgendaItemRow {
   // while Meeting Point, Break, Walking, and Free Time → true (no confirmation
   // expected). Not implemented yet; the data model already supports it.
   confirmation_not_required: boolean;
+  // When true, students/guests see the per-item feedback control on the shared
+  // itinerary. Defaults on for Activity items (see isActivityType); host-overridable.
+  feedback_enabled: boolean;
   created_at: string;
 }
 

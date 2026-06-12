@@ -82,6 +82,7 @@ create table if not exists agenda_items (
   stipend_amount numeric,
   item_visibility jsonb,
   image_urls text[] not null default '{}',
+  feedback_enabled boolean not null default false,
   created_at timestamptz default now()
 );
 
