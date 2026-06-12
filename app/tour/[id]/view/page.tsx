@@ -67,6 +67,8 @@ export default async function PublicTourViewPage({ params }: { params: Promise<{
       activePersonas={tour.active_personas ?? []}
       personaLabels={tour.persona_labels ?? {}}
       days={days}
+      generalFeedbackEnabled={tour.general_feedback_enabled ?? true}
+      tourEndDate={tour.end_date ?? null}
     />
   );
 }

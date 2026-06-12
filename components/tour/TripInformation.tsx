@@ -11,6 +11,13 @@ const STORAGE_BUCKET = "agenda-images";
 
 type ConfItem = { id?: string; type: string; label: string | null; file_url: string };
 
+type TripForm = {
+  teacherName: string; teacherEmail: string; tourHostName: string; tourHostPhone: string;
+  busCapacity: string;
+  // Per-persona manual counts keyed by persona key; blank = use the roster count.
+  participantCounts: Record<string, string>;
+};
+
 const confBoxStyle: React.CSSProperties = {
   marginTop: 8, display: "flex", alignItems: "center", gap: 8,
   border: "1px dashed #d8dee9", borderRadius: 8, padding: "7px 10px", background: "#fafbff", fontSize: 12,
@@ -63,7 +70,9 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
   const [open, setOpen] = useState(true); // expanded by default
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ teacherName: "", teacherEmail: "", tourHostName: "", tourHostPhone: "", busCapacity: "" });
+  const [form, setForm] = useState<TripForm>({
+    teacherName: "", teacherEmail: "", tourHostName: "", tourHostPhone: "", busCapacity: "", participantCounts: {},
+  });
 
   function startEdit() {
     setForm({
@@ -72,6 +81,7 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
       tourHostName: info.tourHostName ?? "",
       tourHostPhone: info.tourHostPhone ?? "",
       busCapacity: info.busCapacity != null ? String(info.busCapacity) : "",
+      participantCounts: Object.fromEntries(info.participants.map(p => [p.key, String(p.count)])),
     });
     setOpen(true);
     setEditing(true);
@@ -80,12 +90,20 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
   async function save() {
     setSaving(true);
     try {
+      // Build the manual count override: keep only numeric entries; a blank field
+      // is dropped so that persona falls back to the roster-derived count.
+      const participant_counts: Record<string, number> = {};
+      for (const [k, v] of Object.entries(form.participantCounts)) {
+        const n = parseInt(v, 10);
+        if (v.trim() !== "" && Number.isFinite(n) && n >= 0) participant_counts[k] = n;
+      }
       await Promise.all([
         onSaveTour?.({
           contact_name: form.teacherName.trim() || null,
           contact_email: form.teacherEmail.trim() || null,
           traveling_tour_host: form.tourHostName.trim() || null,
           bus_capacity: Number(form.busCapacity) || 0,
+          participant_counts,
         }),
         onSaveHostPhone?.(form.tourHostPhone.trim() || null),
       ]);
@@ -246,7 +264,20 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
     },
     {
       label: "Participants",
-      content: (
+      content: editing ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {info.participants.map(p => (
+            <div key={p.key} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input type="number" min={0} style={{ ...inputStyle, width: 80 }}
+                value={form.participantCounts[p.key] ?? ""}
+                placeholder="—"
+                onChange={e => setForm(f => ({ ...f, participantCounts: { ...f.participantCounts, [p.key]: e.target.value } }))} />
+              <span>{p.label}</span>
+            </div>
+          ))}
+          <div style={{ fontSize: 11, color: "#94a3b8" }}>Leave a field blank to use the count from the roster.</div>
+        </div>
+      ) : (
         <>
           <div>{info.participants.map(p => `${p.count} ${p.label}`).join(", ") || "—"}</div>
           <div style={{ color: INFINITY_BLUE_DEEP, fontWeight: 700, marginTop: 2 }}>
@@ -330,21 +361,26 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
         </div>
       ) : (
         <>
-          {info.hasBus ? (
-            <>
-              <div>{dash(info.busCompany)}</div>
-              {(info.busContactName || info.busContactPhone) && (
-                <div style={{ color: "#64748b" }}>
-                  {info.busContactName}
-                  {info.busContactName && info.busContactPhone ? " · " : null}
-                  {info.busContactPhone && <a href={telHref(info.busContactPhone)} style={linkStyle}>{info.busContactPhone}</a>}
-                </div>
-              )}
-              {info.busCapacity ? <div style={{ color: "#64748b" }}>{info.busCapacity} passengers</div> : null}
-            </>
-          ) : (
-            <div style={{ color: "#94a3b8" }}>{isHost ? "Add a bus travel item to populate this field." : "—"}</div>
+          {/* Company now comes from the tour record (Overview → Bus Company). */}
+          <div>{dash(info.busCompany)}</div>
+          {/* Existing dispatch contact, derived from the bus item — unchanged. */}
+          {(info.busContactName || info.busContactPhone) && (
+            <div style={{ color: "#64748b" }}>
+              {info.busContactName}
+              {info.busContactName && info.busContactPhone ? " · " : null}
+              {info.busContactPhone && <a href={telHref(info.busContactPhone)} style={linkStyle}>{info.busContactPhone}</a>}
+            </div>
           )}
+          {/* Bus driver contact — host-facing only, never shown to participants. */}
+          {isHost && (info.busDriverName || info.busDriverPhone) && (
+            <div style={{ color: "#64748b" }}>
+              <span style={{ fontWeight: 600 }}>Driver: </span>
+              {info.busDriverName}
+              {info.busDriverName && info.busDriverPhone ? " · " : null}
+              {info.busDriverPhone && <a href={telHref(info.busDriverPhone)} style={linkStyle}>{info.busDriverPhone}</a>}
+            </div>
+          )}
+          {info.busCapacity ? <div style={{ color: "#64748b" }}>{info.busCapacity} passengers</div> : null}
           {editLink(onEditBus, "Edit Bus Item →")}
           {renderConf("bus", "Bus Confirmation")}
         </>

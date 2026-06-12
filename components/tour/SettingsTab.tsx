@@ -285,6 +285,26 @@ export default function SettingsTab({ tour, isOwner, viewerIsAdmin, currentUserI
         </div>
       </div>
 
+      {/* Feedback */}
+      <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 14, padding: 20 }}>
+        <div style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: 15, fontWeight: 700, color: BRAND.navy, marginBottom: 12 }}>Feedback</div>
+        <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: isOwner ? "pointer" : "default" }}>
+          <input
+            type="checkbox"
+            checked={tour.general_feedback_enabled ?? true}
+            disabled={!isOwner}
+            onChange={() => onTourChange({ general_feedback_enabled: !(tour.general_feedback_enabled ?? true) })}
+            style={{ accentColor: BRAND.navy, width: 16, height: 16, marginTop: 1, cursor: isOwner ? "pointer" : "default", flexShrink: 0 }}
+          />
+          <span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "#1e293b" }}>Collect end-of-tour feedback</span>
+            <span style={{ display: "block", fontSize: 12, color: "#64748b", marginTop: 2 }}>
+              Invites students &amp; guests to rate the overall tour — a card at the bottom of the itinerary, plus a prominent banner on the final day.
+            </span>
+          </span>
+        </label>
+      </div>
+
       {/* Itinerary Visibility Matrix */}
       <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 14, padding: 20 }}>
         <div style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: 15, fontWeight: 700, color: BRAND.navy, marginBottom: 6 }}>Itinerary Item Visibility</div>

@@ -45,11 +45,12 @@ interface Props {
   initialDays: any[];
   initialPostTrip: any;
   initialPostTripReview: any;
+  initialGeneralFeedback: any[];
   currentUserId: string;
   viewerIsAdmin: boolean;
 }
 
-export default function TourDetailClient({ tour: initialTour, initialMembers, initialDays, initialPostTrip, initialPostTripReview, currentUserId, viewerIsAdmin }: Props) {
+export default function TourDetailClient({ tour: initialTour, initialMembers, initialDays, initialPostTrip, initialPostTripReview, initialGeneralFeedback, currentUserId, viewerIsAdmin }: Props) {
   const router = useRouter();
   const [tour, setTour] = useState(initialTour);
   const [members, setMembers] = useState(initialMembers);
@@ -235,6 +236,7 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
           days={days}
           initialPostTrip={initialPostTrip}
           initialReview={initialPostTripReview}
+          generalFeedback={initialGeneralFeedback}
           currentUserId={currentUserId}
         />
       )}

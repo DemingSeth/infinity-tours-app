@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { BRAND, ROLES } from "@/lib/helpers";
 import { getSentimentIcon } from "@/components/shared/agendaIcons";
 import { Tex, Btn } from "@/components/tour/ui";
-import type { TourRow, PostTripRow, PostTripReviewRow, AgendaDayWithItems } from "@/lib/types";
+import type { TourRow, PostTripRow, PostTripReviewRow, AgendaDayWithItems, AgendaFeedbackRow } from "@/lib/types";
 
 const ROLES_TYPED = ROLES as Record<string, { label: string; color: string; bg: string }>;
 
@@ -27,13 +27,14 @@ interface Props {
   days: AgendaDayWithItems[];
   initialPostTrip: PostTripRow | null;
   initialReview: PostTripReviewRow | null;
+  generalFeedback: AgendaFeedbackRow[];
   currentUserId: string;
 }
 
 const cardStyle: React.CSSProperties = { background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 12, padding: 16 };
 const headingStyle: React.CSSProperties = { fontSize: 15, fontWeight: 700, color: BRAND.navy, fontFamily: "'Cormorant Garamond',Georgia,serif", marginBottom: 12 };
 
-export default function PostTripTab({ tour, days, initialPostTrip, initialReview, currentUserId }: Props) {
+export default function PostTripTab({ tour, days, initialPostTrip, initialReview, generalFeedback, currentUserId }: Props) {
   const [postTrip, setPostTrip] = useState<PostTripRow | null>(initialPostTrip);
   const [draft, setDraft] = useState<Partial<PostTripRow>>(initialPostTrip ?? {});
   const [saving, setSaving] = useState(false);
@@ -109,6 +110,65 @@ export default function PostTripTab({ tour, days, initialPostTrip, initialReview
         <Btn onClick={toggleComplete} variant={isComplete ? "muted" : undefined} style={{ width: "100%", justifyContent: "center" }}>
           {isComplete ? "Re-open Debrief" : "Save & Mark Complete"}
         </Btn>
+      </div>
+
+      {/* 0. Overall Tour Feedback — whole-tour responses (null item_id), kept
+             clearly separate from the per-item responses below. */}
+      <div style={{ ...cardStyle, borderColor: "#bae6fd", background: "#f8fcff" }}>
+        <div style={headingStyle}>
+          Overall Tour Feedback{generalFeedback.length > 0 ? ` (${generalFeedback.length} response${generalFeedback.length !== 1 ? "s" : ""})` : ""}
+        </div>
+
+        {generalFeedback.length === 0 ? (
+          <div style={{ fontSize: 12, color: "#94a3b8" }}>
+            No overall tour feedback yet. Students and guests are invited to rate the whole tour from the bottom of the shared itinerary (and a banner on the final day).
+          </div>
+        ) : (
+          <>
+            <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+              {[
+                { sentiment: "😊", label: "Great", col: "#166534", bg: "#f0fdf4" },
+                { sentiment: "😐", label: "OK",    col: "#92400e", bg: "#fef3c7" },
+                { sentiment: "😞", label: "Poor",  col: "#b91c1c", bg: "#fee2e2" },
+              ].map(s => {
+                const count = generalFeedback.filter(f => f.sentiment === s.sentiment).length;
+                const { Icon } = getSentimentIcon(s.sentiment);
+                return (
+                  <div key={s.label} style={{ flex: 1, background: s.bg, borderRadius: 10, padding: "10px 8px", textAlign: "center" }}>
+                    <div style={{ display: "flex", justifyContent: "center", marginBottom: 4 }}><Icon size={26} color={s.col} /></div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: s.col }}>{count}</div>
+                    <div style={{ fontSize: 10, color: s.col, fontWeight: 600 }}>{s.label} · {generalFeedback.length > 0 ? Math.round(count / generalFeedback.length * 100) : 0}%</div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {generalFeedback.map(fb => {
+                const { Icon, color } = getSentimentIcon(fb.sentiment);
+                return (
+                  <div key={fb.id} style={{ background: "#fff", border: "1px solid #e8eef4", borderRadius: 8, padding: "9px 12px", fontSize: 12, display: "flex", gap: 8, alignItems: "flex-start" }}>
+                    <Icon size={17} color={color} style={{ flexShrink: 0, marginTop: 1 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", gap: 8, marginBottom: 2, alignItems: "center", flexWrap: "wrap" }}>
+                        <span style={{ background: ROLES_TYPED[fb.role]?.bg || "#f1f5f9", color: ROLES_TYPED[fb.role]?.color || "#475569", borderRadius: 4, padding: "1px 7px", fontSize: 10, fontWeight: 700 }}>
+                          {ROLES_TYPED[fb.role]?.label || fb.role}
+                        </span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color }}>{SENTIMENT_LABEL[fb.sentiment] || fb.sentiment}</span>
+                      </div>
+                      {fb.text && <div style={{ color: "#1e293b" }}>{fb.text}</div>}
+                      {fb.highlight && (
+                        <div style={{ color: "#0c4a6e", marginTop: 4 }}>
+                          <span style={{ fontWeight: 700 }}>Highlight: </span>{fb.highlight}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
       </div>
 
       {/* 1. Participant Feedback — per-item responses grouped by itinerary item */}

@@ -8,7 +8,7 @@ export default async function TourDetailPage({ params }: { params: Promise<{ id:
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data: tour }, { data: members }, { data: days }, { data: postTrip }, { data: postTripReview }, { data: viewerHost }] = await Promise.all([
+  const [{ data: tour }, { data: members }, { data: days }, { data: postTrip }, { data: postTripReview }, { data: viewerHost }, { data: generalFeedback }] = await Promise.all([
     supabase
       .from("tours")
       .select("*, tour_hosts(id, name, initials, phone, email)")
@@ -39,6 +39,13 @@ export default async function TourDetailPage({ params }: { params: Promise<{ id:
       .select("role")
       .eq("id", user.id)
       .single(),
+    // Whole-tour ("general") feedback — rows with a null item_id.
+    supabase
+      .from("agenda_feedback")
+      .select("*")
+      .eq("tour_id", id)
+      .is("item_id", null)
+      .order("submitted_at", { ascending: false }),
   ]);
 
   if (!tour) notFound();
@@ -50,6 +57,7 @@ export default async function TourDetailPage({ params }: { params: Promise<{ id:
       initialDays={days ?? []}
       initialPostTrip={postTrip ?? null}
       initialPostTripReview={postTripReview ?? null}
+      initialGeneralFeedback={generalFeedback ?? []}
       currentUserId={user.id}
       viewerIsAdmin={viewerHost?.role === "admin"}
     />

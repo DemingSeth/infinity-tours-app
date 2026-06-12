@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
 import TypeDot from "@/components/shared/TypeDot";
 import {
-  BRAND, ROLES, AGENDA_TYPES, TRAVEL_METHODS, TRAVEL_SUBTYPES, ACTIVITY_SUBTYPES,
+  BRAND, ROLES, AGENDA_TYPES, TRAVEL_METHODS, TRAVEL_SUBTYPES, SUBTYPES_BY_TYPE,
   isDayInPast, parseAgendaDate, formatAgendaDate, suggestNextDate,
   toDateInput, fmt$, buildTripInfo, sortAgendaItemsByTime,
   activePersonaKeys, personaLabel, personaColors, getPersona, PERSONAS, defaultPersonaVisibility, isActivityType,
@@ -14,8 +14,7 @@ import GoogleMapsLink from "@/components/shared/GoogleMapsLink";
 import AgendaRoleView from "@/components/tour/AgendaRoleView";
 import TripInformation from "@/components/tour/TripInformation";
 import {
-  AGENDA_TYPE_COLORS, getAgendaTypeIcon, getSentimentIcon,
-  TRAVEL_SUBTYPE_ICONS, ACTIVITY_SUBTYPE_ICONS,
+  AGENDA_TYPE_COLORS, getAgendaTypeIcon, getSentimentIcon, getSubtypeIcon,
 } from "@/components/shared/agendaIcons";
 import AgendaImages from "@/components/shared/AgendaImages";
 import { ConfirmationStatus, NoConfirmationToggle } from "@/components/tour/ConfirmationsTab";
@@ -369,17 +368,17 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
         </div>
       </div>
 
-      {(form.type === "travel" || form.type === "activity") && (
+      {(form.type === "travel" || SUBTYPES_BY_TYPE[form.type]) && (
         <div style={{ marginBottom: 14 }}>
           <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>
-            {form.type === "travel" ? "Travel Method" : "Activity Sub-type"}
+            {form.type === "travel" ? "Travel Method" : "Sub-type"}
           </label>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {(form.type === "travel" ? TRAVEL_SUBTYPES : ACTIVITY_SUBTYPES).map(st => {
+            {(form.type === "travel" ? TRAVEL_SUBTYPES : SUBTYPES_BY_TYPE[form.type]).map(st => {
               const bg = TYPE_COLORS[form.type] || "#6b7280";
               const isTravel = form.type === "travel";
               const active = isTravel ? form.travel_method === st.value : form.activity_subtype === st.value;
-              const SubIcon = (isTravel ? TRAVEL_SUBTYPE_ICONS : ACTIVITY_SUBTYPE_ICONS)[st.value];
+              const SubIcon = getSubtypeIcon(form.type, st.value);
               return (
                 <button key={st.value} type="button"
                   onClick={() => isTravel ? fT({ travel_method: st.value as TravelMethod }) : f({ activity_subtype: st.value })}
@@ -484,8 +483,15 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
         <Field label="Cost ($)" third>
           <Inp type="number" value={form.cost} onChange={e => f({ cost: e.target.value })} placeholder="0.00" />
         </Field>
-        <Field label="Driver Note" half>
-          <Inp value={form.driver_note} onChange={e => f({ driver_note: e.target.value })} placeholder="Drop at main entrance..." />
+        <Field label="Bus Driver Note">
+          <Tex value={form.driver_note} onChange={e => f({ driver_note: e.target.value })} placeholder="Drop at main entrance, gate code 4821, idle in north lot..." style={{ minHeight: 52 }} />
+          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>Only visible to bus drivers and tour hosts.</div>
+          {form.driver_note.trim() && form.persona_visibility?.bus_driver !== true && (
+            <div style={{ marginTop: 6, display: "flex", gap: 6, alignItems: "flex-start", background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8, padding: "7px 10px", fontSize: 11.5, color: "#92400e" }}>
+              <Bus size={13} style={{ flexShrink: 0, marginTop: 1 }} />
+              <span>This item isn&rsquo;t visible to bus drivers yet. Turn on bus driver visibility above so they can see this note.</span>
+            </div>
+          )}
         </Field>
         <div style={{ width: "100%", display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -642,7 +648,7 @@ function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onToggleNotRequired
                 </button>
               </span>
             )}
-            {item.driver_note && <span style={{ fontSize: 10, background: "#fef3c7", color: "#92400e", borderRadius: 5, padding: "1px 7px", display: "inline-flex", alignItems: "center", gap: 4 }}><Bus size={11} style={{ flexShrink: 0 }} />{item.driver_note}</span>}
+            {item.driver_note && <span style={{ fontSize: 10, background: "#fef3c7", color: "#92400e", borderRadius: 5, padding: "1px 7px", display: "inline-flex", alignItems: "center", gap: 4 }}><Bus size={11} style={{ flexShrink: 0 }} /><strong style={{ fontWeight: 700 }}>Bus Driver Note:</strong> {item.driver_note}</span>}
             {item.internal_note && <span style={{ fontSize: 10, background: "#f3e8ff", color: "#6b21a8", borderRadius: 5, padding: "1px 7px", display: "inline-flex", alignItems: "center", gap: 4 }}><Lock size={11} style={{ flexShrink: 0 }} />{item.internal_note}</span>}
           </div>
 
@@ -905,6 +911,9 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
         personaKey={previewPersona}
         onClose={() => setPreviewPersona(null)}
         embedded
+        tourId={tour.id}
+        generalFeedbackEnabled={tour.general_feedback_enabled}
+        tourEndDate={tour.end_date}
       />
     );
   }

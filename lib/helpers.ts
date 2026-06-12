@@ -31,13 +31,15 @@ export const STATUSES = [
 // Top-level itinerary item types. "Travel" and "Activity" have sub-types
 // (see TRAVEL_SUBTYPES / ACTIVITY_SUBTYPES) whose selection drives the icon.
 export const AGENDA_TYPES = [
-  { value: "travel",   label: "Travel",          emoji: "✈" },
-  { value: "activity", label: "Activity",        emoji: "🎢" },
-  { value: "food",     label: "Dining",          emoji: "🍽" },
-  { value: "hotel",    label: "Hotel",           emoji: "🏨" },
-  { value: "free",     label: "Free Time",       emoji: "🌴" },
-  { value: "break",    label: "Break",           emoji: "☕" },
-  { value: "meeting",  label: "Meeting Point",   emoji: "📍" },
+  { value: "travel",       label: "Travel",        emoji: "✈" },
+  { value: "activity",     label: "Activity",      emoji: "🎢" },
+  { value: "food",         label: "Dining",        emoji: "🍽" },
+  { value: "hotel",        label: "Hotel",         emoji: "🏨" },
+  { value: "free",         label: "Free Time",     emoji: "🌴" },
+  { value: "break",        label: "Break",         emoji: "☕" },
+  { value: "meeting",      label: "Meeting Point", emoji: "📍" },
+  { value: "instructions", label: "Instructions",  emoji: "📋" },
+  { value: "general",      label: "General",       emoji: "✨" },
 ] as const;
 
 // Travel sub-types — stored in the item's `travel_method` field.
@@ -61,6 +63,28 @@ export const ACTIVITY_SUBTYPES = [
   { value: "clinic",         label: "Clinic" },
   { value: "concert",        label: "Concert" },
 ] as const;
+
+// Instructions sub-types (wake-up / lights-out). Also stored in `activity_subtype`.
+export const INSTRUCTION_SUBTYPES = [
+  { value: "wake_up",    label: "Wake Up" },
+  { value: "lights_out", label: "Lights Out" },
+] as const;
+
+// Generic sub-types for miscellaneous items that don't fit the other types.
+// Stored in `activity_subtype`.
+export const GENERAL_SUBTYPES = [
+  { value: "general",   label: "General" },
+  { value: "highlight", label: "Highlight" },
+  { value: "weather",   label: "Weather" },
+] as const;
+
+// Sub-type option lists keyed by top-level type. Travel keeps its own field
+// (travel_method); activity, instructions, and general all use activity_subtype.
+export const SUBTYPES_BY_TYPE: Record<string, readonly { value: string; label: string }[]> = {
+  activity: ACTIVITY_SUBTYPES,
+  instructions: INSTRUCTION_SUBTYPES,
+  general: GENERAL_SUBTYPES,
+};
 
 // An item counts as an "Activity" if its type is the Activity type or it carries
 // an Activity sub-type. Drives the default for the per-item student-feedback toggle.
@@ -269,12 +293,15 @@ export function buildTripInfo({ tour, members, days, hostName, hostPhone, confir
     s.replace(/^\s*(check[\s-]*in|check[\s-]*out|arrive(?:\s+at)?|arrival(?:\s+at)?|depart(?:\s+for)?|return(?:\s+to)?|load\s+bus.*?depart(?:\s+for)?|meet.*?depart(?:\s+for)?)\b[\s:–-]*/i, "").trim();
   const hotelName = hotel?.title ? (stripAction(hotel.title) || hotel.title) : null;
 
-  // Bus: prefer a bus item that carries vendor contact info. The company is the
-  // item title (stripped of the action verb) or the contact name; the driver/
-  // dispatch contact name + phone come from the item's contact fields.
+  // Bus: the company name now comes from the tour record (tours.bus_company),
+  // set on the Overview inputs — no longer parsed from the bus item title. We
+  // still pick the bus item to preserve the existing DISPATCH contact (its
+  // contact_name / contact_phone fields), which is unchanged.
   const busItems = items.filter(i => i.travel_method === "bus");
   const bus = busItems.find(i => i.contact_name || i.contact_phone) ?? busItems[0] ?? null;
-  const busCompany = bus ? (stripAction(bus.title ?? "") || bus.contact_name || null) : null;
+  const busCompany = (tour?.bus_company ?? "").trim() || null;
+  // Host-only bus driver contact (from the tour record).
+  const driver = (tour?.bus_driver_contact as { name?: string | null; phone?: string | null } | null) || null;
 
   // Flight: the first flight travel item carries the airline/flight title and
   // (optionally) the airport in its address field.
@@ -293,9 +320,17 @@ export function buildTripInfo({ tour, members, days, hostName, hostPhone, confir
   const labels = tour?.persona_labels as Record<string, string> | undefined;
   const active = activePersonaKeys(tour?.active_personas);
   const order = ["student", "chaperone", "teacher", "bus_driver", "tour_host"];
+  // Manual count overrides (tours.participant_counts) win over the roster-derived
+  // count, per persona; a missing key falls back to the derived value.
+  const overrides = (tour?.participant_counts as Record<string, number> | null) || {};
   const participants = order
     .filter(k => active.includes(k))
-    .map(k => ({ label: personaLabel(k, labels), count: m.filter(x => x.type === getPersona(k)?.memberType).length }));
+    .map(k => {
+      const derived = m.filter(x => x.type === getPersona(k)?.memberType).length;
+      const override = overrides[k];
+      const count = typeof override === "number" && Number.isFinite(override) ? override : derived;
+      return { key: k, label: personaLabel(k, labels), count };
+    });
 
   return {
     teacherName: tour?.contact_name || null,
@@ -303,7 +338,7 @@ export function buildTripInfo({ tour, members, days, hostName, hostPhone, confir
     tourHostName: tour?.traveling_tour_host || hostName || null,
     tourHostPhone: hostPhone || null,
     participants,
-    totalParticipants: m.length,
+    totalParticipants: participants.reduce((s, p) => s + p.count, 0),
     departure: tour?.start_date || null,
     returnDate: tour?.end_date || null,
     flightName: flightName || null,
@@ -315,6 +350,8 @@ export function buildTripInfo({ tour, members, days, hostName, hostPhone, confir
     busCompany,
     busContactName: bus?.contact_name || null,
     busContactPhone: bus?.contact_phone || null,
+    busDriverName: (driver?.name ?? "").trim() || null,
+    busDriverPhone: (driver?.phone ?? "").trim() || null,
     busCapacity: tour?.bus_capacity ?? null,
     hasBus: busItems.length > 0,
     confirmations: confirmations ?? [],

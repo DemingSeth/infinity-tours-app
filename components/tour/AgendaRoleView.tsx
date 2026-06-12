@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ChevronDown, ChevronRight, Bus } from "lucide-react";
 import TypeDot from "@/components/shared/TypeDot";
 import AgendaImages from "@/components/shared/AgendaImages";
 import ItemFeedback from "@/components/tour/ItemFeedback";
+import GeneralFeedback from "@/components/tour/GeneralFeedback";
 import TripInformation from "@/components/tour/TripInformation";
 import ItineraryHeaderTile from "@/components/tour/ItineraryHeaderTile";
 import GoogleMapsLink from "@/components/shared/GoogleMapsLink";
-import { BRAND, ROLES, DEFAULT_VISIBILITY, TRAVEL_METHODS, isItemVisibleTo, personaColors, sortAgendaItemsByTime } from "@/lib/helpers";
+import { BRAND, ROLES, DEFAULT_VISIBILITY, TRAVEL_METHODS, isItemVisibleTo, personaColors, sortAgendaItemsByTime, parseAgendaDate } from "@/lib/helpers";
 import type { AgendaDayWithItems, Role, TripInfo } from "@/lib/types";
 
 interface Props {
@@ -31,9 +32,14 @@ interface Props {
   // Print mode (PDF export): all days forced open, no interactive chrome
   // (chevrons/feedback), eager non-optimized images, and page-break hints.
   print?: boolean;
+  // Whole-tour feedback: the tour id (to write rows), whether the host has it
+  // enabled, and the tour end date (for the end-of-tour banner timing).
+  tourId?: string;
+  generalFeedbackEnabled?: boolean;
+  tourEndDate?: string | null;
 }
 
-export default function AgendaRoleView({ tourName, tourDestination, tourDates, bannerUrl, bannerFocusX = 50, bannerFocusY = 50, tripInfo, days, confTourId, role, roleLabel, personaKey, onClose, embedded, print = false }: Props) {
+export default function AgendaRoleView({ tourName, tourDestination, tourDates, bannerUrl, bannerFocusX = 50, bannerFocusY = 50, tripInfo, days, confTourId, role, roleLabel, personaKey, onClose, embedded, print = false, tourId, generalFeedbackEnabled = false, tourEndDate }: Props) {
   const vis = DEFAULT_VISIBILITY[role] as Record<string, boolean>;
   const roleInfo = ROLES[role];
   const label = roleLabel || roleInfo.label; // persona label override
@@ -53,6 +59,42 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
     () => Object.fromEntries(days.map(d => [d.id, !!d.collapsed])),
   );
   const toggleDay = (id: string) => setCollapsedDays(c => ({ ...c, [id]: !c[id] }));
+
+  // ── Whole-tour ("general") feedback ─────────────────────────────────────────
+  // Shown to participants (not the bus driver, not in print) when the host has it
+  // enabled and we have a tour id to write against. The bottom card always shows;
+  // the top banner appears only on/after the final day and only until submitted.
+  const showGeneral = !!tourId && generalFeedbackEnabled && role !== "driver" && !print;
+
+  // "Final day or later": prefer the tour end date, else the last itinerary day.
+  const finalDate = (() => {
+    if (tourEndDate) return new Date(`${tourEndDate}T00:00:00`);
+    const lastDay = days[days.length - 1];
+    return lastDay ? parseAgendaDate(lastDay.date) : null;
+  })();
+  const isFinalDayOrAfter = (() => {
+    if (!finalDate) return false;
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const fd = new Date(finalDate.getFullYear(), finalDate.getMonth(), finalDate.getDate());
+    return today >= fd;
+  })();
+
+  // `done` drives both variants to a thank-you; `doneAtMount` decides whether the
+  // banner is shown at all (so it never returns after a submit this session).
+  const [done, setDone] = useState(false);
+  const [doneAtMount, setDoneAtMount] = useState(false);
+  const sessionKey = tourId ? `general-feedback:${tourId}` : null;
+  useEffect(() => {
+    if (!sessionKey) return;
+    try {
+      if (sessionStorage.getItem(sessionKey) === "1") { setDone(true); setDoneAtMount(true); }
+    } catch { /* sessionStorage unavailable */ }
+  }, [sessionKey]);
+  const markGeneralDone = () => {
+    setDone(true);
+    if (!embedded && sessionKey) { try { sessionStorage.setItem(sessionKey, "1"); } catch { /* ignore */ } }
+  };
 
   return (
     <div style={{ maxWidth: 680, margin: "0 auto" }}>
@@ -85,6 +127,12 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
         badgeColor={colors.color}
         print={print}
       />
+
+      {/* End-of-tour feedback banner — prominent, only on/after the final day and
+          only until the viewer has submitted this session. */}
+      {showGeneral && isFinalDayOrAfter && !doneAtMount && tourId && (
+        <GeneralFeedback variant="banner" tourId={tourId} role={role} done={done} onSubmitted={markGeneralDone} preview={!!embedded} />
+      )}
 
       {/* Trip Information — shown to all roles, expanded by default, above Day 1. */}
       {tripInfo && <TripInformation info={tripInfo} tourId={confTourId} />}
@@ -201,8 +249,11 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                       )}
 
                       {vis.driverNote && item.driver_note && (
-                        <div style={{ fontSize: 12, color: "#92400e", background: "#fef3c7", borderRadius: 6, padding: "5px 10px", marginTop: 6 }}>
-                          Driver: {item.driver_note}
+                        <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8, padding: "8px 12px", marginTop: 6 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, fontWeight: 700, color: "#92400e", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 }}>
+                            <Bus size={12} style={{ flexShrink: 0 }} />Bus Driver Note
+                          </div>
+                          <div style={{ fontSize: 12, color: "#92400e" }}>{item.driver_note}</div>
                         </div>
                       )}
 
@@ -224,6 +275,11 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
           );
         })}
       </div>
+
+      {/* Quiet whole-tour feedback card — always available at the bottom. */}
+      {showGeneral && tourId && (
+        <GeneralFeedback variant="card" tourId={tourId} role={role} done={done} onSubmitted={markGeneralDone} preview={!!embedded} />
+      )}
 
       <div style={{ textAlign: "center", marginTop: 28, paddingBottom: 20, fontSize: 11, color: "#94a3b8" }}>
         Powered by Infinity Tours + Events

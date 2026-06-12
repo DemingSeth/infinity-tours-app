@@ -147,6 +147,16 @@ export interface TourRow {
   // codes, and label usage). persona_labels holds per-persona label overrides.
   active_personas: string[];
   persona_labels: Record<string, string>;
+  // When true, students/guests are invited to leave whole-tour feedback (a card
+  // at the bottom of the itinerary, plus an end-of-tour banner). Host-toggleable.
+  general_feedback_enabled: boolean;
+  // Bus company name shown in Trip Information (replaces parsing the bus item title).
+  bus_company: string | null;
+  // Host-only bus driver contact. Never exposed to participants / the public RPC.
+  bus_driver_contact: { name: string | null; phone: string | null } | null;
+  // Manual per-persona participant count overrides, e.g. { student: 26 }. When a
+  // key is present, Trip Information uses it instead of the roster-derived count.
+  participant_counts: Record<string, number>;
   created_at: string;
   updated_at: string;
 }
@@ -160,7 +170,7 @@ export interface AgendaDayRow {
   sort_order: number;
 }
 
-export type AgendaItemType = "travel" | "activity" | "food" | "hotel" | "free" | "break" | "meeting";
+export type AgendaItemType = "travel" | "activity" | "food" | "hotel" | "free" | "break" | "meeting" | "instructions" | "general";
 export type MealPayType = "group" | "stipend" | "";
 export type TravelMethod = "bus" | "flight" | "subway" | "train" | "walking" | "rideshare" | "ferry" | "cruise" | "";
 
@@ -221,11 +231,14 @@ export type FeedbackSentiment = "😊" | "😐" | "😞";
 
 export interface AgendaFeedbackRow {
   id: string;
-  item_id: string;
+  // Null = whole-tour ("general") feedback; otherwise the rated itinerary item.
+  item_id: string | null;
   tour_id: string;
   role: string;
   sentiment: FeedbackSentiment;
   text: string | null;
+  // Optional "What was the highlight?" — only used by general tour feedback.
+  highlight?: string | null;
   submitted_at: string;
 }
 
@@ -320,8 +333,9 @@ export interface TripInfo {
   teacherEmail: string | null;
   tourHostName: string | null;
   tourHostPhone: string | null;
-  // Per-persona participant counts using the tour's custom labels.
-  participants: { label: string; count: number }[];
+  // Per-persona participant counts using the tour's custom labels. `key` is the
+  // persona key (e.g. "student") so the host can edit each count inline.
+  participants: { key: string; label: string; count: number }[];
   totalParticipants: number;
   departure: string | null; // raw start date
   returnDate: string | null; // raw end date
@@ -332,8 +346,13 @@ export interface TripInfo {
   hotelAddress: string | null;
   hotelRooms: string | null;
   busCompany: string | null;
+  // Existing dispatch contact, derived from the bus itinerary item (preserved).
   busContactName: string | null;
   busContactPhone: string | null;
+  // Host-only bus driver contact (from the tour record). Null in participant
+  // payloads; TripInformation also hard-gates it on isHost.
+  busDriverName: string | null;
+  busDriverPhone: string | null;
   busCapacity: number | null;
   hasBus: boolean; // whether a bus travel item exists on the itinerary
   // Read-only confirmation links by type, used for the participant view link.

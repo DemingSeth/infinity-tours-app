@@ -2,8 +2,9 @@
 
 import {
   Plane, Bus, TrainFront, CarTaxiFront, TramFront, Sailboat, Ship,
-  RollerCoaster, Music, Hotel, Armchair, MapPin,
-  Smile, Meh, Frown, type LucideIcon,
+  RollerCoaster, Music, Hotel, MapPin, Smile,
+  Sunrise, Moon, Star, Umbrella, Sparkles, ClipboardList,
+  Meh, Frown, type LucideIcon,
 } from "lucide-react";
 
 // Icons accept the same prop subset Lucide does, so custom SVGs and Lucide
@@ -18,10 +19,10 @@ export type IconProps = {
 export type AgendaIcon = React.ComponentType<IconProps>;
 
 // ── Custom inline SVG icons (Lucide-style: 24×24, currentColor stroke) ─────────
-function Svg({ size = 24, strokeWidth = 2, color = "currentColor", style, className, children }:
-  IconProps & { children: React.ReactNode }) {
+function Svg({ size = 24, strokeWidth = 2, color = "currentColor", style, className, viewBox = "0 0 24 24", children }:
+  IconProps & { viewBox?: string; children: React.ReactNode }) {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24"
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox={viewBox}
       fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"
       style={style} className={className}>
       {children}
@@ -72,10 +73,12 @@ function BeachUmbrella(props: IconProps) {
   );
 }
 
-// Clinic (music clinic) — treble clef / G clef, filled silhouette.
+// Clinic (music clinic) — treble clef / G clef, filled silhouette. The glyph is
+// taller than the standard 24-unit box (its bottom curl reaches ~y25), so it
+// gets a slightly taller viewBox to stop the bottom from being clipped.
 function TrebleClef(props: IconProps) {
   return (
-    <Svg {...props}>
+    <Svg {...props} viewBox="0 -1 24 27">
       <path fill="currentColor" stroke="none" d="M14 2.6c-1.9.8-3.1 2.7-3.1 4.9 0 1.2.3 2.4.7 3.6-2 1.3-3.4 3.1-3.4 5.4 0 2.7 2.1 4.8 4.8 4.8.4 0 .8 0 1.2-.1.2 1.1.3 1.9.3 2.5 0 1.5-.8 2.3-1.9 2.3-.5 0-1-.2-1.3-.5.8-.1 1.4-.7 1.4-1.5 0-.9-.7-1.6-1.7-1.6s-1.9.8-1.9 2c0 1.5 1.4 2.8 3.5 2.8 2.2 0 3.6-1.6 3.6-3.9 0-.7-.1-1.6-.3-2.7 1.5-.7 2.5-2.1 2.5-3.8 0-1.9-1.4-3.5-3.3-3.7l-.4-2.7c1.5-1.3 2.4-2.8 2.4-4.5 0-1.6-.8-3-1.9-3.6zm.2 1.9c.4.3.6.8.6 1.5 0 1-.5 1.9-1.4 2.7l-.3-1.9c0-1.2.5-2.1 1.1-2.3zm-1.7 8.4c.3 0 .6 0 .9.1l.6 3.9c-.3.1-.6.1-.9.1-1.4 0-2.5-1.1-2.5-2.5 0-.8.4-1.4.9-1.7.3.1.6.1 1 0z" />
     </Svg>
   );
@@ -121,27 +124,18 @@ function ForkKnife(props: IconProps) {
   );
 }
 
-// Meeting Point — location pin with a group of people ("gather here").
-function MeetingPin(props: IconProps) {
-  return (
-    <Svg {...props}>
-      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-      <circle cx="9.5" cy="9.2" r="1.4" />
-      <circle cx="14.5" cy="9.2" r="1.4" />
-      <path d="M8 13.2a4 4 0 0 1 8 0" />
-    </Svg>
-  );
-}
 
 // ── Default icon + accent color per top-level type ─────────────────────────────
 export const AGENDA_TYPE_ICONS: Record<string, AgendaIcon> = {
-  travel: Plane,           // overridden by the travel sub-type when set
-  activity: RollerCoaster, // default Activity icon (theme park)
-  food: ForkKnife,         // fork + knife
+  travel: Plane,             // overridden by the travel sub-type when set
+  activity: RollerCoaster,   // default Activity icon (theme park)
+  food: ForkKnife,           // fork + knife
   hotel: Hotel,
-  free: Armchair,          // leisure / downtime
-  break: PauseBars,        // short pause / rest stop
-  meeting: MeetingPin,     // gather-here location
+  free: Smile,               // leisure / downtime
+  break: PauseBars,          // short pause / rest stop
+  meeting: MapPin,           // gather-here location (plain pin)
+  instructions: ClipboardList, // default; overridden by the instruction sub-type
+  general: Sparkles,         // default; overridden by the general sub-type
 };
 
 export const AGENDA_TYPE_COLORS: Record<string, string> = {
@@ -152,6 +146,8 @@ export const AGENDA_TYPE_COLORS: Record<string, string> = {
   free: "#6b7280",
   break: "#b45309",
   meeting: "#ec4899",
+  instructions: "#0891b2",
+  general: "#64748b",
 };
 
 // ── Sub-type icon maps ─────────────────────────────────────────────────────────
@@ -175,6 +171,33 @@ export const ACTIVITY_SUBTYPE_ICONS: Record<string, AgendaIcon> = {
   concert: Music,
 };
 
+// Instructions sub-types (stored in the item's activity_subtype field).
+export const INSTRUCTION_SUBTYPE_ICONS: Record<string, AgendaIcon> = {
+  wake_up: Sunrise,
+  lights_out: Moon,
+};
+
+// General/miscellaneous sub-types (stored in the item's activity_subtype field).
+export const GENERAL_SUBTYPE_ICONS: Record<string, AgendaIcon> = {
+  general: Smile,
+  highlight: Star,
+  weather: Umbrella,
+};
+
+// Sub-type icon map for a top-level type. Travel keeps its own map; activity,
+// instructions, and general all store their sub-type in activity_subtype.
+const SUBTYPE_ICON_MAPS: Record<string, Record<string, AgendaIcon>> = {
+  travel: TRAVEL_SUBTYPE_ICONS,
+  activity: ACTIVITY_SUBTYPE_ICONS,
+  instructions: INSTRUCTION_SUBTYPE_ICONS,
+  general: GENERAL_SUBTYPE_ICONS,
+};
+
+// Icon for a given (type, sub-type) — used by the sub-type picker buttons.
+export function getSubtypeIcon(type: string, value: string): AgendaIcon | undefined {
+  return SUBTYPE_ICON_MAPS[type]?.[value];
+}
+
 export function getAgendaTypeIcon(type: string): AgendaIcon {
   return AGENDA_TYPE_ICONS[type] || MapPin;
 }
@@ -193,8 +216,10 @@ export function getItemIcon(
   if (type === "travel" && travelMethod && TRAVEL_SUBTYPE_ICONS[travelMethod]) {
     return TRAVEL_SUBTYPE_ICONS[travelMethod];
   }
-  if (type === "activity" && subtype && ACTIVITY_SUBTYPE_ICONS[subtype]) {
-    return ACTIVITY_SUBTYPE_ICONS[subtype];
+  // activity, instructions, and general all carry their sub-type in activity_subtype.
+  if (subtype) {
+    const icon = SUBTYPE_ICON_MAPS[type]?.[subtype];
+    if (icon) return icon;
   }
   return getAgendaTypeIcon(type);
 }

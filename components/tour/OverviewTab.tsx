@@ -59,6 +59,8 @@ export default function OverviewTab({ tour, members, isOwner, onChange }: Props)
       start_date: tour.start_date ?? "",
       end_date: tour.end_date ?? "",
       date_flexible: tour.date_flexible ?? false,
+      bus_company: tour.bus_company ?? "",
+      bus_driver_contact: { name: tour.bus_driver_contact?.name ?? "", phone: tour.bus_driver_contact?.phone ?? "" },
       bus_capacity: tour.bus_capacity ?? 55,
       room_config: { boysPerRoom: tour.room_config?.boysPerRoom ?? 4, girlsPerRoom: tour.room_config?.girlsPerRoom ?? 4 },
       activities: tour.activities ?? [],
@@ -70,7 +72,15 @@ export default function OverviewTab({ tour, members, isOwner, onChange }: Props)
   };
 
   const save = () => {
-    onChange(form);
+    // Normalize the bus fields: empty → null so Trip Information shows a dash and
+    // never stores empty objects/strings.
+    const driverName = (form.bus_driver_contact?.name || "").trim();
+    const driverPhone = (form.bus_driver_contact?.phone || "").trim();
+    onChange({
+      ...form,
+      bus_company: (form.bus_company || "").trim() || null,
+      bus_driver_contact: driverName || driverPhone ? { name: driverName || null, phone: driverPhone || null } : null,
+    });
     setEditing(false);
   };
 
@@ -131,6 +141,8 @@ export default function OverviewTab({ tour, members, isOwner, onChange }: Props)
               ["Date Flexible",    tour.date_flexible ? "Yes" : "No"],
               ["Tour Consultant",  tour.planning_tour_host || "—"],
               ["Tour Host",        tour.traveling_tour_host || "—"],
+              ["Bus Company",      tour.bus_company || "—"],
+              ["Bus Driver Contact", [tour.bus_driver_contact?.name, tour.bus_driver_contact?.phone].filter(Boolean).join(" · ") || "—"],
               ["Bus Capacity",     `${tour.bus_capacity ?? 55} seats`],
               ["Boys/Room",        tour.room_config?.boysPerRoom ?? 4],
               ["Girls/Room",       tour.room_config?.girlsPerRoom ?? 4],
@@ -186,6 +198,15 @@ export default function OverviewTab({ tour, members, isOwner, onChange }: Props)
             </Field>
             <Field label="Tour Host" half>
               <input style={inp} value={form.traveling_tour_host} onChange={e => f({ traveling_tour_host: e.target.value })} />
+            </Field>
+            <Field label="Bus Company" half>
+              <input style={inp} value={form.bus_company} onChange={e => f({ bus_company: e.target.value })} placeholder="e.g. Holiday Motor Coach, LLC" />
+            </Field>
+            <Field label="Bus Driver Contact — Name" half>
+              <input style={inp} value={form.bus_driver_contact?.name ?? ""} onChange={e => f({ bus_driver_contact: { ...form.bus_driver_contact, name: e.target.value } })} placeholder="Driver name (host-only)" />
+            </Field>
+            <Field label="Bus Driver Contact — Phone" half>
+              <input style={inp} type="tel" value={form.bus_driver_contact?.phone ?? ""} onChange={e => f({ bus_driver_contact: { ...form.bus_driver_contact, phone: e.target.value } })} placeholder="Driver phone (host-only)" />
             </Field>
             <Field label="Bus Capacity" third>
               <input style={inp} type="number" value={form.bus_capacity} onChange={e => f({ bus_capacity: parseInt(e.target.value) || 1 })} />
