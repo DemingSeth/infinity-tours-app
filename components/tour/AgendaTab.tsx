@@ -20,7 +20,7 @@ import {
 import AgendaImages from "@/components/shared/AgendaImages";
 import ItemConfirmationControl, { ConfirmationFileChips, type ConfirmationPatch } from "@/components/tour/itemConfirmation";
 import ItineraryHeaderTile from "@/components/tour/ItineraryHeaderTile";
-import { MapPin, Phone, Bus, Lock, Clock, ImagePlus, Printer } from "lucide-react";
+import { MapPin, Phone, Bus, Lock, Clock, ImagePlus, Printer, Check } from "lucide-react";
 import type {
   TourRow, AgendaDayWithItems, AgendaItemWithFeedback,
   AgendaItemType, TravelMethod, MealMoneyType, Role,
@@ -818,6 +818,7 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
   const [saving, setSaving] = useState(false);
   const [previewPersona, setPreviewPersona] = useState<string | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
   const [editingDayId, setEditingDayId] = useState<string | null>(null);
   const [editingDayDateVal, setEditingDayDateVal] = useState("");
 
@@ -1374,10 +1375,21 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
                   value={typeof window !== "undefined" ? `${window.location.origin}/tour/${tour.id}/view` : `/tour/${tour.id}/view`}
                   style={{ flex: 1, border: "1.5px solid #e2e8f0", borderRadius: 8, padding: "7px 11px", fontSize: 12, fontFamily: "inherit", color: "#1e293b", background: "#f8fafc", outline: "none" }}
                 />
-                <Btn variant="muted" onClick={() => {
-                  const url = `${window.location.origin}/tour/${tour.id}/view`;
-                  navigator.clipboard.writeText(url).catch(() => {});
-                }}>Copy</Btn>
+                <Btn variant="muted"
+                  onClick={async () => {
+                    const url = `${window.location.origin}/tour/${tour.id}/view`;
+                    try {
+                      await navigator.clipboard.writeText(url);
+                      // Only show success once the clipboard write actually resolved.
+                      setShareCopied(true);
+                      setTimeout(() => setShareCopied(false), 2000);
+                    } catch {
+                      // Clipboard write failed — leave the button in its normal state.
+                    }
+                  }}
+                  style={shareCopied ? { background: "#dcfce7", color: "#15803d" } : undefined}>
+                  {shareCopied ? <><Check size={13} strokeWidth={3} />Copied</> : "Copy"}
+                </Btn>
               </div>
             </div>
             <div style={{ background: "#f0fdfa", borderRadius: 8, padding: "10px 14px", fontSize: 12, color: "#065f46" }}>
