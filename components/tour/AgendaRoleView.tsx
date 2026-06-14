@@ -106,12 +106,28 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
             </div>
             <span style={{ fontSize: 11, color: "#94a3b8" }}>This is what {label.toLowerCase()}s see on the shared view.</span>
           </div>
-          <button
-            onClick={onClose}
-            style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 12px", fontSize: 11, fontWeight: 600, color: "#64748b", cursor: "pointer", fontFamily: "inherit" }}
-          >
-            Close Preview
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {/* Print this persona's copy. Reuses the role-aware print page, scoped
+                to the previewed persona via ?persona= — so the printout shows
+                exactly the items this persona sees here (same visibility filter)
+                and is labeled with the persona on the header. */}
+            {tourId && personaKey && (
+              <a
+                href={`/tour/${tourId}/print?persona=${encodeURIComponent(personaKey)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ background: colors.bg, color: colors.color, border: "none", borderRadius: 7, padding: "5px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", textDecoration: "none" }}
+              >
+                Print {label} Copy
+              </a>
+            )}
+            <button
+              onClick={onClose}
+              style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 12px", fontSize: 11, fontWeight: 600, color: "#64748b", cursor: "pointer", fontFamily: "inherit" }}
+            >
+              Close Preview
+            </button>
+          </div>
         </div>
       )}
 
