@@ -76,12 +76,29 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
 
   async function handleTourChange(patch: Record<string, any>) {
     const prevStartDate = tour.start_date;
+    const prevTour = tour;
     const optimistic = { ...tour, ...patch };
     setTour(optimistic);
     setSaving(true);
     const supabase = createClient();
-    await supabase.from("tours").update(patch).eq("id", tour.id);
+    // Inspect the response — never optimistically "succeed". A bad column or an
+    // RLS denial returns an error (or zero rows) that must surface, otherwise the
+    // UI looks saved while nothing persists. `.select()` lets us catch both.
+    const { data, error } = await supabase.from("tours").update(patch).eq("id", tour.id).select();
     setSaving(false);
+
+    if (error || !data || data.length === 0) {
+      console.error("[tours.update] save failed", { tourId: tour.id, patch, data, error });
+      setTour(prevTour); // roll back so the host can see it did NOT save
+      if (typeof window !== "undefined") {
+        window.alert(`Could not save changes: ${error?.message ?? "no row updated (permission?)"}`);
+      }
+      return;
+    }
+
+    // Reconcile with the persisted row, preserving the joined tour_hosts relation
+    // (which the bare update row does not include).
+    setTour((t: any) => ({ ...t, ...data[0] }));
 
     if ("start_date" in patch && patch.start_date && patch.start_date !== prevStartDate && days.length > 0) {
       setCascadePrompt({ newStartDate: patch.start_date, dayCount: days.length });
