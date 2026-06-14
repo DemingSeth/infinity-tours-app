@@ -144,8 +144,6 @@ export default function OverviewTab({ tour, members, isOwner, onChange }: Props)
               ["Bus Company",      tour.bus_company || "—"],
               ["Bus Driver Contact", [tour.bus_driver_contact?.name, tour.bus_driver_contact?.phone].filter(Boolean).join(" · ") || "—"],
               ["Bus Capacity",     `${tour.bus_capacity ?? 55} seats`],
-              ["Boys/Room",        tour.room_config?.boysPerRoom ?? 4],
-              ["Girls/Room",       tour.room_config?.girlsPerRoom ?? 4],
             ].map(([k, v]) => (
               <div key={String(k)}>
                 <div style={{ fontSize: 10, color: "#94a3b8", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6 }}>{k}</div>

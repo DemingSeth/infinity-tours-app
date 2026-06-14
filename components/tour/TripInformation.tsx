@@ -349,7 +349,6 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
         <>
           <div>{dash(info.hotelName)}</div>
           {info.hotelAddress && <div style={{ color: "#64748b" }}>{info.hotelAddress}</div>}
-          {info.hotelRooms && <div style={{ color: "#64748b" }}>{info.hotelRooms}</div>}
           {editLink(onEditHotel, "Edit Hotel Item →")}
           {renderConf("hotel", "Hotel Confirmation")}
         </>
