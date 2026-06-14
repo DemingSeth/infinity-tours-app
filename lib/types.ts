@@ -175,7 +175,7 @@ export interface AgendaDayRow {
 
 export type AgendaItemType = "travel" | "activity" | "food" | "hotel" | "free" | "break" | "meeting" | "instructions" | "general";
 export type MealPayType = "group" | "stipend" | "disney_dining" | "";
-export type TravelMethod = "bus" | "flight" | "subway" | "train" | "walking" | "rideshare" | "ferry" | "cruise" | "";
+export type TravelMethod = "bus" | "flight" | "subway" | "train" | "walking" | "rideshare" | "ferry" | "cruise" | "gas_station" | "";
 
 // A single meal-money entry. "group" and "hotel_breakfast" carry no amount (the
 // meal is covered — as a group, or included with the hotel stay); stipend /

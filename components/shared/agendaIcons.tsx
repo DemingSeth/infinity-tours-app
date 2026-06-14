@@ -1,9 +1,9 @@
 "use client";
 
 import {
-  Plane, Bus, TrainFront, CarTaxiFront, TramFront, Sailboat, Ship,
+  Plane, Bus, TrainFront, CarTaxiFront, TramFront, Sailboat, Ship, Fuel,
   RollerCoaster, Music, Hotel, MapPin, Smile,
-  Sunrise, Moon, Star, Umbrella, Sparkles, ClipboardList,
+  Sun, Moon, Star, Umbrella, Sparkles, ClipboardList,
   Meh, Frown, type LucideIcon,
 } from "lucide-react";
 
@@ -160,6 +160,7 @@ export const TRAVEL_SUBTYPE_ICONS: Record<string, AgendaIcon> = {
   ferry: Sailboat,
   cruise: Ship,
   walking: PedestrianWalk,
+  gas_station: Fuel,
 };
 
 export const ACTIVITY_SUBTYPE_ICONS: Record<string, AgendaIcon> = {
@@ -173,7 +174,7 @@ export const ACTIVITY_SUBTYPE_ICONS: Record<string, AgendaIcon> = {
 
 // Instructions sub-types (stored in the item's activity_subtype field).
 export const INSTRUCTION_SUBTYPE_ICONS: Record<string, AgendaIcon> = {
-  wake_up: Sunrise,
+  wake_up: Sun,
   lights_out: Moon,
 };
 

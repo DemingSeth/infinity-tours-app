@@ -52,6 +52,7 @@ export const TRAVEL_SUBTYPES = [
   { value: "ferry",     label: "Ferry" },
   { value: "cruise",    label: "Cruise" },
   { value: "walking",   label: "Walking" },
+  { value: "gas_station", label: "Gas Station" },
 ] as const;
 
 // Activity sub-types — stored in the item's `activity_subtype` field.
@@ -125,6 +126,7 @@ export const TRAVEL_METHODS = [
   { value: "rideshare", label: "Taxi / Rideshare" },
   { value: "ferry",     label: "Ferry" },
   { value: "cruise",    label: "Cruise" },
+  { value: "gas_station", label: "Gas Station" },
 ] as const;
 
 export const MEMBER_TYPES = [

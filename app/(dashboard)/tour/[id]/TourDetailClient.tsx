@@ -31,11 +31,11 @@ const I = ({ n, s = 13 }: { n: string; s?: number }) => (
 );
 
 const TABS = [
-  { id: "overview", label: "Overview",  icon: "home"     },
   { id: "agenda",   label: "Itinerary", icon: "map"      },
   { id: "roster",   label: "Roster",    icon: "users"    },
   { id: "vendors",  label: "Confirmations", icon: "check" },
   { id: "post",     label: "Post-Trip", icon: "note"     },
+  { id: "overview", label: "Overview",  icon: "home"     },
   { id: "settings", label: "Settings",  icon: "settings" },
 ];
 
@@ -55,7 +55,7 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
   const [tour, setTour] = useState(initialTour);
   const [members, setMembers] = useState(initialMembers);
   const [days, setDays] = useState(initialDays);
-  const [tab, setTab] = useState("overview");
+  const [tab, setTab] = useState("agenda");
   const [saving, setSaving] = useState(false);
   const [cascadePrompt, setCascadePrompt] = useState<{ newStartDate: string; dayCount: number } | null>(null);
   const [editingName, setEditingName] = useState(false);
