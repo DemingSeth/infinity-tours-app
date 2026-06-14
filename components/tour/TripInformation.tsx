@@ -66,9 +66,12 @@ interface TripInformationProps {
   onEditHotel?: (() => void) | null;
   /** Opens the bus itinerary item's edit modal. Null when no bus item exists. */
   onEditBus?: (() => void) | null;
+  /** Print/PDF export: render contact info as plain (non-clickable) text and drop
+   *  attachment/file links, which do nothing on paper. */
+  print?: boolean;
 }
 
-export default function TripInformation({ info, isHost = false, tourId, onSaveTour, onSaveHostPhone, onEditFlight, onEditHotel, onEditBus }: TripInformationProps) {
+export default function TripInformation({ info, isHost = false, tourId, onSaveTour, onSaveHostPhone, onEditFlight, onEditHotel, onEditBus, print = false }: TripInformationProps) {
   const [open, setOpen] = useState(true); // expanded by default
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -180,8 +183,15 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
     return <div><button type="button" onClick={onEdit} style={linkBtnStyle}>{label}</button></div>;
   }
 
+  // Contact info (phone / email / hotline): useful as text on paper, but a clickable
+  // tel:/mailto: link does nothing in print — render plain text there, a link on screen.
+  const link = (href: string, text: string) =>
+    print ? <span>{text}</span> : <a href={href} style={linkStyle}>{text}</a>;
+
   // Inline confirmation attachment area for a transport row.
   function renderConf(type: string, label: string) {
+    // Confirmation attachments are file links — nothing to click on paper.
+    if (print) return null;
     const c = confByType(type);
     if (!isHost) {
       // Participant view: a single view link, only when a file exists.
@@ -234,9 +244,7 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
       ) : (
         <>
           <div>{dash(info.teacherName)}</div>
-          {info.teacherEmail && (
-            <a href={`mailto:${info.teacherEmail}`} style={linkStyle}>{info.teacherEmail}</a>
-          )}
+          {info.teacherEmail && link(`mailto:${info.teacherEmail}`, info.teacherEmail)}
         </>
       ),
     },
@@ -257,11 +265,11 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
           <div>
             {dash(info.tourHostName)}
             {info.tourHostPhone && (
-              <> · <a href={telHref(info.tourHostPhone)} style={linkStyle}>{info.tourHostPhone}</a></>
+              <> · {link(telHref(info.tourHostPhone), info.tourHostPhone)}</>
             )}
           </div>
           <div style={{ color: "#64748b" }}>
-            Infinity Hotline <a href={`tel:${HOTLINE_TEL}`} style={linkStyle}>{HOTLINE_DISPLAY}</a>
+            Infinity Hotline {link(`tel:${HOTLINE_TEL}`, HOTLINE_DISPLAY)}
           </div>
         </>
       ),
@@ -379,7 +387,7 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
             <div style={{ color: "#64748b" }}>
               {info.busContactName}
               {info.busContactName && info.busContactPhone ? " · " : null}
-              {info.busContactPhone && <a href={telHref(info.busContactPhone)} style={linkStyle}>{info.busContactPhone}</a>}
+              {info.busContactPhone && link(telHref(info.busContactPhone), info.busContactPhone)}
             </div>
           )}
           {/* Bus driver contact — host-facing only, never shown to participants. */}
@@ -388,7 +396,7 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
               <span style={{ fontWeight: 600 }}>Driver: </span>
               {info.busDriverName}
               {info.busDriverName && info.busDriverPhone ? " · " : null}
-              {info.busDriverPhone && <a href={telHref(info.busDriverPhone)} style={linkStyle}>{info.busDriverPhone}</a>}
+              {info.busDriverPhone && link(telHref(info.busDriverPhone), info.busDriverPhone)}
             </div>
           )}
           {info.busCapacity ? <div style={{ color: "#64748b" }}>{info.busCapacity} passengers</div> : null}

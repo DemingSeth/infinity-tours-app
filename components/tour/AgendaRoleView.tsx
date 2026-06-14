@@ -156,7 +156,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
       )}
 
       {/* Trip Information — shown to all roles, expanded by default, above Day 1. */}
-      {tripInfo && <TripInformation info={tripInfo} tourId={confTourId} />}
+      {tripInfo && <TripInformation info={tripInfo} tourId={confTourId} print={print} />}
 
       {days.length === 0 && (
         <div style={{ background: "#f8fafc", border: "2px dashed #e2e8f0", borderRadius: 12, padding: "40px 20px", textAlign: "center", color: "#94a3b8", fontSize: 13 }}>
@@ -251,7 +251,8 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
 
                       <AgendaImages urls={item.image_urls} fullWidth print={print} />
 
-                      {item.website && (
+                      {/* A bare "Website" link does nothing on paper — omit in print. */}
+                      {!print && item.website && (
                         <div style={{ fontSize: 12, marginTop: mt(3) }}>
                           <a
                             href={item.website}
