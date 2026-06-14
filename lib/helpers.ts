@@ -189,9 +189,11 @@ export function isPersonaActive(key: string, active?: string[] | null): boolean 
 // Bus Driver only sees bus-relevant items (bus travel, breaks, meeting points)
 // by default. In a future phase, these defaults can be made configurable
 // per-tour in Settings.
-export function defaultPersonaVisibility(type: string, travelMethod?: string | null): Record<string, boolean> {
+// Accepts either a single travel method (legacy) or the multi-select array.
+export function defaultPersonaVisibility(type: string, travelMethods?: string | string[] | null): Record<string, boolean> {
   const base: Record<string, boolean> = { tour_host: true, teacher: true, student: true, chaperone: true, bus_driver: false };
-  if (travelMethod === "bus" || type === "break" || type === "meeting") {
+  const arr = Array.isArray(travelMethods) ? travelMethods : travelMethods ? [travelMethods] : [];
+  if (arr.includes("bus") || type === "break" || type === "meeting") {
     return { ...base, bus_driver: true };
   }
   // flight, hotel, and everything else keep bus_driver hidden.
@@ -276,7 +278,7 @@ export function formatFullDate(value: string | null | undefined): string {
 export function buildTripInfo({ tour, members, days, hostName, hostPhone, confirmations }: {
   tour: any;
   members: { type?: string | null }[];
-  days: { agenda_items?: { type?: string | null; travel_method?: string | null; title?: string | null; address?: string | null; contact_name?: string | null; contact_phone?: string | null }[] }[];
+  days: { agenda_items?: { type?: string | null; travel_methods?: string[] | null; title?: string | null; address?: string | null; contact_name?: string | null; contact_phone?: string | null }[] }[];
   hostName?: string | null;
   hostPhone?: string | null;
   confirmations?: { type: string; label: string | null; file_url: string }[] | null;
@@ -297,7 +299,7 @@ export function buildTripInfo({ tour, members, days, hostName, hostPhone, confir
   // set on the Overview inputs — no longer parsed from the bus item title. We
   // still pick the bus item to preserve the existing DISPATCH contact (its
   // contact_name / contact_phone fields), which is unchanged.
-  const busItems = items.filter(i => i.travel_method === "bus");
+  const busItems = items.filter(i => (i.travel_methods ?? []).includes("bus"));
   const bus = busItems.find(i => i.contact_name || i.contact_phone) ?? busItems[0] ?? null;
   const busCompany = (tour?.bus_company ?? "").trim() || null;
   // Host-only bus driver contact (from the tour record).
@@ -305,7 +307,7 @@ export function buildTripInfo({ tour, members, days, hostName, hostPhone, confir
 
   // Flight: the first flight travel item carries the airline/flight title and
   // (optionally) the airport in its address field.
-  const flightItems = items.filter(i => i.travel_method === "flight");
+  const flightItems = items.filter(i => (i.travel_methods ?? []).includes("flight"));
   const flight = flightItems[0] ?? null;
   const flightName = flight ? (stripAction(flight.title ?? "") || flight.contact_name || null) : null;
 

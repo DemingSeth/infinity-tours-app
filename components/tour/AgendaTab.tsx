@@ -340,11 +340,11 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
   // Either default can still be overridden by the host afterward.
   const fT = (v: Partial<ItemFormState>) => setForm(p => {
     const next = { ...p, ...v };
-    if (!isEdit && ("type" in v || "travel_method" in v)) {
-      next.persona_visibility = defaultPersonaVisibility(next.type, next.travel_method);
+    if (!isEdit && ("type" in v || "travel_methods" in v)) {
+      next.persona_visibility = defaultPersonaVisibility(next.type, next.travel_methods);
     }
     if (!isEdit && "type" in v) {
-      next.feedback_enabled = isActivityType(next.type, next.activity_subtype);
+      next.feedback_enabled = isActivityType(next.type, next.activity_subtypes);
     }
     return next;
   });
@@ -372,20 +372,21 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
         </div>
       </div>
 
-      {(form.type === "travel" || SUBTYPES_BY_TYPE[form.type]) && (
+      {/* Activity / instructions / general sub-types — multi-select (toggle on/off,
+          down to zero). Shown when the top-level type carries sub-types. */}
+      {SUBTYPES_BY_TYPE[form.type] && (
         <div style={{ marginBottom: 14 }}>
           <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>
-            {form.type === "travel" ? "Travel Method" : "Sub-type"}
+            {form.type === "activity" ? "Activity Types" : "Sub-type"}
           </label>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {(form.type === "travel" ? TRAVEL_SUBTYPES : SUBTYPES_BY_TYPE[form.type]).map(st => {
+            {SUBTYPES_BY_TYPE[form.type].map(st => {
               const bg = TYPE_COLORS[form.type] || "#6b7280";
-              const isTravel = form.type === "travel";
-              const active = isTravel ? form.travel_method === st.value : form.activity_subtype === st.value;
+              const active = form.activity_subtypes.includes(st.value);
               const SubIcon = getSubtypeIcon(form.type, st.value);
               return (
                 <button key={st.value} type="button"
-                  onClick={() => isTravel ? fT({ travel_method: st.value as TravelMethod }) : f({ activity_subtype: st.value })}
+                  onClick={() => f({ activity_subtypes: toggleInArray(form.activity_subtypes, st.value) })}
                   style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 20, border: `2px solid ${active ? bg : "#e2e8f0"}`, background: active ? bg + "18" : "#fff", cursor: "pointer", fontSize: 12, fontWeight: active ? 700 : 400, color: active ? bg : "#64748b", fontFamily: "inherit" }}>
                   {SubIcon && <SubIcon size={15} strokeWidth={2} />}{st.label}
                 </button>
@@ -394,6 +395,27 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
           </div>
         </div>
       )}
+
+      {/* Travel methods — multi-select (toggle on/off, down to zero). Always
+          available on every item type, so a method can be added to any item and
+          any applied method can always be cleared (no more stuck tags). */}
+      <div style={{ marginBottom: 14 }}>
+        <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>Travel Methods</label>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {TRAVEL_SUBTYPES.map(st => {
+            const bg = TYPE_COLORS.travel || "#3b82f6";
+            const active = form.travel_methods.includes(st.value);
+            const SubIcon = getSubtypeIcon("travel", st.value);
+            return (
+              <button key={st.value} type="button"
+                onClick={() => fT({ travel_methods: toggleInArray(form.travel_methods, st.value) })}
+                style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 20, border: `2px solid ${active ? bg : "#e2e8f0"}`, background: active ? bg + "18" : "#fff", cursor: "pointer", fontSize: 12, fontWeight: active ? 700 : 400, color: active ? bg : "#64748b", fontFamily: "inherit" }}>
+                {SubIcon && <SubIcon size={15} strokeWidth={2} />}{st.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Per-persona visibility for this item */}
       <div style={{ marginBottom: 14 }}>
@@ -606,7 +628,11 @@ function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onRemoveImage }: {
   onEdit: () => void; onRemove: () => void; onToggleCostPaid: () => void;
   onRemoveImage: (url: string) => void;
 }) {
-  const travel = TRAVEL_METHODS.find(t => t.value === item.travel_method)?.label || "";
+  // Authoritative multi-select arrays drive the display (the legacy singular
+  // columns are dormant rollback insurance and intentionally not read here).
+  const travelMethods = item.travel_methods ?? [];
+  const activitySubtypes = item.activity_subtypes ?? [];
+  const subtypeLabel = (v: string) => SUBTYPES_BY_TYPE[item.type]?.find(s => s.value === v)?.label ?? v;
 
   return (
     <div style={{ padding: "14px 16px", borderBottom: "1px solid #f8fafc", background: "#fff" }} onClick={e => e.stopPropagation()}>
@@ -614,11 +640,25 @@ function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onRemoveImage }: {
         <div style={{ width: 56, fontSize: 11, fontWeight: 700, color: "#94a3b8", flexShrink: 0, paddingTop: 6, textAlign: "right" }}>
           {item.time || "-"}
         </div>
-        <TypeDot type={item.type} travelMethod={item.travel_method} subtype={item.activity_subtype} size={32} />
+        <TypeDot type={item.type} travelMethod={travelMethods[0] ?? null} subtype={activitySubtypes[0] ?? null} size={32} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", marginBottom: 3 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: BRAND.navy }}>{item.title}</span>
-            {travel && <span style={{ fontSize: 10, background: "#eff6ff", color: "#1e40af", borderRadius: 4, padding: "1px 6px", fontWeight: 600 }}>{travel}</span>}
+            {/* Activity types — each shown with its own sub-type icon. */}
+            {activitySubtypes.map(st => {
+              const SubIcon = getSubtypeIcon(item.type, st);
+              return (
+                <span key={`a-${st}`} style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, background: "#f5f3ff", color: "#6d28d9", borderRadius: 4, padding: "1px 6px", fontWeight: 600 }}>
+                  {SubIcon && <SubIcon size={11} strokeWidth={2} />}{subtypeLabel(st)}
+                </span>
+              );
+            })}
+            {/* Travel methods — each as its own tag. */}
+            {travelMethods.map(tm => (
+              <span key={`t-${tm}`} style={{ fontSize: 10, background: "#eff6ff", color: "#1e40af", borderRadius: 4, padding: "1px 6px", fontWeight: 600 }}>
+                {TRAVEL_METHODS.find(t => t.value === tm)?.label ?? tm}
+              </span>
+            ))}
             {/* Attached confirmations show only as compact links here; all
                 uploading / status lives in the edit modal and Confirmations page. */}
             <ConfirmationFileChips urls={item.confirmation_urls ?? []} />
@@ -847,14 +887,24 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
     const supabase = createClient();
     // Insert with the pre-generated id so uploaded images already live under
     // agenda-images/[tourId]/[itemId]/ match the saved row.
-    const { data } = await supabase.from("agenda_items")
+    // Inspect the response — never optimistically "succeed". A bad/unknown column
+    // or an RLS denial returns an error (or no row) that must surface, otherwise
+    // the form looks saved while nothing persists.
+    const { data, error } = await supabase.from("agenda_items")
       .insert({ id: addingItemId, ...formToInsert(itemForm, dayId, (day?.agenda_items.length ?? 0) + 1) })
       .select().single();
-    if (data) onDaysChange(days.map(d => d.id === dayId ? { ...d, agenda_items: [...d.agenda_items, { ...data, agenda_feedback: [] }] } : d));
+    setSaving(false);
+    if (error || !data) {
+      console.error("[agenda_items.insert] save failed", { dayId, itemId: addingItemId, error });
+      if (typeof window !== "undefined") {
+        window.alert(`Could not add item: ${error?.message ?? "no row inserted (permission?)"}`);
+      }
+      return; // keep the form open so the host can retry; nothing was persisted
+    }
+    onDaysChange(days.map(d => d.id === dayId ? { ...d, agenda_items: [...d.agenda_items, { ...data, agenda_feedback: [] }] } : d));
     setItemForm(BLANK);
     setAddingItem(null);
     setAddingItemId("");
-    setSaving(false);
   }
 
   async function updateItem() {
@@ -865,12 +915,21 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
     // form's stale value on save.
     const { day_id, tour_id, sort_order, confirmation_not_required, ...patch } = formToInsert(editForm, editCtx.dayId, 0);
     const supabase = createClient();
-    await supabase.from("agenda_items").update(patch).eq("id", editCtx.itemId);
+    // Inspect the response — surface errors / zero-row updates instead of
+    // applying the change to local state and looking saved while nothing persists.
+    const { data, error } = await supabase.from("agenda_items").update(patch).eq("id", editCtx.itemId).select();
+    setSaving(false);
+    if (error || !data || data.length === 0) {
+      console.error("[agenda_items.update] save failed", { itemId: editCtx.itemId, error });
+      if (typeof window !== "undefined") {
+        window.alert(`Could not save changes: ${error?.message ?? "no row updated (permission?)"}`);
+      }
+      return; // keep the edit modal open; local state stays at the last-saved truth
+    }
     onDaysChange(days.map(d => d.id === editCtx.dayId ? {
       ...d, agenda_items: d.agenda_items.map(i => i.id === editCtx.itemId ? { ...i, ...patch } : i),
     } : d));
     setEditCtx(null);
-    setSaving(false);
   }
 
   async function removeItem(dayId: string, itemId: string) {
@@ -952,9 +1011,9 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
   const itemLocs = days.flatMap(d => (d.agenda_items ?? []).map(item => ({ dayId: d.id, item })));
   const hotelLocs = itemLocs.filter(x => x.item.type === "hotel");
   const hotelLoc = hotelLocs.find(x => /[-–]/.test(x.item.title ?? "")) ?? hotelLocs[0] ?? null;
-  const busLoc = itemLocs.find(x => x.item.travel_method === "bus" && (x.item.contact_name || x.item.contact_phone))
-    ?? itemLocs.find(x => x.item.travel_method === "bus") ?? null;
-  const flightLoc = itemLocs.find(x => x.item.travel_method === "flight") ?? null;
+  const busLoc = itemLocs.find(x => (x.item.travel_methods ?? []).includes("bus") && (x.item.contact_name || x.item.contact_phone))
+    ?? itemLocs.find(x => (x.item.travel_methods ?? []).includes("bus")) ?? null;
+  const flightLoc = itemLocs.find(x => (x.item.travel_methods ?? []).includes("flight")) ?? null;
 
   return (
     <div>

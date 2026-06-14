@@ -9,7 +9,8 @@ import GeneralFeedback from "@/components/tour/GeneralFeedback";
 import TripInformation from "@/components/tour/TripInformation";
 import ItineraryHeaderTile from "@/components/tour/ItineraryHeaderTile";
 import GoogleMapsLink from "@/components/shared/GoogleMapsLink";
-import { BRAND, ROLES, DEFAULT_VISIBILITY, TRAVEL_METHODS, isItemVisibleTo, personaColors, sortAgendaItemsByTime, parseAgendaDate } from "@/lib/helpers";
+import { BRAND, ROLES, DEFAULT_VISIBILITY, TRAVEL_METHODS, SUBTYPES_BY_TYPE, isItemVisibleTo, personaColors, sortAgendaItemsByTime, parseAgendaDate } from "@/lib/helpers";
+import { getSubtypeIcon } from "@/components/shared/agendaIcons";
 import type { AgendaDayWithItems, Role, TripInfo } from "@/lib/types";
 
 interface Props {

@@ -191,8 +191,15 @@ export interface AgendaItemRow {
   sort_order: number;
   time: string | null;
   type: AgendaItemType;
-  // For travel items the sub-type is stored in travel_method; for activity
-  // items it is stored here (theme_park, disney, medieval_times, beach, etc.).
+  // Multi-select activity sub-types (theme_park, disney, medieval_times, …) and
+  // travel methods (bus, walking, …). These arrays are authoritative; an item
+  // may carry zero or more of each, independently toggleable.
+  activity_subtypes: string[];
+  travel_methods: string[];
+  // LEGACY (dormant rollback insurance — kept backfilled/synced to the first
+  // array element, but not read by any live display or derivation).
+  // For travel items the sub-type was stored in travel_method; for activity
+  // items it was stored here (theme_park, disney, medieval_times, beach, etc.).
   activity_subtype: string | null;
   title: string;
   detail: string | null;

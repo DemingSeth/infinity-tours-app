@@ -99,7 +99,7 @@ function ConfirmationRow({ tourId, item, isOwner, topBorder, onPatch }: {
       <div style={{ width: 52, fontSize: 11, fontWeight: 700, color: "#94a3b8", flexShrink: 0, paddingTop: 4, textAlign: "right" }}>
         {item.time || "-"}
       </div>
-      <TypeDot type={item.type} travelMethod={item.travel_method} subtype={item.activity_subtype} size={28} />
+      <TypeDot type={item.type} travelMethod={(item.travel_methods ?? [])[0] ?? null} subtype={(item.activity_subtypes ?? [])[0] ?? null} size={28} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <span style={{ fontSize: 13, fontWeight: 700, color: BRAND.navy }}>{item.title}</span>
