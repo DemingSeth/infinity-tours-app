@@ -177,6 +177,16 @@ export type AgendaItemType = "travel" | "activity" | "food" | "hotel" | "free" |
 export type MealPayType = "group" | "stipend" | "disney_dining" | "";
 export type TravelMethod = "bus" | "flight" | "subway" | "train" | "walking" | "rideshare" | "ferry" | "cruise" | "";
 
+// A single meal-money entry. "group" and "hotel_breakfast" carry no amount (the
+// meal is covered — as a group, or included with the hotel stay); stipend /
+// disney_dining / cash each carry their own dollar amount. A meal may hold
+// several entries at once (e.g. Group Meal + Cash).
+export type MealMoneyType = "group" | "hotel_breakfast" | "stipend" | "disney_dining" | "cash";
+export interface MealMoneyEntry {
+  type: MealMoneyType;
+  amount?: number | null;
+}
+
 export interface ItemVisibility {
   coordinator: Record<string, boolean>;
   teacher: Record<string, boolean>;
@@ -215,6 +225,9 @@ export interface AgendaItemRow {
   cost_paid: boolean;
   driver_note: string | null;
   internal_note: string | null;
+  // Authoritative meal-money list (see MealMoneyEntry). Multi-select.
+  meal_money: MealMoneyEntry[];
+  // LEGACY (dormant rollback insurance — backfilled/synced, not read live).
   meal_pay_type: MealPayType | null;
   stipend_amount: number | null;
   item_visibility: ItemVisibility | null;

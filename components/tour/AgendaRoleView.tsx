@@ -177,26 +177,49 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                     {item.time && (
                       <span style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", minWidth: 52, paddingTop: 4, flexShrink: 0 }}>{item.time}</span>
                     )}
-                    <TypeDot type={item.type} travelMethod={item.travel_method} subtype={item.activity_subtype} size={24} />
+                    <TypeDot type={item.type} travelMethod={(item.travel_methods ?? [])[0] ?? null} subtype={(item.activity_subtypes ?? [])[0] ?? null} size={24} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
                         <span style={{ fontSize: 14, fontWeight: 700, color: BRAND.navy }}>{item.title}</span>
-                        {item.travel_method && (
-                          <span style={{ fontSize: 10, fontWeight: 700, color: "#4b5563", background: "#f3f4f6", borderRadius: 4, padding: "1px 6px" }}>
-                            {TRAVEL_METHODS.find(m => m.value === item.travel_method)?.label ?? item.travel_method}
+                        {/* Activity types — each with its sub-type icon. */}
+                        {(item.activity_subtypes ?? []).map(st => {
+                          const SubIcon = getSubtypeIcon(item.type, st);
+                          const label = SUBTYPES_BY_TYPE[item.type]?.find(s => s.value === st)?.label ?? st;
+                          return (
+                            <span key={`a-${st}`} style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, color: "#6d28d9", background: "#f5f3ff", borderRadius: 4, padding: "1px 6px" }}>
+                              {SubIcon && <SubIcon size={11} strokeWidth={2} />}{label}
+                            </span>
+                          );
+                        })}
+                        {/* Travel methods — each as its own tag. */}
+                        {(item.travel_methods ?? []).map(tm => (
+                          <span key={`t-${tm}`} style={{ fontSize: 10, fontWeight: 700, color: "#4b5563", background: "#f3f4f6", borderRadius: 4, padding: "1px 6px" }}>
+                            {TRAVEL_METHODS.find(m => m.value === tm)?.label ?? tm}
                           </span>
-                        )}
-                        {item.type === "food" && item.meal_pay_type && (
-                          item.meal_pay_type === "disney_dining" ? (
-                            <span style={{ fontSize: 10, fontWeight: 700, color: "#4338ca", background: "#eef2ff", borderRadius: 4, padding: "1px 6px" }}>
-                              Disney Dining Card
-                            </span>
-                          ) : (
-                            <span style={{ fontSize: 10, fontWeight: 700, color: BRAND.teal, background: "#f0fdfa", borderRadius: 4, padding: "1px 6px" }}>
-                              {item.meal_pay_type === "group" ? "Group Meal" : item.stipend_amount ? `Stipend $${item.stipend_amount}` : "Stipend"}
-                            </span>
-                          )
-                        )}
+                        ))}
+                        {/* Meal money — one chip per entry; "group" shows no dollar figure. */}
+                        {item.type === "food" && (item.meal_money ?? []).map((mm, i) => {
+                          const amt = typeof mm.amount === "number" ? mm.amount : null;
+                          const style = mm.type === "disney_dining"
+                            ? { color: "#4338ca", background: "#eef2ff" }
+                            : mm.type === "cash"
+                            ? { color: "#15803d", background: "#dcfce7" }
+                            : mm.type === "hotel_breakfast"
+                            ? { color: "#0369a1", background: "#e0f2fe" }
+                            : { color: BRAND.teal, background: "#f0fdfa" };
+                          const label = mm.type === "disney_dining"
+                            ? `Disney Dining Dollars${amt != null ? ` $${amt}` : ""}`
+                            : mm.type === "cash"
+                            ? `Cash${amt != null ? ` $${amt}` : ""}`
+                            : mm.type === "hotel_breakfast"
+                            ? "Hotel Breakfast"
+                            : mm.type === "group"
+                            ? "Group Meal"
+                            : `Stipend${amt != null ? ` $${amt}` : ""}`;
+                          return (
+                            <span key={`m-${mm.type}-${i}`} style={{ fontSize: 10, fontWeight: 700, borderRadius: 4, padding: "1px 6px", ...style }}>{label}</span>
+                          );
+                        })}
                       </div>
 
                       {vis.address && item.address?.trim() && (

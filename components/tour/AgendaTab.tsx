@@ -9,6 +9,7 @@ import {
   isDayInPast, parseAgendaDate, formatAgendaDate, suggestNextDate,
   toDateInput, fmt$, buildTripInfo, sortAgendaItemsByTime,
   activePersonaKeys, personaLabel, personaColors, getPersona, PERSONAS, defaultPersonaVisibility, isActivityType,
+  MEAL_MONEY_TYPES, mealMoneyHasAmount, mealMoneyLabel,
 } from "@/lib/helpers";
 import GoogleMapsLink from "@/components/shared/GoogleMapsLink";
 import AgendaRoleView from "@/components/tour/AgendaRoleView";
@@ -22,7 +23,7 @@ import ItineraryHeaderTile from "@/components/tour/ItineraryHeaderTile";
 import { MapPin, Phone, Bus, Lock, Clock, ImagePlus, Printer } from "lucide-react";
 import type {
   TourRow, AgendaDayWithItems, AgendaItemWithFeedback,
-  AgendaItemType, TravelMethod, MealPayType, Role,
+  AgendaItemType, TravelMethod, MealMoneyType, Role,
 } from "@/lib/types";
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
@@ -245,27 +246,58 @@ function AccessCodeManager({ tour, onTourChange }: {
 }
 
 // ── Item form ──────────────────────────────────────────────────────────────────
+// A meal-money entry in form state: amount is held as a string (text input).
+type MealMoneyForm = { type: MealMoneyType; amount: string };
+
 type ItemFormState = {
-  time: string; type: AgendaItemType; activity_subtype: string; title: string; detail: string;
+  time: string; type: AgendaItemType; activity_subtypes: string[]; title: string; detail: string;
   public_note: string; address: string; map_link: string; website: string;
-  travel_method: TravelMethod; contact_name: string; contact_phone: string;
+  travel_methods: string[]; contact_name: string; contact_phone: string;
   contact_email: string; cost: string; cost_paid: boolean;
   confirmation_not_required: boolean;
   driver_note: string; internal_note: string;
-  meal_pay_type: MealPayType; stipend_amount: string;
+  meal_money: MealMoneyForm[];
   persona_visibility: Record<string, boolean>;
   feedback_enabled: boolean;
   image_urls: string[];
 };
 
 const BLANK: ItemFormState = {
-  time: "", type: "activity", activity_subtype: "", title: "", detail: "", public_note: "",
-  address: "", map_link: "", website: "", travel_method: "",
+  time: "", type: "activity", activity_subtypes: [], title: "", detail: "", public_note: "",
+  address: "", map_link: "", website: "", travel_methods: [],
   contact_name: "", contact_phone: "", contact_email: "",
   cost: "", cost_paid: false, confirmation_not_required: false, driver_note: "", internal_note: "",
-  meal_pay_type: "", stipend_amount: "", persona_visibility: defaultPersonaVisibility("activity", ""),
-  feedback_enabled: isActivityType("activity", ""), image_urls: [],
+  meal_money: [], persona_visibility: defaultPersonaVisibility("activity", []),
+  feedback_enabled: isActivityType("activity", []), image_urls: [],
 };
+
+// Toggle a value in/out of a string array (used for multi-select sub-types).
+function toggleInArray(arr: string[], value: string): string[] {
+  return arr.includes(value) ? arr.filter(v => v !== value) : [...arr, value];
+}
+
+// Hydrate the meal-money form list from an item. Prefers the authoritative
+// meal_money list; falls back to the legacy single meal_pay_type/stipend_amount
+// only for rows not yet migrated (so the editor never silently drops them).
+function mealMoneyToForm(item: AgendaItemWithFeedback): MealMoneyForm[] {
+  if (Array.isArray(item.meal_money)) {
+    return item.meal_money.map(e => ({ type: e.type, amount: e.amount != null ? String(e.amount) : "" }));
+  }
+  const t = item.meal_pay_type;
+  if (t === "stipend") return [{ type: "stipend", amount: item.stipend_amount ? String(item.stipend_amount) : "" }];
+  if (t === "disney_dining") return [{ type: "disney_dining", amount: "" }];
+  if (t === "group") return [{ type: "group", amount: "" }];
+  return [];
+}
+
+// Representative legacy meal_pay_type for the dormant rollback sync (the legacy
+// enum has no "cash", so cash-only meals sync to null — acceptable for insurance).
+function mealLegacyType(entries: MealMoneyForm[]): "group" | "stipend" | "disney_dining" | null {
+  if (entries.some(e => e.type === "stipend")) return "stipend";
+  if (entries.some(e => e.type === "disney_dining")) return "disney_dining";
+  if (entries.some(e => e.type === "group")) return "group";
+  return null;
+}
 
 const TYPE_COLORS = AGENDA_TYPE_COLORS;
 
@@ -475,22 +507,32 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
 
         {form.type === "food" && (
           <div style={{ width: "100%", background: "#fff8f0", border: "1.5px solid #fed7aa", borderRadius: 10, padding: "12px 14px", display: "flex", flexWrap: "wrap", gap: 10 }}>
-            <div style={{ width: "100%", fontSize: 11, fontWeight: 700, color: "#92400e", textTransform: "uppercase", letterSpacing: .7 }}>Meal Payment</div>
-            <Field label="How is this meal paid?">
+            <div style={{ width: "100%", fontSize: 11, fontWeight: 700, color: "#92400e", textTransform: "uppercase", letterSpacing: .7 }}>Meal Money</div>
+            <Field label="How is this meal covered? (select any that apply)">
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {[{ value: "stipend", label: "Meal Stipend (Till Card)" }, { value: "group", label: "Group Meal" }, { value: "disney_dining", label: "Disney Dining Card" }].map(opt => (
-                  <button key={opt.value} type="button" onClick={() => f({ meal_pay_type: opt.value as MealPayType })}
-                    style={{ flex: "1 1 110px", padding: "6px 8px", borderRadius: 8, border: `2px solid ${form.meal_pay_type === opt.value ? "#92400e" : "#e2e8f0"}`, background: form.meal_pay_type === opt.value ? "#fef3c7" : "#fff", cursor: "pointer", fontSize: 11, fontWeight: form.meal_pay_type === opt.value ? 700 : 400, color: form.meal_pay_type === opt.value ? "#92400e" : "#64748b", fontFamily: "inherit", textAlign: "center", lineHeight: 1.3 }}>
-                    {opt.label}
-                  </button>
-                ))}
+                {MEAL_MONEY_TYPES.map(opt => {
+                  const active = form.meal_money.some(e => e.type === opt.value);
+                  return (
+                    <button key={opt.value} type="button"
+                      onClick={() => f({
+                        meal_money: active
+                          ? form.meal_money.filter(e => e.type !== opt.value)
+                          : [...form.meal_money, { type: opt.value as MealMoneyType, amount: "" }],
+                      })}
+                      style={{ flex: "1 1 110px", padding: "6px 8px", borderRadius: 8, border: `2px solid ${active ? "#92400e" : "#e2e8f0"}`, background: active ? "#fef3c7" : "#fff", cursor: "pointer", fontSize: 11, fontWeight: active ? 700 : 400, color: active ? "#92400e" : "#64748b", fontFamily: "inherit", textAlign: "center", lineHeight: 1.3 }}>
+                      {opt.label}
+                    </button>
+                  );
+                })}
               </div>
             </Field>
-            {form.meal_pay_type === "stipend" && (
-              <Field label="Stipend Amount ($)" third>
-                <Inp type="number" value={form.stipend_amount} onChange={e => f({ stipend_amount: e.target.value })} placeholder="25" />
+            {/* One amount input per selected amount-bearing entry. Group has none. */}
+            {form.meal_money.filter(e => mealMoneyHasAmount(e.type)).map(e => (
+              <Field key={e.type} label={`${mealMoneyLabel(e.type)} Amount ($)`} third>
+                <Inp type="number" value={e.amount} placeholder="25"
+                  onChange={ev => f({ meal_money: form.meal_money.map(x => x.type === e.type ? { ...x, amount: ev.target.value } : x) })} />
               </Field>
-            )}
+            ))}
           </div>
         )}
 
@@ -675,17 +717,32 @@ function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onRemoveImage }: {
               <GoogleMapsLink address={item.address} mapLink={item.map_link} color="#0369a1" fontSize={11} />
             </div>
           )}
-          {item.type === "food" && item.meal_pay_type && (
-            <div style={{ marginBottom: 4 }}>
-              {item.meal_pay_type === "stipend" ? (
-                <span style={{ fontSize: 11, background: "#fef3c7", color: "#92400e", borderRadius: 6, padding: "2px 9px", fontWeight: 700 }}>
-                  Meal Stipend{item.stipend_amount ? ` - $${item.stipend_amount} on Till Card` : ""}
-                </span>
-              ) : item.meal_pay_type === "disney_dining" ? (
-                <span style={{ fontSize: 11, background: "#eef2ff", color: "#4338ca", borderRadius: 6, padding: "2px 9px", fontWeight: 700 }}>Disney Dining Card</span>
-              ) : (
-                <span style={{ fontSize: 11, background: "#f0fdf4", color: "#166534", borderRadius: 6, padding: "2px 9px", fontWeight: 700 }}>Group Meal</span>
-              )}
+          {item.type === "food" && (item.meal_money?.length ?? 0) > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 4 }}>
+              {item.meal_money.map((mm, i) => {
+                const amt = typeof mm.amount === "number" ? mm.amount : null;
+                const style = mm.type === "stipend"
+                  ? { background: "#fef3c7", color: "#92400e" }
+                  : mm.type === "disney_dining"
+                  ? { background: "#eef2ff", color: "#4338ca" }
+                  : mm.type === "cash"
+                  ? { background: "#dcfce7", color: "#15803d" }
+                  : mm.type === "hotel_breakfast"
+                  ? { background: "#e0f2fe", color: "#0369a1" }
+                  : { background: "#f0fdf4", color: "#166534" };
+                const label = mm.type === "stipend"
+                  ? `Meal Stipend${amt != null ? ` - $${amt} on Till Card` : ""}`
+                  : mm.type === "disney_dining"
+                  ? `Disney Dining Dollars${amt != null ? ` - $${amt}` : ""}`
+                  : mm.type === "cash"
+                  ? `Cash${amt != null ? ` - $${amt}` : ""}`
+                  : mm.type === "hotel_breakfast"
+                  ? "Hotel Breakfast"
+                  : "Group Meal";
+                return (
+                  <span key={`${mm.type}-${i}`} style={{ fontSize: 11, borderRadius: 6, padding: "2px 9px", fontWeight: 700, ...style }}>{label}</span>
+                );
+              })}
             </div>
           )}
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 4, alignItems: "center" }}>
@@ -801,16 +858,33 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
   function formToInsert(f: ItemFormState, dayId: string, sortOrder: number) {
     return {
       day_id: dayId, tour_id: tour.id, sort_order: sortOrder,
-      time: f.time || null, type: f.type, activity_subtype: f.activity_subtype || null, title: f.title,
+      time: f.time || null, type: f.type, title: f.title,
       detail: f.detail || null, public_note: f.public_note || null,
       address: f.address || null, map_link: f.map_link || null,
-      website: f.website || null, travel_method: f.travel_method || null,
+      website: f.website || null,
+      // Authoritative arrays:
+      travel_methods: f.travel_methods,
+      activity_subtypes: f.activity_subtypes,
+      // Legacy singular sync (dormant rollback insurance — first element only):
+      travel_method: (f.travel_methods[0] as TravelMethod) || null,
+      activity_subtype: f.activity_subtypes[0] || null,
       contact_name: f.contact_name || null, contact_phone: f.contact_phone || null,
       contact_email: f.contact_email || null, cost: parseFloat(f.cost) || 0,
       cost_paid: f.cost_paid, confirmation_not_required: f.confirmation_not_required, driver_note: f.driver_note || null,
       internal_note: f.internal_note || null,
-      meal_pay_type: f.meal_pay_type || null,
-      stipend_amount: f.stipend_amount ? parseFloat(f.stipend_amount) : null,
+      // Authoritative meal-money list: drop blank/invalid amounts; group carries none.
+      meal_money: f.meal_money.map(e => {
+        if (!mealMoneyHasAmount(e.type)) return { type: e.type };
+        const n = parseFloat(e.amount);
+        return { type: e.type, amount: Number.isFinite(n) ? n : null };
+      }),
+      // Legacy meal sync (dormant rollback insurance):
+      meal_pay_type: mealLegacyType(f.meal_money),
+      stipend_amount: (() => {
+        const s = f.meal_money.find(e => e.type === "stipend");
+        const n = s ? parseFloat(s.amount) : NaN;
+        return Number.isFinite(n) ? n : null;
+      })(),
       item_visibility: null,
       persona_visibility: f.persona_visibility,
       feedback_enabled: f.feedback_enabled,
@@ -820,19 +894,22 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
 
   function itemToForm(item: AgendaItemWithFeedback): ItemFormState {
     return {
-      time: item.time || "", type: item.type, activity_subtype: item.activity_subtype || "", title: item.title,
+      time: item.time || "", type: item.type, title: item.title,
+      // Prefer the authoritative arrays; fall back to the legacy singular only to
+      // hydrate the editor for rows not yet migrated (prevents data loss on save).
+      activity_subtypes: item.activity_subtypes ?? (item.activity_subtype ? [item.activity_subtype] : []),
+      travel_methods: item.travel_methods ?? (item.travel_method ? [item.travel_method] : []),
       detail: item.detail || "", public_note: item.public_note || "",
       address: item.address || "", map_link: item.map_link || "",
-      website: item.website || "", travel_method: item.travel_method || "",
+      website: item.website || "",
       contact_name: item.contact_name || "", contact_phone: item.contact_phone || "",
       contact_email: item.contact_email || "",
       cost: item.cost > 0 ? String(item.cost) : "",
       cost_paid: item.cost_paid, confirmation_not_required: !!item.confirmation_not_required, driver_note: item.driver_note || "",
       internal_note: item.internal_note || "",
-      meal_pay_type: item.meal_pay_type || "",
-      stipend_amount: item.stipend_amount ? String(item.stipend_amount) : "",
-      persona_visibility: item.persona_visibility ?? defaultPersonaVisibility(item.type, item.travel_method),
-      feedback_enabled: item.feedback_enabled ?? isActivityType(item.type, item.activity_subtype),
+      meal_money: mealMoneyToForm(item),
+      persona_visibility: item.persona_visibility ?? defaultPersonaVisibility(item.type, item.travel_methods ?? (item.travel_method ? [item.travel_method] : [])),
+      feedback_enabled: item.feedback_enabled ?? isActivityType(item.type, item.activity_subtypes ?? item.activity_subtype),
       image_urls: item.image_urls || [],
     };
   }

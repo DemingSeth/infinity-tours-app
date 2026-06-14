@@ -88,9 +88,29 @@ export const SUBTYPES_BY_TYPE: Record<string, readonly { value: string; label: s
 
 // An item counts as an "Activity" if its type is the Activity type or it carries
 // an Activity sub-type. Drives the default for the per-item student-feedback toggle.
-export function isActivityType(type: string | null | undefined, activitySubtype?: string | null): boolean {
+// Accepts either a single sub-type (legacy) or the multi-select array.
+export function isActivityType(type: string | null | undefined, activitySubtypes?: string | string[] | null): boolean {
   if (type === "activity") return true;
-  return !!activitySubtype && ACTIVITY_SUBTYPES.some(s => s.value === activitySubtype);
+  const arr = Array.isArray(activitySubtypes) ? activitySubtypes : activitySubtypes ? [activitySubtypes] : [];
+  return arr.some(s => ACTIVITY_SUBTYPES.some(a => a.value === s));
+}
+
+// Meal-money option list (multi-select). "group" carries no amount; the others
+// each take a dollar amount. Order here drives the editor button order.
+export const MEAL_MONEY_TYPES = [
+  { value: "group",           label: "Group Meal",                hasAmount: false },
+  { value: "hotel_breakfast", label: "Hotel Breakfast",           hasAmount: false },
+  { value: "stipend",         label: "Meal Stipend (Till Card)",  hasAmount: true  },
+  { value: "disney_dining",   label: "Disney Dining Dollars",     hasAmount: true  },
+  { value: "cash",            label: "Cash",                      hasAmount: true  },
+] as const;
+
+export function mealMoneyHasAmount(type: string): boolean {
+  return MEAL_MONEY_TYPES.find(t => t.value === type)?.hasAmount ?? false;
+}
+
+export function mealMoneyLabel(type: string): string {
+  return MEAL_MONEY_TYPES.find(t => t.value === type)?.label ?? type;
 }
 
 // Display labels for the travel-method badge shown on items. Mirrors the
