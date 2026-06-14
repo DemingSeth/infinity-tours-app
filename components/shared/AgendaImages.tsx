@@ -15,6 +15,12 @@ const photoStyle: React.CSSProperties = {
   margin: "0 auto",
 };
 
+// Print-only compact thumbnails: small, left-aligned, whole image (no crop).
+const printThumbStyle: React.CSSProperties = {
+  display: "block", maxHeight: 80, maxWidth: 120, width: "auto", height: "auto",
+  objectFit: "contain", borderRadius: 6, border: "1px solid #e2e8f0", background: "#f1f5f9",
+};
+
 export default function AgendaImages({
   urls,
   size = 76,
@@ -41,11 +47,16 @@ export default function AgendaImages({
 
   if (print) {
     // Static, eagerly-loaded whole images (no lightbox / interactivity).
+    // Compact print thumbnails: a tight left-aligned row of small photos so the
+    // itinerary stays dense on paper. Whole image (object-fit contain) so nothing
+    // is cropped — just much smaller than the on-screen view.
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
         {urls.map((url, i) => (
+          // No `agenda-photo` class here: the print page's @media rule caps that
+          // class at 190px, which would override this inline thumbnail size.
           // eslint-disable-next-line @next/next/no-img-element
-          <img key={`${url}-${i}`} className={AGENDA_PHOTO_CLASS} src={url} alt="Itinerary item photo" loading="eager" style={photoStyle} />
+          <img key={`${url}-${i}`} src={url} alt="Itinerary item photo" loading="eager" style={printThumbStyle} />
         ))}
       </div>
     );

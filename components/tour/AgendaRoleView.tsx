@@ -53,6 +53,11 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
   // never writes real feedback rows.
   const showFeedback = role !== "driver" && !print;
 
+  // Print/compact mode: a denser, paper-saving layout (same content, less white
+  // space). `mt` halves the on-screen vertical rhythm only when printing so the
+  // itinerary consolidates onto fewer pages; on-screen/preview keep their values.
+  const mt = (n: number) => (print ? Math.max(2, Math.round(n / 2)) : n);
+
   // Days are collapsible in every view. Seed from the host's saved collapsed flag,
   // then toggle locally — participants/public never write this back to the DB.
   const [collapsedDays, setCollapsedDays] = useState<Record<string, boolean>>(
@@ -159,7 +164,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
         </div>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: print ? 8 : 16 }}>
         {days.map(day => {
           // Strict per-persona filtering: only items where visibility[persona] === true.
           // Then order chronologically by time (sort_order is insertion order, not time).
@@ -169,13 +174,13 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
           if (items.length === 0) return null; // hide days with nothing visible to this persona
           const collapsed = print ? false : !!collapsedDays[day.id];
           return (
-          <div key={day.id} className={print ? "print-day" : undefined} style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
+          <div key={day.id} className={print ? "print-day" : undefined} style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: print ? 8 : 12, overflow: "hidden", boxShadow: print ? "none" : "0 1px 4px rgba(0,0,0,.04)" }}>
             <div
               onClick={print ? undefined : () => toggleDay(day.id)}
               role="button"
               aria-expanded={!collapsed}
               className={print ? "print-day-header" : undefined}
-              style={{ background: BRAND.navy, padding: "10px 16px", display: "flex", alignItems: "center", gap: 10, cursor: print ? "default" : "pointer", breakInside: print ? "avoid" : undefined }}
+              style={{ background: BRAND.navy, padding: print ? "5px 14px" : "10px 16px", display: "flex", alignItems: "center", gap: 10, cursor: print ? "default" : "pointer", breakInside: print ? "avoid" : undefined }}
             >
               {!print && (collapsed
                 ? <ChevronRight size={16} color="rgba(255,255,255,.7)" style={{ flexShrink: 0 }} />
@@ -187,7 +192,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
             {!collapsed && (
             <div>
               {items.map((item, idx) => (
-                <div key={item.id} className={print ? "print-item" : undefined} style={{ padding: "12px 16px", borderTop: idx > 0 ? "1px solid #f1f5f9" : undefined, breakInside: print ? "avoid" : undefined }}>
+                <div key={item.id} className={print ? "print-item" : undefined} style={{ padding: print ? "6px 14px" : "12px 16px", borderTop: idx > 0 ? "1px solid #f1f5f9" : undefined, breakInside: print ? "avoid" : undefined }}>
                   <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                     {item.time && (
                       <span style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", minWidth: 52, paddingTop: 4, flexShrink: 0 }}>{item.time}</span>
@@ -224,21 +229,22 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                       </div>
 
                       {vis.address && item.address?.trim() && (
-                        <div style={{ fontSize: 12, color: "#475569", marginTop: 4 }}>{item.address}</div>
+                        <div style={{ fontSize: 12, color: "#475569", marginTop: mt(4) }}>{item.address}</div>
                       )}
 
                       {vis.detail && item.detail && (
-                        <div style={{ fontSize: 12, color: "#475569", marginTop: 3 }}>{item.detail}</div>
+                        <div style={{ fontSize: 12, color: "#475569", marginTop: mt(3) }}>{item.detail}</div>
                       )}
 
                       {item.public_note && (
-                        <div style={{ fontSize: 12, color: "#1d4ed8", background: "#eff6ff", borderRadius: 6, padding: "5px 10px", marginTop: 6 }}>
+                        <div style={{ fontSize: 12, color: "#1d4ed8", background: "#eff6ff", borderRadius: 6, padding: "5px 10px", marginTop: mt(6) }}>
                           {item.public_note}
                         </div>
                       )}
 
-                      {vis.mapLink && item.map_link?.trim() && (
-                        <div style={{ marginTop: 4 }}>
+                      {/* Map links are useless on paper — omit them entirely in print. */}
+                      {!print && vis.mapLink && item.map_link?.trim() && (
+                        <div style={{ marginTop: mt(4) }}>
                           <GoogleMapsLink address={item.address} mapLink={item.map_link} color={BRAND.teal} fontSize={11} />
                         </div>
                       )}
@@ -246,7 +252,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                       <AgendaImages urls={item.image_urls} fullWidth print={print} />
 
                       {item.website && (
-                        <div style={{ fontSize: 12, marginTop: 3 }}>
+                        <div style={{ fontSize: 12, marginTop: mt(3) }}>
                           <a
                             href={item.website}
                             target="_blank"
@@ -259,7 +265,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                       )}
 
                       {vis.contactName && item.contact_name && (
-                        <div style={{ fontSize: 12, color: "#475569", marginTop: 4 }}>
+                        <div style={{ fontSize: 12, color: "#475569", marginTop: mt(4) }}>
                           {item.contact_name}
                           {vis.contactPhone && item.contact_phone && ` · ${item.contact_phone}`}
                           {vis.contactEmail && item.contact_email && ` · ${item.contact_email}`}
@@ -280,7 +286,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                       )}
 
                       {vis.driverNote && item.driver_note && (
-                        <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8, padding: "8px 12px", marginTop: 6 }}>
+                        <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8, padding: "8px 12px", marginTop: mt(6) }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, fontWeight: 700, color: "#92400e", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 }}>
                             <Bus size={12} style={{ flexShrink: 0 }} />Bus Driver Note
                           </div>
@@ -289,7 +295,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                       )}
 
                       {vis.internalNote && item.internal_note && (
-                        <div style={{ fontSize: 12, color: "#5b21b6", background: "#f5f3ff", borderRadius: 6, padding: "5px 10px", marginTop: 6 }}>
+                        <div style={{ fontSize: 12, color: "#5b21b6", background: "#f5f3ff", borderRadius: 6, padding: "5px 10px", marginTop: mt(6) }}>
                           Note: {item.internal_note}
                         </div>
                       )}
@@ -312,7 +318,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
         <GeneralFeedback variant="card" tourId={tourId} role={role} done={done} onSubmitted={markGeneralDone} preview={!!embedded} />
       )}
 
-      <div style={{ textAlign: "center", marginTop: 28, paddingBottom: 20, fontSize: 11, color: "#94a3b8" }}>
+      <div style={{ textAlign: "center", marginTop: print ? 10 : 28, paddingBottom: print ? 6 : 20, fontSize: 11, color: "#94a3b8" }}>
         Powered by Infinity Tours + Events
       </div>
     </div>
