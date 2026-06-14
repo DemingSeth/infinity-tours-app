@@ -1,25 +1,26 @@
 import { MapPin } from "lucide-react";
 import { getMapUrl } from "@/lib/helpers";
 
-// Shared Google Maps link for itinerary items. Renders ONLY when the item has a
-// non-empty, non-whitespace address. The URL prefers a pasted map_link and
-// otherwise builds a Google Maps search for the encoded address (via getMapUrl,
-// so every view uses the same URL pattern). The visible label is always
-// "Google Maps".
+// Shared Google Maps link for itinerary items. Renders whenever the item has a
+// non-empty (non-whitespace) map_link — on every item type, regardless of
+// whether an address is set. An empty map_link shows nothing: there is no
+// address-based fallback for an empty field. The href prefers the pasted
+// map_link and only resolves to an address search for known demo-placeholder
+// links (via getMapUrl). The visible label is always "Google Maps".
 export default function GoogleMapsLink({
-  address,
+  address = null,
   mapLink = null,
   color = "#0369a1",
   fontSize = 11,
   style,
 }: {
-  address: string | null | undefined;
+  address?: string | null | undefined;
   mapLink?: string | null;
   color?: string;
   fontSize?: number;
   style?: React.CSSProperties;
 }) {
-  if (!address || !address.trim()) return null;
+  if (!mapLink || !mapLink.trim()) return null;
   const url = getMapUrl(mapLink, address);
   if (!url) return null;
 

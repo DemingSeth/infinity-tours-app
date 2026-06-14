@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
 import TypeDot from "@/components/shared/TypeDot";
 import {
-  BRAND, ROLES, AGENDA_TYPES, TRAVEL_METHODS, TRAVEL_SUBTYPES, SUBTYPES_BY_TYPE,
+  BRAND, ROLES, AGENDA_TYPES, TRAVEL_SUBTYPES, SUBTYPES_BY_TYPE,
   isDayInPast, parseAgendaDate, formatAgendaDate, suggestNextDate,
   toDateInput, fmt$, buildTripInfo, sortAgendaItemsByTime,
   activePersonaKeys, personaLabel, personaColors, getPersona, PERSONAS, defaultPersonaVisibility, isActivityType,
@@ -670,11 +670,10 @@ function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onRemoveImage }: {
   onEdit: () => void; onRemove: () => void; onToggleCostPaid: () => void;
   onRemoveImage: (url: string) => void;
 }) {
-  // Authoritative multi-select arrays drive the display (the legacy singular
-  // columns are dormant rollback insurance and intentionally not read here).
+  // Authoritative multi-select arrays drive the leading icon (the legacy
+  // singular columns are dormant rollback insurance and not read here).
   const travelMethods = item.travel_methods ?? [];
   const activitySubtypes = item.activity_subtypes ?? [];
-  const subtypeLabel = (v: string) => SUBTYPES_BY_TYPE[item.type]?.find(s => s.value === v)?.label ?? v;
 
   return (
     <div style={{ padding: "14px 16px", borderBottom: "1px solid #f8fafc", background: "#fff" }} onClick={e => e.stopPropagation()}>
@@ -686,21 +685,8 @@ function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onRemoveImage }: {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", marginBottom: 3 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: BRAND.navy }}>{item.title}</span>
-            {/* Activity types — each shown with its own sub-type icon. */}
-            {activitySubtypes.map(st => {
-              const SubIcon = getSubtypeIcon(item.type, st);
-              return (
-                <span key={`a-${st}`} style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, background: "#f5f3ff", color: "#6d28d9", borderRadius: 4, padding: "1px 6px", fontWeight: 600 }}>
-                  {SubIcon && <SubIcon size={11} strokeWidth={2} />}{subtypeLabel(st)}
-                </span>
-              );
-            })}
-            {/* Travel methods — each as its own tag. */}
-            {travelMethods.map(tm => (
-              <span key={`t-${tm}`} style={{ fontSize: 10, background: "#eff6ff", color: "#1e40af", borderRadius: 4, padding: "1px 6px", fontWeight: 600 }}>
-                {TRAVEL_METHODS.find(t => t.value === tm)?.label ?? tm}
-              </span>
-            ))}
+            {/* The leading TypeDot icon conveys the item type; no redundant
+                type/sub-type text tags here. */}
             {/* Attached confirmations show only as compact links here; all
                 uploading / status lives in the edit modal and Confirmations page. */}
             <ConfirmationFileChips urls={item.confirmation_urls ?? []} />
@@ -712,7 +698,7 @@ function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onRemoveImage }: {
               {item.public_note}
             </div>
           )}
-          {item.address && (
+          {item.map_link?.trim() && (
             <div style={{ marginBottom: 4 }}>
               <GoogleMapsLink address={item.address} mapLink={item.map_link} color="#0369a1" fontSize={11} />
             </div>

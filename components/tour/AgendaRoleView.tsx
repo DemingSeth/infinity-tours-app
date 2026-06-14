@@ -9,8 +9,7 @@ import GeneralFeedback from "@/components/tour/GeneralFeedback";
 import TripInformation from "@/components/tour/TripInformation";
 import ItineraryHeaderTile from "@/components/tour/ItineraryHeaderTile";
 import GoogleMapsLink from "@/components/shared/GoogleMapsLink";
-import { BRAND, ROLES, DEFAULT_VISIBILITY, TRAVEL_METHODS, SUBTYPES_BY_TYPE, isItemVisibleTo, personaColors, sortAgendaItemsByTime, parseAgendaDate } from "@/lib/helpers";
-import { getSubtypeIcon } from "@/components/shared/agendaIcons";
+import { BRAND, ROLES, DEFAULT_VISIBILITY, isItemVisibleTo, personaColors, sortAgendaItemsByTime, parseAgendaDate } from "@/lib/helpers";
 import type { AgendaDayWithItems, Role, TripInfo } from "@/lib/types";
 
 interface Props {
@@ -181,22 +180,8 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
                         <span style={{ fontSize: 14, fontWeight: 700, color: BRAND.navy }}>{item.title}</span>
-                        {/* Activity types — each with its sub-type icon. */}
-                        {(item.activity_subtypes ?? []).map(st => {
-                          const SubIcon = getSubtypeIcon(item.type, st);
-                          const label = SUBTYPES_BY_TYPE[item.type]?.find(s => s.value === st)?.label ?? st;
-                          return (
-                            <span key={`a-${st}`} style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, color: "#6d28d9", background: "#f5f3ff", borderRadius: 4, padding: "1px 6px" }}>
-                              {SubIcon && <SubIcon size={11} strokeWidth={2} />}{label}
-                            </span>
-                          );
-                        })}
-                        {/* Travel methods — each as its own tag. */}
-                        {(item.travel_methods ?? []).map(tm => (
-                          <span key={`t-${tm}`} style={{ fontSize: 10, fontWeight: 700, color: "#4b5563", background: "#f3f4f6", borderRadius: 4, padding: "1px 6px" }}>
-                            {TRAVEL_METHODS.find(m => m.value === tm)?.label ?? tm}
-                          </span>
-                        ))}
+                        {/* The leading TypeDot icon conveys the item type; no redundant
+                            type/sub-type text tags here. */}
                         {/* Meal money — one chip per entry; "group" shows no dollar figure. */}
                         {item.type === "food" && (item.meal_money ?? []).map((mm, i) => {
                           const amt = typeof mm.amount === "number" ? mm.amount : null;
@@ -236,7 +221,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                         </div>
                       )}
 
-                      {vis.address && vis.mapLink && item.address?.trim() && (
+                      {vis.mapLink && item.map_link?.trim() && (
                         <div style={{ marginTop: 4 }}>
                           <GoogleMapsLink address={item.address} mapLink={item.map_link} color={BRAND.teal} fontSize={11} />
                         </div>
