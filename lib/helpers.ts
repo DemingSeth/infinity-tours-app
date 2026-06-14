@@ -215,7 +215,10 @@ export function isPersonaActive(key: string, active?: string[] | null): boolean 
 export function defaultPersonaVisibility(type: string, travelMethods?: string | string[] | null): Record<string, boolean> {
   const base: Record<string, boolean> = { tour_host: true, teacher: true, student: true, chaperone: true, bus_driver: false };
   const arr = Array.isArray(travelMethods) ? travelMethods : travelMethods ? [travelMethods] : [];
-  if (arr.includes("bus") || type === "break" || type === "meeting") {
+  // Bus-related travel (a charter-bus leg or a gas-station fuel stop on the
+  // route), plus break/meeting items, default to visible for the bus driver.
+  const busRelated = arr.includes("bus") || arr.includes("gas_station");
+  if (busRelated || type === "break" || type === "meeting") {
     return { ...base, bus_driver: true };
   }
   // flight, hotel, and everything else keep bus_driver hidden.
