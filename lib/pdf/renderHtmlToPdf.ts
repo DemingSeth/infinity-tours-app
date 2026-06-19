@@ -64,11 +64,17 @@ export async function renderHtmlToPdf(html: string, opts: Partial<PDFOptions> = 
     await page.evaluate(async () => {
       await document.fonts.ready;
     });
+    // Page size is caller-controlled: explicit width/height wins, otherwise a
+    // paper `format` (defaulting to Letter). Keeping this generic so any caller
+    // can request a different size.
+    const { format, width, height, ...restOpts } = opts;
+    const sizing =
+      width !== undefined || height !== undefined ? { width, height } : { format: format ?? "Letter" };
     const pdf = await page.pdf({
-      format: "Letter",
+      ...sizing,
       printBackground: true,
       margin: { top: 0, right: 0, bottom: 0, left: 0 },
-      ...opts,
+      ...restOpts,
     });
     return Buffer.from(pdf);
   } finally {
