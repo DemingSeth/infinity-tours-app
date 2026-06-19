@@ -112,11 +112,11 @@ export default function QuoteDocument({ data }: { data: QuoteData }) {
             TOURS + EVENTS
           </div>
         </div>
-        <div style={{ position: "absolute", left: 0, bottom: 24, paddingLeft: 26 }}>
+        <div style={{ position: "absolute", left: 0, bottom: 24, paddingLeft: 26, textAlign: "center" }}>
           <div style={{ color: "#fff", fontFamily: OSWALD, fontWeight: 600, fontSize: 24, letterSpacing: "1.5px", textTransform: "uppercase", textShadow: "0 1px 8px rgba(0,0,0,.45)" }}>
             {data.group}
           </div>
-          <div style={{ width: 180, height: 1, background: "#fff", margin: "7px 0", opacity: 0.85 }} />
+          <div style={{ width: 180, height: 1, background: "#fff", margin: "7px auto", opacity: 0.85 }} />
           <div style={{ display: "inline-block", color: "#fff", fontFamily: PINYON, fontSize: 36, lineHeight: 0.95, textShadow: "0 1px 8px rgba(0,0,0,.45)" }}>
             {destLine}
           </div>
