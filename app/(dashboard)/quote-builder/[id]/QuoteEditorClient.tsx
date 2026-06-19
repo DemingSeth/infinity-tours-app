@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Download, SlidersHorizontal } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import type { QuoteData } from "@/lib/quotes/types";
 import { blankQuote, sampleQuote } from "@/lib/quotes/sampleData";
 import { createClient } from "@/lib/supabase/client";
@@ -106,33 +106,15 @@ export default function QuoteEditorClient({ quoteId, initialData }: { quoteId: s
     saveState === "saving" ? "Saving…" : saveState === "saved" ? "Saved" : saveState === "error" ? "Save failed" : "";
 
   return (
-    <div className="inf-backdrop" style={{ minHeight: "100vh", padding: "36px 16px", display: "flex", justifyContent: "center", background: "#dcdad3" }}>
-      {/* Screen-only toolbar */}
-      <div className="inf-screen-only" style={{ position: "fixed", top: 16, right: 16, zIndex: 1000, display: "flex", alignItems: "center", gap: 8 }}>
-        {saveLabel && (
-          <span style={{ fontFamily: OSWALD, fontSize: 10, letterSpacing: ".6px", textTransform: "uppercase", color: saveState === "error" ? "#9a6b5e" : "#5b6b5f", background: "rgba(255,255,255,0.9)", borderRadius: 6, padding: "6px 9px", boxShadow: "0 2px 10px rgba(0,0,0,.1)" }}>
-            {saveLabel}
-          </span>
-        )}
-        <button type="button" onClick={() => router.push("/quote-builder")} style={{ ...toolbarBtn, color: "#5b6b5f", background: "rgba(255,255,255,0.94)", border: "1px solid #d6dcd6" }}>
-          <ArrowLeft size={13} /> Quotes
-        </button>
-        <QuoteHeroPicker heroPhotoUrl={data.heroPhotoUrl} onChange={setHero} />
-        <button type="button" onClick={() => window.open(`/quote-builder/${quoteId}/pdf`, "_blank")} style={{ ...toolbarBtn, color: "#3a93a0", background: "rgba(255,255,255,0.94)", border: "1px solid #cfe3e6" }}>
-          <Download size={13} /> Download PDF
-        </button>
-        {!panelOpen && (
-          <button type="button" onClick={() => setPanelOpen(true)} style={{ ...toolbarBtn, color: "#fff", background: "#3c8d9a", border: "1px solid #347e8a" }}>
-            <SlidersHorizontal size={13} /> Build Quote
-          </button>
-        )}
-      </div>
-
+    // Persistent two-column editor. Negative margin cancels the dashboard main's
+    // 24px padding so the columns fill the area below the 56px top nav; each
+    // column scrolls independently.
+    <div style={{ position: "relative", display: "flex", height: "calc(100dvh - 56px)", margin: -24, overflow: "hidden", background: "#dcdad3" }}>
+      {/* LEFT: persistent Build Quote form column (collapsible) */}
       {panelOpen && (
         <BuildQuotePanel
           data={data}
           onChange={setData}
-          onClose={() => setPanelOpen(false)}
           onExport={exportJson}
           onImport={importJson}
           onSample={loadSample}
@@ -140,7 +122,56 @@ export default function QuoteEditorClient({ quoteId, initialData }: { quoteId: s
         />
       )}
 
-      <QuoteDocument data={data} />
+      {/* Collapse toggle — always rendered and pinned to the panel edge, so the
+          panel can never end up closed with no way to reopen it. */}
+      <button
+        type="button"
+        className="inf-screen-only"
+        onClick={() => setPanelOpen((o) => !o)}
+        title={panelOpen ? "Collapse editor" : "Expand editor"}
+        aria-label={panelOpen ? "Collapse editor" : "Expand editor"}
+        style={{
+          position: "absolute",
+          top: "50%",
+          left: panelOpen ? 384 : 0,
+          transform: "translateY(-50%)",
+          zIndex: 1200,
+          width: 24,
+          height: 52,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "#3c8d9a",
+          color: "#fff",
+          border: "1px solid #347e8a",
+          borderRadius: "0 8px 8px 0",
+          cursor: "pointer",
+          boxShadow: "2px 0 10px rgba(0,0,0,.18)",
+        }}
+      >
+        {panelOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+      </button>
+
+      {/* RIGHT: live document preview on the warm-gray backdrop */}
+      <div className="inf-backdrop" style={{ flex: 1, overflow: "auto", background: "#dcdad3", padding: "36px 16px", display: "flex", justifyContent: "center" }}>
+        {/* Screen-only toolbar over the document column */}
+        <div className="inf-screen-only" style={{ position: "absolute", top: 16, right: 16, zIndex: 1000, display: "flex", alignItems: "center", gap: 8 }}>
+          {saveLabel && (
+            <span style={{ fontFamily: OSWALD, fontSize: 10, letterSpacing: ".6px", textTransform: "uppercase", color: saveState === "error" ? "#9a6b5e" : "#5b6b5f", background: "rgba(255,255,255,0.9)", borderRadius: 6, padding: "6px 9px", boxShadow: "0 2px 10px rgba(0,0,0,.1)" }}>
+              {saveLabel}
+            </span>
+          )}
+          <button type="button" onClick={() => router.push("/quote-builder")} style={{ ...toolbarBtn, color: "#5b6b5f", background: "rgba(255,255,255,0.94)", border: "1px solid #d6dcd6" }}>
+            <ArrowLeft size={13} /> Quotes
+          </button>
+          <QuoteHeroPicker heroPhotoUrl={data.heroPhotoUrl} onChange={setHero} />
+          <button type="button" onClick={() => window.open(`/quote-builder/${quoteId}/pdf`, "_blank")} style={{ ...toolbarBtn, color: "#3a93a0", background: "rgba(255,255,255,0.94)", border: "1px solid #cfe3e6" }}>
+            <Download size={13} /> Download PDF
+          </button>
+        </div>
+
+        <QuoteDocument data={data} />
+      </div>
     </div>
   );
 }

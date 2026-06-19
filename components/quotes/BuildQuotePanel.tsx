@@ -115,14 +115,13 @@ const footerBtn: CSSProperties = {
 type Props = {
   data: QuoteData;
   onChange: (next: QuoteData) => void;
-  onClose: () => void;
   onExport: () => void;
   onImport: (file: File) => void;
   onSample: () => void;
   onNew: () => void;
 };
 
-export default function BuildQuotePanel({ data, onChange, onClose, onExport, onImport, onSample, onNew }: Props) {
+export default function BuildQuotePanel({ data, onChange, onExport, onImport, onSample, onNew }: Props) {
   // Immutable update: deep-clone, mutate, emit.
   function update(mutate: (draft: QuoteData) => void) {
     const draft: QuoteData = JSON.parse(JSON.stringify(data));
@@ -134,22 +133,18 @@ export default function BuildQuotePanel({ data, onChange, onClose, onExport, onI
     <div
       className="inf-screen-only"
       style={{
-        position: "fixed",
-        top: 0,
-        right: 0,
-        bottom: 0,
+        flex: "none",
         width: 384,
-        zIndex: 1100,
+        height: "100%",
         background: "#f7f6f2",
-        boxShadow: "-10px 0 34px rgba(0,0,0,.22)",
+        borderRight: "1px solid #d8d5cb",
         display: "flex",
         flexDirection: "column",
       }}
     >
       {/* Header bar */}
-      <div style={{ flex: "none", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", background: "#3c8d9a", color: "#fff" }}>
+      <div style={{ flex: "none", display: "flex", alignItems: "center", padding: "14px 18px", background: "#3c8d9a", color: "#fff" }}>
         <div style={{ fontFamily: OSWALD, fontWeight: 600, letterSpacing: "1px", textTransform: "uppercase", fontSize: 15 }}>Build Quote</div>
-        <button type="button" onClick={onClose} style={{ fontFamily: OSWALD, fontSize: 12, letterSpacing: ".5px", textTransform: "uppercase", color: "#fff", background: "rgba(255,255,255,0.2)", border: "none", borderRadius: 5, padding: "6px 13px", cursor: "pointer" }}>Done</button>
       </div>
 
       {/* Scrollable body */}
