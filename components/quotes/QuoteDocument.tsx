@@ -49,7 +49,7 @@ const sectionTitle: CSSProperties = {
   fontWeight: 600,
   fontSize: 13,
   letterSpacing: ".7px",
-  color: "#8b7d67",
+  color: "#6f6f6f",
   textTransform: "uppercase",
 };
 
@@ -126,9 +126,12 @@ export default function QuoteDocument({ data }: { data: QuoteData }) {
       </div>
 
       {/* BODY */}
-      <div style={{ display: "flex", alignItems: "stretch" }}>
+      <div style={{ display: "flex", alignItems: "stretch", position: "relative" }}>
+        {/* Inset vertical divider — floats in the body: starts ~30px below the
+            hero and stops short of the footer, rather than a full-height border. */}
+        <div style={{ position: "absolute", left: 160, top: 30, bottom: 24, width: 2, background: "#8a8a8a" }} />
         {/* SIDEBAR */}
-        <div style={{ width: 236, flex: "none", background: "#efece5", padding: "24px 22px 28px", borderRight: "1px solid #b3b3b3" }}>
+        <div style={{ width: 160, flex: "none", background: "#ffffff", padding: "24px 22px 28px" }}>
           <div style={{ ...sectionTitle, lineHeight: 1.05, marginBottom: 9 }}>
             Additional<br />Trip Details
           </div>
@@ -151,7 +154,7 @@ export default function QuoteDocument({ data }: { data: QuoteData }) {
           </a>
           {data.hotels.map((h, hi) => (
             <div key={hi}>
-              <div style={{ fontFamily: OSWALD, fontWeight: 600, fontSize: 12, letterSpacing: ".6px", color: "#8b7d67", textTransform: "uppercase", marginTop: 13 }}>
+              <div style={{ fontFamily: OSWALD, fontWeight: 600, fontSize: 12, letterSpacing: ".6px", color: "#6f6f6f", textTransform: "uppercase", marginTop: 13 }}>
                 {h.city}
               </div>
               {h.items.map((it, ii) => (
@@ -215,6 +218,8 @@ export default function QuoteDocument({ data }: { data: QuoteData }) {
       </div>
 
       {/* FOOTER */}
+      {/* Darker teal accent stripe capping the footer band, flush with no gap. */}
+      <div style={{ height: 12, background: "#569da3" }} />
       <div style={{ background: "#acd1d7", padding: "15px 28px 17px" }}>
         <div style={{ fontFamily: OSWALD, fontWeight: 500, fontSize: 27, letterSpacing: "4px", color: "#fff", lineHeight: 0.85 }}>
           INFINITY
