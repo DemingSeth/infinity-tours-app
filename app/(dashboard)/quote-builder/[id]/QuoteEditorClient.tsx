@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Printer, SlidersHorizontal } from "lucide-react";
+import { ArrowLeft, Download, SlidersHorizontal } from "lucide-react";
 import type { QuoteData } from "@/lib/quotes/types";
 import { blankQuote, sampleQuote } from "@/lib/quotes/sampleData";
 import { createClient } from "@/lib/supabase/client";
@@ -118,8 +118,8 @@ export default function QuoteEditorClient({ quoteId, initialData }: { quoteId: s
           <ArrowLeft size={13} /> Quotes
         </button>
         <QuoteHeroPicker heroPhotoUrl={data.heroPhotoUrl} onChange={setHero} />
-        <button type="button" onClick={() => window.print()} style={{ ...toolbarBtn, color: "#3a93a0", background: "rgba(255,255,255,0.94)", border: "1px solid #cfe3e6" }}>
-          <Printer size={13} /> Print
+        <button type="button" onClick={() => window.open(`/quote-builder/${quoteId}/pdf`, "_blank")} style={{ ...toolbarBtn, color: "#3a93a0", background: "rgba(255,255,255,0.94)", border: "1px solid #cfe3e6" }}>
+          <Download size={13} /> Download PDF
         </button>
         {!panelOpen && (
           <button type="button" onClick={() => setPanelOpen(true)} style={{ ...toolbarBtn, color: "#fff", background: "#3c8d9a", border: "1px solid #347e8a" }}>

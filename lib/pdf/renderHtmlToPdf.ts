@@ -1,0 +1,72 @@
+import { existsSync } from "node:fs";
+import puppeteer from "puppeteer-core";
+import type { PDFOptions } from "puppeteer-core";
+import chromium from "@sparticuz/chromium";
+
+// Generic, quote-agnostic engine: take an HTML document string and return a
+// PDF Buffer rendered by headless Chromium. Identical output regardless of the
+// caller's browser, since the render happens server-side with printBackground.
+//
+// Dual executablePath: locally we drive an installed Chrome/Chromium; on
+// Vercel/Lambda we use the binary bundled by @sparticuz/chromium.
+
+const isServerless = !!(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+
+// Common locations for a locally installed Chrome/Chromium, plus env overrides.
+const LOCAL_CANDIDATES: string[] = [
+  process.env.PUPPETEER_EXECUTABLE_PATH,
+  process.env.LOCAL_CHROME_PATH,
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+  "/Applications/Chromium.app/Contents/MacOS/Chromium",
+  "/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary",
+  "/usr/bin/google-chrome",
+  "/usr/bin/google-chrome-stable",
+  "/usr/bin/chromium",
+  "/usr/bin/chromium-browser",
+  "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+  "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+].filter((p): p is string => !!p);
+
+function localExecutablePath(): string | undefined {
+  return LOCAL_CANDIDATES.find((p) => existsSync(p));
+}
+
+export async function renderHtmlToPdf(html: string, opts: Partial<PDFOptions> = {}): Promise<Buffer> {
+  const browser = isServerless
+    ? await puppeteer.launch({
+        args: chromium.args,
+        executablePath: await chromium.executablePath(),
+        // @sparticuz/chromium@149 ships a headless-shell build; this is the
+        // headless mode it documents (it no longer exposes a `headless` field).
+        headless: "shell",
+      })
+    : await (async () => {
+        const executablePath = localExecutablePath();
+        if (!executablePath) {
+          throw new Error(
+            "No local Chrome/Chromium found. Install Google Chrome or set PUPPETEER_EXECUTABLE_PATH to its binary."
+          );
+        }
+        return puppeteer.launch({ headless: true, executablePath, args: ["--no-sandbox"] });
+      })();
+
+  try {
+    const page = await browser.newPage();
+    // puppeteer-core@25's setContent type excludes networkidle*; "load" waits
+    // for the stylesheet/font <link>s, and document.fonts.ready below
+    // guarantees glyphs are ready before we paginate.
+    await page.setContent(html, { waitUntil: "load" });
+    await page.evaluate(async () => {
+      await document.fonts.ready;
+    });
+    const pdf = await page.pdf({
+      format: "Letter",
+      printBackground: true,
+      margin: { top: 0, right: 0, bottom: 0, left: 0 },
+      ...opts,
+    });
+    return Buffer.from(pdf);
+  } finally {
+    await browser.close();
+  }
+}
