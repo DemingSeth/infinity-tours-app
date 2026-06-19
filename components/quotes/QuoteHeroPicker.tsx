@@ -13,6 +13,42 @@ import { createClient } from "@/lib/supabase/client";
 const STORAGE_BUCKET = "banner-images";
 const HERO_PREFIX = "quote-heroes";
 
+// Hero photos only need to fill an 816px-wide band, so full camera resolution
+// (e.g. 6912x3456) bloats the saved PDF. Downscale in the browser so the
+// longest edge is at most ~2000px and re-encode as JPEG before upload.
+const MAX_EDGE = 2000;
+const JPEG_QUALITY = 0.85;
+
+async function downscaleToJpeg(file: File): Promise<Blob> {
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const i = new Image();
+    i.onload = () => resolve(i);
+    i.onerror = () => reject(new Error("image decode failed"));
+    i.src = dataUrl;
+  });
+  const longest = Math.max(img.naturalWidth, img.naturalHeight);
+  const scale = longest > MAX_EDGE ? MAX_EDGE / longest : 1;
+  const w = Math.max(1, Math.round(img.naturalWidth * scale));
+  const h = Math.max(1, Math.round(img.naturalHeight * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("no 2d canvas context");
+  ctx.drawImage(img, 0, 0, w, h);
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob((b) => resolve(b), "image/jpeg", JPEG_QUALITY)
+  );
+  if (!blob) throw new Error("JPEG encode failed");
+  return blob;
+}
+
 const btn: React.CSSProperties = {
   fontFamily: "var(--font-oswald), 'Oswald', sans-serif",
   fontWeight: 500,
@@ -39,11 +75,23 @@ export default function QuoteHeroPicker({
     setBusy(true);
     try {
       const supabase = createClient();
-      const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const path = `${HERO_PREFIX}/${Date.now()}-${safe}`;
+
+      // Downscale + re-encode to JPEG; fall back to the original on any failure
+      // so uploads never break on an unusual image.
+      let body: Blob = file;
+      try {
+        body = await downscaleToJpeg(file);
+      } catch (err) {
+        console.warn("Hero downscale failed; uploading original", err);
+        body = file;
+      }
+
+      const base = file.name.replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9._-]/g, "_") || "hero";
+      const ext = body.type === "image/jpeg" ? "jpg" : (file.name.match(/\.([a-zA-Z0-9]+)$/)?.[1] ?? "img");
+      const path = `${HERO_PREFIX}/${Date.now()}-${base}.${ext}`;
       const { error: upErr } = await supabase.storage
         .from(STORAGE_BUCKET)
-        .upload(path, file, { cacheControl: "3600", upsert: false });
+        .upload(path, body, { cacheControl: "3600", upsert: false, contentType: body.type || undefined });
       if (upErr) {
         console.error("Quote hero upload failed", upErr.message);
         alert("Could not upload that image.");
