@@ -30,6 +30,14 @@ export async function renderQuoteHtml(data: QuoteData): Promise<string> {
   @page { margin: 0; }
 </style>
 </head>
-<body>${body}</body>
+<body>${body}
+<!-- Neutralize QuoteDocument's on-screen print page-simulation. Its inline
+     style carries a @media print { @page { size: letter portrait } } rule that,
+     during server PDF render, paginates the document at Letter height and clips
+     content past ~6 days. This trailing rule wins the @page cascade (later in
+     source order) so the page flows at its true full height; page.pdf's
+     width/height define the actual page box. -->
+<style>@media print { @page { size: auto; margin: 0; } }</style>
+</body>
 </html>`;
 }

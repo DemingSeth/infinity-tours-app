@@ -64,11 +64,13 @@ export async function renderHtmlToPdf(html: string, opts: RenderOptions = {}): P
   try {
     const page = await browser.newPage();
     if (fitContentHeight) {
-      // Lay out at (at least) the document width so columns don't reflow.
-      await page.setViewport({ width: 816, height: 1056 });
-      // Measure in the same print media that page.pdf renders in — screen vs
-      // print line-breaking can differ and push content onto a thin second
-      // page if we measured in screen media.
+      // Lay out at the document width and a tall viewport so the two-column
+      // layout balances in natural, unconstrained flow — nothing is height-
+      // constrained during measurement, so the measured height is the true
+      // full document height.
+      await page.setViewport({ width: 816, height: 5000 });
+      // Measure in the same print media that page.pdf renders in so the
+      // measured height matches the rendered layout.
       await page.emulateMediaType("print");
     }
     // puppeteer-core@25's setContent type excludes networkidle*; "load" waits
@@ -93,10 +95,6 @@ export async function renderHtmlToPdf(html: string, opts: RenderOptions = {}): P
         height: `${contentHeight + 8}px`,
         printBackground: true,
         margin: { top: 0, right: 0, bottom: 0, left: 0 },
-        // The page is sized to fit all content, so everything lands on page 1.
-        // Chromium emits a phantom trailing page for the multicolumn layout in
-        // paged media; restrict output to the single content page.
-        pageRanges: "1",
         ...restOpts,
       });
     } else {
