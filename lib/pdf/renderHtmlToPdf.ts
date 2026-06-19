@@ -36,7 +36,13 @@ function localExecutablePath(): string | undefined {
   return LOCAL_CANDIDATES.find((p) => existsSync(p));
 }
 
-export async function renderHtmlToPdf(html: string, opts: Partial<PDFOptions> = {}): Promise<Buffer> {
+// fitContentHeight renders a single page sized to the content height (no
+// pagination), so a multicolumn layout balances and never cuts off. All other
+// callers keep the standard fixed format/width/height behavior.
+type RenderOptions = Partial<PDFOptions> & { fitContentHeight?: boolean };
+
+export async function renderHtmlToPdf(html: string, opts: RenderOptions = {}): Promise<Buffer> {
+  const { fitContentHeight, format, width, height, ...restOpts } = opts;
   const browser = isServerless
     ? await puppeteer.launch({
         args: chromium.args,
@@ -57,6 +63,14 @@ export async function renderHtmlToPdf(html: string, opts: Partial<PDFOptions> = 
 
   try {
     const page = await browser.newPage();
+    if (fitContentHeight) {
+      // Lay out at (at least) the document width so columns don't reflow.
+      await page.setViewport({ width: 816, height: 1056 });
+      // Measure in the same print media that page.pdf renders in — screen vs
+      // print line-breaking can differ and push content onto a thin second
+      // page if we measured in screen media.
+      await page.emulateMediaType("print");
+    }
     // puppeteer-core@25's setContent type excludes networkidle*; "load" waits
     // for the stylesheet/font <link>s, and document.fonts.ready below
     // guarantees glyphs are ready before we paginate.
@@ -64,18 +78,40 @@ export async function renderHtmlToPdf(html: string, opts: Partial<PDFOptions> = 
     await page.evaluate(async () => {
       await document.fonts.ready;
     });
-    // Page size is caller-controlled: explicit width/height wins, otherwise a
-    // paper `format` (defaulting to Letter). Keeping this generic so any caller
-    // can request a different size.
-    const { format, width, height, ...restOpts } = opts;
-    const sizing =
-      width !== undefined || height !== undefined ? { width, height } : { format: format ?? "Letter" };
-    const pdf = await page.pdf({
-      ...sizing,
-      printBackground: true,
-      margin: { top: 0, right: 0, bottom: 0, left: 0 },
-      ...restOpts,
-    });
+
+    let pdf: Uint8Array;
+    if (fitContentHeight) {
+      // Measure the full rendered content height and emit a single page sized
+      // to it, so the layout never fragments across pages.
+      const contentHeight = await page.evaluate(() => {
+        const el = document.querySelector(".inf-page") as HTMLElement | null;
+        return el ? el.offsetHeight : document.documentElement.scrollHeight;
+      });
+      pdf = await page.pdf({
+        width: "8.5in",
+        // small bottom allowance so the footer is not flush-cut
+        height: `${contentHeight + 8}px`,
+        printBackground: true,
+        margin: { top: 0, right: 0, bottom: 0, left: 0 },
+        // The page is sized to fit all content, so everything lands on page 1.
+        // Chromium emits a phantom trailing page for the multicolumn layout in
+        // paged media; restrict output to the single content page.
+        pageRanges: "1",
+        ...restOpts,
+      });
+    } else {
+      // Page size is caller-controlled: explicit width/height wins, otherwise a
+      // paper `format` (defaulting to Letter). Keeping this generic so any
+      // caller can request a different size.
+      const sizing =
+        width !== undefined || height !== undefined ? { width, height } : { format: format ?? "Letter" };
+      pdf = await page.pdf({
+        ...sizing,
+        printBackground: true,
+        margin: { top: 0, right: 0, bottom: 0, left: 0 },
+        ...restOpts,
+      });
+    }
     return Buffer.from(pdf);
   } finally {
     await browser.close();

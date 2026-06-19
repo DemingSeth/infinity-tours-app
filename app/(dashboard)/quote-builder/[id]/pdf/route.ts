@@ -24,9 +24,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
   const data = (quote as { data: QuoteData }).data;
   const html = await renderQuoteHtml(data);
-  // US Legal (8.5 x 14 in) so the quote fits on a single page, matching the
-  // original Cantorum quote and the @page rule in renderQuoteHtml.
-  const pdf = await renderHtmlToPdf(html, { format: "Legal" });
+  // Render as a single page sized to the content so the two-column day layout
+  // balances and never fragments/cuts off, regardless of day count.
+  const pdf = await renderHtmlToPdf(html, { fitContentHeight: true });
 
   const slug = (data.group || "infinity-quote").replace(/[^a-z0-9]+/gi, "-").toLowerCase() || "infinity-quote";
 

@@ -27,7 +27,7 @@ export async function renderQuoteHtml(data: QuoteData): Promise<string> {
 <style>
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: #ffffff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  @page { size: 8.5in 14in; margin: 0; }
+  @page { margin: 0; }
 </style>
 </head>
 <body>${body}</body>
