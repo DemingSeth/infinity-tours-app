@@ -197,17 +197,11 @@ export default function BuildQuotePanel({ data, onChange, onExport, onImport, on
         ))}
         <button type="button" style={addBtn} onClick={() => update((d) => { d.tripLinks.push({ label: "New link", url: "" }); })}>+ Add link</button>
 
-        {/* Rooming & Activities */}
-        <div style={groupTitle}>Rooming &amp; Activities</div>
+        {/* Hotels — mirrors the document sidebar: rooming link first, then cities */}
+        <div style={groupTitle}>Hotels</div>
         <label style={label}>Rooming list — label / URL</label>
         <input style={{ ...input, fontSize: 13, padding: "6px 8px" }} value={data.roomingLink.label} onChange={(e) => update((d) => { d.roomingLink.label = e.target.value; })} />
-        <input style={urlInput} placeholder="https://" value={data.roomingLink.url} onChange={(e) => update((d) => { d.roomingLink.url = e.target.value; })} />
-        <label style={{ ...label, margin: "10px 0 2px" }}>Activities — label / URL</label>
-        <input style={{ ...input, fontSize: 13, padding: "6px 8px" }} value={data.activitiesLink.label} onChange={(e) => update((d) => { d.activitiesLink.label = e.target.value; })} />
-        <input style={urlInput} placeholder="https://" value={data.activitiesLink.url} onChange={(e) => update((d) => { d.activitiesLink.url = e.target.value; })} />
-
-        {/* Hotels */}
-        <div style={groupTitle}>Hotels</div>
+        <input style={{ ...urlInput, marginBottom: 10 }} placeholder="https://" value={data.roomingLink.url} onChange={(e) => update((d) => { d.roomingLink.url = e.target.value; })} />
         {data.hotels.map((h, hi) => (
           <div key={hi} style={{ border: "1px solid #e1ddd3", borderRadius: 8, padding: 10, marginBottom: 10, background: "#fff" }}>
             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
@@ -233,6 +227,12 @@ export default function BuildQuotePanel({ data, onChange, onExport, onImport, on
           </div>
         ))}
         <button type="button" style={addBtn} onClick={() => update((d) => { d.hotels.push({ city: "CITY", items: [{ name: "", addr: "", url: "" }] }); })}>+ Add city</button>
+
+        {/* Activities */}
+        <div style={groupTitle}>Activities</div>
+        <label style={label}>Activities — label / URL</label>
+        <input style={{ ...input, fontSize: 13, padding: "6px 8px" }} value={data.activitiesLink.label} onChange={(e) => update((d) => { d.activitiesLink.label = e.target.value; })} />
+        <input style={urlInput} placeholder="https://" value={data.activitiesLink.url} onChange={(e) => update((d) => { d.activitiesLink.url = e.target.value; })} />
 
         {/* Daily Itinerary */}
         <div style={{ ...groupTitle, margin: "20px 0 6px" }}>Daily Itinerary</div>
