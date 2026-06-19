@@ -1,16 +1,21 @@
 import { existsSync } from "node:fs";
 import puppeteer from "puppeteer-core";
 import type { PDFOptions } from "puppeteer-core";
-import chromium from "@sparticuz/chromium";
+import chromium from "@sparticuz/chromium-min";
 
 // Generic, quote-agnostic engine: take an HTML document string and return a
 // PDF Buffer rendered by headless Chromium. Identical output regardless of the
 // caller's browser, since the render happens server-side with printBackground.
 //
 // Dual executablePath: locally we drive an installed Chrome/Chromium; on
-// Vercel/Lambda we use the binary bundled by @sparticuz/chromium.
+// Vercel/Lambda we download the Chromium binary from a remote pack at runtime
+// (chromium-min ships no binary, so nothing needs to be traced into the function).
 
 const isServerless = !!(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+
+// Remote Chromium pack matching @sparticuz/chromium-min@149.0.0 (Chromium 149).
+const REMOTE_CHROMIUM_PACK =
+  "https://abqiaxmnasjyqxmgzbqn.supabase.co/storage/v1/object/public/Chromium%20Bucket/chromium-v149.0.0-pack.x64.tar";
 
 // Common locations for a locally installed Chrome/Chromium, plus env overrides.
 const LOCAL_CANDIDATES: string[] = [
@@ -35,9 +40,9 @@ export async function renderHtmlToPdf(html: string, opts: Partial<PDFOptions> = 
   const browser = isServerless
     ? await puppeteer.launch({
         args: chromium.args,
-        executablePath: await chromium.executablePath(),
-        // @sparticuz/chromium@149 ships a headless-shell build; this is the
-        // headless mode it documents (it no longer exposes a `headless` field).
+        executablePath: await chromium.executablePath(REMOTE_CHROMIUM_PACK),
+        // chromium-min@149 ships a headless-shell build; this is the headless
+        // mode it documents (it does not expose a `headless` field).
         headless: "shell",
       })
     : await (async () => {
