@@ -67,6 +67,8 @@ export default function QuoteDocument({ data }: { data: QuoteData }) {
         background: "#ffffff",
         boxShadow: "0 8px 36px rgba(0,0,0,.16)",
         overflow: "hidden",
+        WebkitPrintColorAdjust: "exact",
+        printColorAdjust: "exact",
       }}
     >
       <style>{`
@@ -77,16 +79,22 @@ export default function QuoteDocument({ data }: { data: QuoteData }) {
         }
       `}</style>
 
-      {/* HERO */}
-      <div style={{ position: "relative", height: 222, overflow: "hidden", background: "#c4ced0" }}>
-        {data.heroPhotoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={data.heroPhotoUrl}
-            alt=""
-            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-          />
-        ) : null}
+      {/* HERO — photo painted as the band's CSS background so Safari's print
+          engine renders it (an absolutely-positioned object-fit <img> does not
+          paint to PDF). Scrim, wordmark, and group banner sit above it. */}
+      <div
+        style={{
+          position: "relative",
+          height: 222,
+          overflow: "hidden",
+          background: "#c4ced0",
+          backgroundImage: data.heroPhotoUrl ? `url('${data.heroPhotoUrl}')` : undefined,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          WebkitPrintColorAdjust: "exact",
+          printColorAdjust: "exact",
+        }}
+      >
         <div
           style={{
             position: "absolute",
