@@ -91,7 +91,8 @@ export default function QuoteDocument({ data }: { data: QuoteData }) {
           style={{
             position: "absolute",
             inset: 0,
-            background: "linear-gradient(105deg, rgba(0,0,0,.20), rgba(0,0,0,0) 40%)",
+            background:
+              "linear-gradient(to top, rgba(0,0,0,.45), rgba(0,0,0,0) 45%), linear-gradient(105deg, rgba(0,0,0,.20), rgba(0,0,0,0) 40%)",
             pointerEvents: "none",
           }}
         />
@@ -103,11 +104,12 @@ export default function QuoteDocument({ data }: { data: QuoteData }) {
             TOURS + EVENTS
           </div>
         </div>
-        <div style={{ position: "absolute", left: 0, bottom: 24 }}>
-          <div style={{ color: "#fff", fontFamily: OSWALD, fontWeight: 600, fontSize: 24, letterSpacing: "1.5px", textTransform: "uppercase", padding: "8px 32px 8px 26px", background: "#3c8d9a" }}>
+        <div style={{ position: "absolute", left: 0, bottom: 24, paddingLeft: 26 }}>
+          <div style={{ color: "#fff", fontFamily: OSWALD, fontWeight: 600, fontSize: 24, letterSpacing: "1.5px", textTransform: "uppercase", textShadow: "0 1px 8px rgba(0,0,0,.45)" }}>
             {data.group}
           </div>
-          <div style={{ display: "inline-block", color: "#fff", fontFamily: PINYON, fontSize: 36, padding: "0 32px 8px 26px", lineHeight: 0.95, background: "#3c8d9a" }}>
+          <div style={{ width: 180, height: 1, background: "#fff", margin: "7px 0", opacity: 0.85 }} />
+          <div style={{ display: "inline-block", color: "#fff", fontFamily: PINYON, fontSize: 36, lineHeight: 0.95, textShadow: "0 1px 8px rgba(0,0,0,.45)" }}>
             {destLine}
           </div>
         </div>
