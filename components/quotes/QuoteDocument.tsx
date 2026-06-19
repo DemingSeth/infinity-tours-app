@@ -105,10 +105,10 @@ export default function QuoteDocument({ data }: { data: QuoteData }) {
           }}
         />
         <div style={{ position: "absolute", top: 22, right: 30, textAlign: "right", pointerEvents: "none" }}>
-          <div style={{ fontFamily: OSWALD, fontWeight: 500, fontSize: 44, letterSpacing: "6px", color: "#fff", lineHeight: 0.9, textShadow: "0 1px 10px rgba(0,0,0,.35)" }}>
+          <div style={{ fontFamily: OSWALD, fontWeight: 500, fontSize: 44, letterSpacing: "6px", color: "#fff", lineHeight: 0.9, textShadow: "0 1px 2px rgba(0,0,0,0.55)" }}>
             INFINITY
           </div>
-          <div style={{ fontFamily: OSWALD, fontWeight: 300, fontSize: 12, letterSpacing: "7px", color: "#fff", marginTop: 5, marginRight: 2, textShadow: "0 1px 8px rgba(0,0,0,.35)" }}>
+          <div style={{ fontFamily: OSWALD, fontWeight: 300, fontSize: 12, letterSpacing: "7px", color: "#fff", marginTop: 5, marginRight: 2, textShadow: "0 1px 2px rgba(0,0,0,0.55)" }}>
             TOURS + EVENTS
           </div>
         </div>
