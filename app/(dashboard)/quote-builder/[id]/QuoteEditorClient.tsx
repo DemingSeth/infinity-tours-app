@@ -152,8 +152,11 @@ export default function QuoteEditorClient({ quoteId, initialData }: { quoteId: s
         {panelOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
       </button>
 
-      {/* RIGHT: live document preview on the warm-gray backdrop */}
-      <div className="inf-backdrop" style={{ flex: 1, overflow: "auto", background: "#dcdad3", padding: "36px 16px", display: "flex", justifyContent: "center" }}>
+      {/* RIGHT: live document preview on the warm-gray backdrop. alignItems
+          flex-start keeps the page at its natural content height (no stretch to
+          the pane), so the day columns balance instead of clipping; the pane
+          scrolls to reach the whole document. */}
+      <div className="inf-backdrop" style={{ flex: 1, overflow: "auto", background: "#dcdad3", padding: "36px 16px", display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
         {/* Screen-only toolbar over the document column */}
         <div className="inf-screen-only" style={{ position: "absolute", top: 16, right: 16, zIndex: 1000, display: "flex", alignItems: "center", gap: 8 }}>
           {saveLabel && (

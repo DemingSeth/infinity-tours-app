@@ -66,7 +66,9 @@ export default function QuoteDocument({ data }: { data: QuoteData }) {
         width: 816,
         background: "#ffffff",
         boxShadow: "0 8px 36px rgba(0,0,0,.16)",
-        overflow: "hidden",
+        // No page-level overflow:hidden — it would clip the day columns on
+        // screen. The page grows to its natural content height; the hero band
+        // keeps its own overflow:hidden to contain the photo.
         WebkitPrintColorAdjust: "exact",
         printColorAdjust: "exact",
       }}
