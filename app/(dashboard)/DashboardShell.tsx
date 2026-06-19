@@ -5,7 +5,7 @@ import type { User } from "@supabase/supabase-js";
 import type { TourHostRow } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
-import { KanbanSquare, LayoutGrid } from "lucide-react";
+import { KanbanSquare, LayoutGrid, FileText } from "lucide-react";
 import { BRAND } from "@/lib/helpers";
 
 interface Props {
@@ -17,6 +17,7 @@ interface Props {
 const NAV_LINKS = [
   { href: "/overview", label: "Overview", Icon: LayoutGrid },
   { href: "/dashboard", label: "Pipeline", Icon: KanbanSquare },
+  { href: "/quote-builder", label: "Quote Builder", Icon: FileText },
 ] as const;
 
 export default function DashboardShell({ children, user, tourHost }: Props) {
