@@ -5,7 +5,7 @@ import type { User } from "@supabase/supabase-js";
 import type { TourHostRow } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
-import { KanbanSquare, LayoutGrid } from "lucide-react";
+import { KanbanSquare, LayoutGrid, FileText } from "lucide-react";
 import { BRAND } from "@/lib/helpers";
 
 interface Props {
@@ -14,10 +14,16 @@ interface Props {
   tourHost: TourHostRow | null;
 }
 
+// Quote Builder ships behind this flag: the routes exist and work when reached
+// directly (/quote-builder…), but the nav link stays hidden until we're ready to
+// reveal the teaser — flip to true to surface it. Keeps the FileText import in use.
+const SHOW_QUOTE_BUILDER_NAV = false;
+
 const NAV_LINKS = [
   { href: "/overview", label: "Overview", Icon: LayoutGrid },
   { href: "/dashboard", label: "Tour Pipeline", Icon: KanbanSquare },
-] as const;
+  ...(SHOW_QUOTE_BUILDER_NAV ? [{ href: "/quote-builder", label: "Quote Builder", Icon: FileText }] : []),
+];
 
 export default function DashboardShell({ children, user, tourHost }: Props) {
   const router = useRouter();
