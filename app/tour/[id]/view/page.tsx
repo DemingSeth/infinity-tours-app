@@ -3,11 +3,18 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import PublicTourViewClient from "./PublicTourViewClient";
 import { buildTripInfo, getPersona, personaLabel, activePersonaKeys } from "@/lib/helpers";
-import { verifyTourSession, TOUR_SESSION_COOKIE } from "@/lib/tourSession";
+import { verifyTourSession, resolvePersonaFromCode, TOUR_SESSION_COOKIE } from "@/lib/tourSession";
 import type { AgendaDayWithItems, Role } from "@/lib/types";
 
-export default async function PublicTourViewPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function PublicTourViewPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ c?: string }>;
+}) {
   const { id } = await params;
+  const { c: linkCode } = await searchParams;
   const supabase = await createClient();
 
   // The shared view is public (no login). RLS restricts the underlying tables to
@@ -37,19 +44,40 @@ export default async function PublicTourViewPage({ params }: { params: Promise<{
     confirmations: data.confirmations ?? [],
   });
 
-  // Skip the access-code prompt when this device already holds a valid, unexpired
-  // session cookie for THIS tour and the unlocked persona is still active. The
-  // access codes themselves are never sent to the browser.
-  const session = verifyTourSession((await cookies()).get(TOUR_SESSION_COOKIE)?.value);
   let initialUnlocked: { role: Role; label: string; personaKey: string } | null = null;
-  if (session && session.t === id) {
-    const persona = getPersona(session.p);
-    if (persona && activePersonaKeys(tour.active_personas).includes(session.p)) {
+
+  // Per-persona shareable link: ?c=<code> carries the secret access code only —
+  // never a persona key. The persona is resolved ENTIRELY server-side from the
+  // code (constant-time, against the access_codes the RPC returned but never
+  // forwards to the browser). A viewer cannot escalate by editing the URL: there
+  // is no persona parameter, and reaching another role requires its unguessable
+  // code. No cookie is set — the link itself is the credential.
+  if (linkCode) {
+    const resolved = resolvePersonaFromCode(linkCode, tour.access_codes ?? null, tour.active_personas ?? null);
+    if (resolved) {
+      const persona = getPersona(resolved.personaKey)!;
       initialUnlocked = {
         role: persona.viewRole,
-        label: personaLabel(session.p, tour.persona_labels ?? {}),
-        personaKey: session.p,
+        label: personaLabel(resolved.personaKey, tour.persona_labels ?? {}),
+        personaKey: resolved.personaKey,
       };
+    }
+  }
+
+  // Otherwise skip the access-code prompt when this device already holds a valid,
+  // unexpired session cookie for THIS tour and the unlocked persona is still
+  // active. The access codes themselves are never sent to the browser.
+  if (!initialUnlocked) {
+    const session = verifyTourSession((await cookies()).get(TOUR_SESSION_COOKIE)?.value);
+    if (session && session.t === id) {
+      const persona = getPersona(session.p);
+      if (persona && activePersonaKeys(tour.active_personas).includes(session.p)) {
+        initialUnlocked = {
+          role: persona.viewRole,
+          label: personaLabel(session.p, tour.persona_labels ?? {}),
+          personaKey: session.p,
+        };
+      }
     }
   }
 

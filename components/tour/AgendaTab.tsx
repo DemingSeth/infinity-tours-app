@@ -8,7 +8,7 @@ import {
   BRAND, ROLES, AGENDA_TYPES, TRAVEL_SUBTYPES, SUBTYPES_BY_TYPE,
   isDayInPast, parseAgendaDate, formatAgendaDate, suggestNextDate,
   toDateInput, fmt$, buildTripInfo, sortAgendaItemsByTime,
-  activePersonaKeys, personaLabel, personaColors, getPersona, PERSONAS, defaultPersonaVisibility, isActivityType,
+  activePersonaKeys, personaLabel, personaColors, getPersona, PERSONAS, defaultPersonaVisibility, isActivityType, generateAccessCode,
   MEAL_MONEY_TYPES, mealMoneyHasAmount, mealMoneyLabel,
 } from "@/lib/helpers";
 import GoogleMapsLink from "@/components/shared/GoogleMapsLink";
@@ -38,6 +38,7 @@ const ICONS: Record<string, string> = {
   eye:      "M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8zM12 9a3 3 0 100 6 3 3 0 000-6z",
   feedback: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z",
   x:        "M18 6L6 18M6 6l12 12",
+  refresh:  "M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15",
 };
 
 function I({ n, s = 13, c }: { n: string; s?: number; c?: string }) {
@@ -195,50 +196,96 @@ function Modal({ title, onClose, children, wide }: {
   );
 }
 
-// ── AccessCodeManager ──────────────────────────────────────────────────────────
+// ── AccessLinkManager ──────────────────────────────────────────────────────────
 const ROLES_TYPED = ROLES as Record<string, { label: string; color: string; bg: string }>;
 
-function AccessCodeManager({ tour, onTourChange }: {
+function AccessLinkManager({ tour, onTourChange, open, setOpen }: {
   tour: TourRow; onTourChange: (patch: Record<string, any>) => void;
+  open: boolean; setOpen: (v: boolean) => void;
 }) {
   const codes = (tour.access_codes as unknown as Record<string, string>) || {};
-  const set = (codeKey: string, val: string) => onTourChange({ access_codes: { ...codes, [codeKey]: val } });
-  const gen = (codeKey: string) => set(codeKey, Math.random().toString(36).slice(2, 8).toUpperCase());
-  const [open, setOpen] = useState(false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  // One code row per active persona, labelled with the tour's custom labels.
-  const rows = activePersonaKeys(tour.active_personas).map(key => {
+  // Outward-facing links cover participant personas only — never the tour host /
+  // coordinator. No distributable coordinator link is generated anywhere; the
+  // coordinator view stays reachable only by someone who knows its code (via the
+  // bare /view self-select fallback).
+  const personaKeys = activePersonaKeys(tour.active_personas).filter(k => k !== "tour_host");
+
+  // Auto-generate-and-persist a code for any participant persona missing one, so
+  // every persona always has a working link. The write fires ONLY when a code is
+  // actually absent: missing codes are batched into a single onTourChange (the
+  // normal save path — never a direct DB write), and once persisted the effect
+  // re-runs, finds nothing missing, and writes nothing. No per-render write loop.
+  useEffect(() => {
+    const additions: Record<string, string> = {};
+    for (const key of personaKeys) {
+      const codeKey = getPersona(key)!.codeKey;
+      if (!(codes[codeKey] || "").trim()) additions[codeKey] = generateAccessCode();
+    }
+    if (Object.keys(additions).length > 0) {
+      onTourChange({ access_codes: { ...codes, ...additions } });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tour.id, tour.active_personas, tour.access_codes]);
+
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const linkFor = (codeKey: string) => `${origin}/tour/${tour.id}/view?c=${encodeURIComponent(codes[codeKey] || "")}`;
+
+  // Rotate a persona's code → its link changes; the old link stops working.
+  const regenerate = (codeKey: string) => onTourChange({ access_codes: { ...codes, [codeKey]: generateAccessCode() } });
+
+  async function copy(codeKey: string) {
+    try {
+      await navigator.clipboard.writeText(linkFor(codeKey));
+      // Only show the copied state once the clipboard write actually resolved.
+      setCopiedKey(codeKey);
+      setTimeout(() => setCopiedKey(c => (c === codeKey ? null : c)), 2000);
+    } catch {
+      // Clipboard write failed — leave the button in its normal state.
+    }
+  }
+
+  const rows = personaKeys.map(key => {
     const p = getPersona(key)!;
     const meta = personaColors(key);
     return { key, codeKey: p.codeKey, label: personaLabel(key, tour.persona_labels), color: meta.color, bg: meta.bg };
   });
-  const setCount = rows.filter(r => codes[r.codeKey]).length;
+  const readyCount = rows.filter(r => (codes[r.codeKey] || "").trim()).length;
 
   // Subdued, collapsed-by-default secondary card (the preview buttons above are
-  // the primary action). Expands to manage the per-persona codes.
+  // the primary action). Expands to one shareable link per participant persona.
   return (
     <div style={{ background: "#f8fafc", border: "1px solid #eef2f7", borderRadius: 10, padding: "10px 14px", marginBottom: 16 }}>
-      <button onClick={() => setOpen(o => !o)}
+      <button onClick={() => setOpen(!open)}
         style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}>
         <I n={open ? "chevron" : "chevronRight"} s={13} />
-        <span style={{ fontSize: 12, fontWeight: 700, color: "#64748b" }}>Access Codes</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: "#64748b" }}>Access Links</span>
         <span style={{ fontSize: 11, color: "#94a3b8", marginLeft: "auto" }}>
-          {setCount} of {rows.length} set · share each with the right group
+          {readyCount} link{readyCount !== 1 ? "s" : ""} · send each to the right group
         </span>
       </button>
       {open && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 8, marginTop: 12 }}>
-          {rows.map(r => (
-            <div key={r.key} style={{ background: r.bg, border: `1.5px solid ${r.color}22`, borderRadius: 9, padding: "10px 12px" }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: r.color, textTransform: "uppercase", letterSpacing: .7, marginBottom: 6 }}>{r.label}</div>
-              <div style={{ display: "flex", gap: 5 }}>
-                <input value={codes[r.codeKey] || ""} onChange={e => set(r.codeKey, e.target.value.toUpperCase())}
-                  style={{ ...INP, fontFamily: "monospace", fontSize: 14, fontWeight: 700, letterSpacing: 2, color: r.color, flex: 1, padding: "5px 8px" }}
-                  placeholder="CODE" maxLength={12} />
-                <button onClick={() => gen(r.codeKey)} style={{ background: r.color, color: "#fff", border: "none", borderRadius: 6, padding: "5px 8px", cursor: "pointer", fontSize: 10, fontWeight: 700, fontFamily: "inherit", flexShrink: 0 }}>Gen</button>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
+          {rows.map(r => {
+            const copied = copiedKey === r.codeKey;
+            return (
+              <div key={r.key} style={{ display: "flex", alignItems: "center", gap: 8, background: "#fff", border: "1px solid #eef2f7", borderRadius: 9, padding: "8px 10px" }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: r.color, textTransform: "uppercase", letterSpacing: .7, flex: "0 0 96px" }}>{r.label}</span>
+                <input readOnly value={linkFor(r.codeKey)}
+                  onFocus={e => e.currentTarget.select()}
+                  style={{ flex: 1, minWidth: 0, border: "1px solid #e2e8f0", borderRadius: 6, padding: "5px 8px", fontSize: 11, fontFamily: "inherit", color: "#64748b", background: "#f8fafc", outline: "none" }} />
+                <button onClick={() => regenerate(r.codeKey)} title="Generate a new link (the old one stops working)"
+                  style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 4, display: "flex", flexShrink: 0 }}>
+                  <I n="refresh" s={13} />
+                </button>
+                <button onClick={() => copy(r.codeKey)}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 4, border: "none", borderRadius: 6, padding: "5px 10px", cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit", flexShrink: 0, background: copied ? "#dcfce7" : r.color, color: copied ? "#15803d" : "#fff" }}>
+                  {copied ? <><Check size={12} strokeWidth={3} />Copied</> : "Copy"}
+                </button>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
@@ -817,8 +864,7 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
   const [showPastDays, setShowPastDays] = useState(false);
   const [saving, setSaving] = useState(false);
   const [previewPersona, setPreviewPersona] = useState<string | null>(null);
-  const [showShareModal, setShowShareModal] = useState(false);
-  const [shareCopied, setShareCopied] = useState(false);
+  const [linksOpen, setLinksOpen] = useState(false);
   const [editingDayId, setEditingDayId] = useState<string | null>(null);
   const [editingDayDateVal, setEditingDayDateVal] = useState("");
 
@@ -1124,9 +1170,10 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
                 </button>
               );
             })}
-            <button onClick={() => setShowShareModal(true)}
+            <button onClick={() => setLinksOpen(true)}
+              title="Open the per-role access links below"
               style={{ flex: "1 1 140px", minWidth: 130, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, background: BRAND.teal, color: "#fff", border: "none", borderRadius: 10, padding: "12px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                <I n="link" s={15} />Share View
+                <I n="link" s={15} />Share Links
               </button>
             <button onClick={openPrintView}
               title="Open a print-ready view of the full itinerary to save as PDF"
@@ -1138,7 +1185,7 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
       )}
 
       {/* Access codes — secondary, subdued and collapsed below the preview */}
-      <AccessCodeManager tour={tour} onTourChange={onTourChange} />
+      <AccessLinkManager tour={tour} onTourChange={onTourChange} open={linksOpen} setOpen={setLinksOpen} />
 
       {/* Trip Information — same card the participants see, editable by the host. */}
       <TripInformation
@@ -1360,45 +1407,6 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
           </Modal>
         );
       })()}
-
-      {showShareModal && (
-        <Modal title="Share Itinerary" onClose={() => setShowShareModal(false)}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <p style={{ margin: 0, fontSize: 13, color: "#475569" }}>
-              Share this link with travelers. They select their role and enter the access code you set above.
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .8 }}>Share URL</label>
-              <div style={{ display: "flex", gap: 8 }}>
-                <input
-                  readOnly
-                  value={typeof window !== "undefined" ? `${window.location.origin}/tour/${tour.id}/view` : `/tour/${tour.id}/view`}
-                  style={{ flex: 1, border: "1.5px solid #e2e8f0", borderRadius: 8, padding: "7px 11px", fontSize: 12, fontFamily: "inherit", color: "#1e293b", background: "#f8fafc", outline: "none" }}
-                />
-                <Btn variant="muted"
-                  onClick={async () => {
-                    const url = `${window.location.origin}/tour/${tour.id}/view`;
-                    try {
-                      await navigator.clipboard.writeText(url);
-                      // Only show success once the clipboard write actually resolved.
-                      setShareCopied(true);
-                      setTimeout(() => setShareCopied(false), 2000);
-                    } catch {
-                      // Clipboard write failed — leave the button in its normal state.
-                    }
-                  }}
-                  style={shareCopied ? { background: "#dcfce7", color: "#15803d" } : undefined}>
-                  {shareCopied ? <><Check size={13} strokeWidth={3} />Copied</> : "Copy"}
-                </Btn>
-              </div>
-            </div>
-            <div style={{ background: "#f0fdfa", borderRadius: 8, padding: "10px 14px", fontSize: 12, color: "#065f46" }}>
-              Set access codes in the Access Codes section above, then share the matching code with each person.
-            </div>
-            <Btn onClick={() => setShowShareModal(false)} variant="muted" style={{ alignSelf: "flex-end" }}>Close</Btn>
-          </div>
-        </Modal>
-      )}
     </div>
   );
 }

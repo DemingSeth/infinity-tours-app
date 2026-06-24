@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { activePersonaKeys, getPersona } from "./helpers";
 
 // Server-only helpers for the guest access-code session cookie. This module
 // must never be imported from a client component (it reads the server secret
@@ -63,4 +64,42 @@ export function verifyTourSession(token: string | undefined | null): TourSession
   }
   if (payload.exp * 1000 <= Date.now()) return null;
   return payload;
+}
+
+// Constant-time string equality. Both inputs are hashed to a fixed 32-byte
+// digest first, so timingSafeEqual always compares equal-length buffers (it
+// throws on a length mismatch) and the comparison never short-circuits or leaks
+// the lengths of the real codes. Distinct strings → distinct digests → false.
+function constantTimeEqual(a: string, b: string): boolean {
+  const ha = crypto.createHash("sha256").update(a, "utf8").digest();
+  const hb = crypto.createHash("sha256").update(b, "utf8").digest();
+  return crypto.timingSafeEqual(ha, hb);
+}
+
+// Resolve which persona a shareable-link code unlocks. The persona is derived
+// ENTIRELY from the secret code server-side — there is no persona URL parameter
+// to edit, so a viewer cannot escalate to a role whose code they don't know.
+//
+// The match is compared uniformly against EVERY active persona's stored code:
+// the loop always runs to completion (no early return on first match) and every
+// candidate runs the same constant-time compare, including empty stored codes,
+// so timing reveals neither which persona matched nor whether a code was set.
+// An empty/blank stored code can never be matched (a blank ?c= must not unlock).
+export function resolvePersonaFromCode(
+  code: string | null | undefined,
+  accessCodes: Record<string, string> | null | undefined,
+  activePersonas: string[] | null | undefined,
+): { personaKey: string; codeKey: string } | null {
+  const supplied = (code ?? "").trim();
+  let matched: { personaKey: string; codeKey: string } | null = null;
+  for (const personaKey of activePersonaKeys(activePersonas)) {
+    const persona = getPersona(personaKey);
+    if (!persona) continue;
+    const stored = (accessCodes?.[persona.codeKey] ?? "").trim();
+    const isMatch = constantTimeEqual(supplied, stored);
+    if (isMatch && stored.length > 0) {
+      matched = { personaKey, codeKey: persona.codeKey };
+    }
+  }
+  return matched;
 }

@@ -207,6 +207,18 @@ export function isPersonaActive(key: string, active?: string[] | null): boolean 
   return activePersonaKeys(active).includes(key);
 }
 
+// Unguessable, non-sequential access code. Uses the crypto RNG (works in both the
+// browser and Node) over an unambiguous alphabet (no 0/O/1/I/L/U), so a code is
+// safe to drop into a shareable ?c= link and still legible if typed by hand.
+const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTVWXYZ23456789";
+export function generateAccessCode(len = 10): string {
+  const bytes = new Uint8Array(len);
+  (globalThis.crypto ?? crypto).getRandomValues(bytes);
+  let out = "";
+  for (let i = 0; i < len; i++) out += CODE_ALPHABET[bytes[i] % CODE_ALPHABET.length];
+  return out;
+}
+
 // Smart per-persona visibility defaults for a NEW item, by type + travel method.
 // Bus Driver only sees bus-relevant items (bus travel, breaks, meeting points)
 // by default. In a future phase, these defaults can be made configurable
