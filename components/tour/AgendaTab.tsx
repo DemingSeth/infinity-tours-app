@@ -6,7 +6,7 @@ import Image from "next/image";
 import TypeDot from "@/components/shared/TypeDot";
 import {
   BRAND, ROLES, AGENDA_TYPES, TRAVEL_SUBTYPES, SUBTYPES_BY_TYPE,
-  isDayInPast, parseAgendaDate, formatAgendaDate, suggestNextDate,
+  isDayInPast, initialCollapsedDays, parseAgendaDate, formatAgendaDate, suggestNextDate,
   toDateInput, fmt$, buildTripInfo, sortAgendaItemsByTime,
   activePersonaKeys, personaLabel, personaColors, getPersona, PERSONAS, defaultPersonaVisibility, isActivityType, generateAccessCode,
   MEAL_MONEY_TYPES, mealMoneyHasAmount, mealMoneyLabel,
@@ -861,7 +861,15 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
   const [itemForm, setItemForm] = useState<ItemFormState>(BLANK);
   const [editCtx, setEditCtx] = useState<{ dayId: string; itemId: string } | null>(null);
   const [editForm, setEditForm] = useState<ItemFormState>(BLANK);
-  const [showPastDays, setShowPastDays] = useState(false);
+  // Client-only day collapse (matches the participant/shared view): past days
+  // start collapsed, current + future expanded; every day stays rendered (header
+  // visible), and the host can expand any past day in place. Per-session — no
+  // longer persisted to agenda_days.collapsed (that flag is now unused).
+  const [collapsedDays, setCollapsedDays] = useState<Record<string, boolean>>(
+    () => initialCollapsedDays(days),
+  );
+  const toggleDayCollapse = (id: string) =>
+    setCollapsedDays(c => ({ ...c, [id]: !(c[id] ?? false) }));
   const [saving, setSaving] = useState(false);
   const [previewPersona, setPreviewPersona] = useState<string | null>(null);
   const [linksOpen, setLinksOpen] = useState(false);
@@ -880,7 +888,8 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
   }
 
   const pastDays = days.filter(d => isDayInPast(d.date));
-  const visibleDays = showPastDays ? days : days.filter(d => !isDayInPast(d.date));
+  // Are any past days currently collapsed? Drives the bulk expand/collapse button.
+  const anyPastCollapsed = pastDays.some(d => collapsedDays[d.id] ?? false);
 
   const suggestedDate = suggestNextDate(days);
   const suggestedDateStr = suggestedDate ? formatAgendaDate(suggestedDate) : "";
@@ -976,13 +985,6 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
     onDaysChange(days.filter(d => d.id !== dayId));
   }
 
-  async function toggleCollapsed(dayId: string) {
-    const day = days.find(d => d.id === dayId);
-    if (!day) return;
-    const supabase = createClient();
-    await supabase.from("agenda_days").update({ collapsed: !day.collapsed }).eq("id", dayId);
-    onDaysChange(days.map(d => d.id === dayId ? { ...d, collapsed: !d.collapsed } : d));
-  }
 
   async function updateDayDate(dayId: string, isoDate: string) {
     if (!isoDate) return;
@@ -1246,9 +1248,16 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
             {days.length} day{days.length !== 1 ? "s" : ""} planned
           </span>
           {pastDays.length > 0 && (
-            <button onClick={() => setShowPastDays(s => !s)}
-              style={{ background: showPastDays ? "#e0f2fe" : "#f1f5f9", border: "none", borderRadius: 6, padding: "3px 10px", fontSize: 11, color: showPastDays ? "#0369a1" : "#64748b", cursor: "pointer", fontWeight: 600, fontFamily: "inherit" }}>
-              {showPastDays ? "Hide" : "Show"} {pastDays.length} past day{pastDays.length !== 1 ? "s" : ""}
+            // Bulk expand/collapse of past days. Past days are still rendered
+            // (collapsed) — this just flips them all at once; each is also
+            // expandable individually by clicking its header.
+            <button onClick={() => setCollapsedDays(c => {
+              const m = { ...c };
+              pastDays.forEach(d => { m[d.id] = !anyPastCollapsed; });
+              return m;
+            })}
+              style={{ background: anyPastCollapsed ? "#f1f5f9" : "#e0f2fe", border: "none", borderRadius: 6, padding: "3px 10px", fontSize: 11, color: anyPastCollapsed ? "#64748b" : "#0369a1", cursor: "pointer", fontWeight: 600, fontFamily: "inherit" }}>
+              {anyPastCollapsed ? "Expand" : "Collapse"} {pastDays.length} past day{pastDays.length !== 1 ? "s" : ""}
             </button>
           )}
         </div>
@@ -1264,13 +1273,14 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {visibleDays.map(day => {
+        {days.map(day => {
           const past = isDayInPast(day.date);
+          const collapsed = collapsedDays[day.id] ?? false;
           return (
             <div key={day.id} style={{ background: "#fff", border: `1.5px solid ${past ? "#e5e7eb" : "#e8eef4"}`, borderRadius: 12, overflow: "hidden", opacity: past ? .8 : 1, boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
               <div
                 style={{ background: past ? BRAND.navy + "cc" : BRAND.navy, padding: "11px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}
-                onClick={() => toggleCollapsed(day.id)}
+                onClick={() => toggleDayCollapse(day.id)}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <Image src="/infinity-logo.png" alt="" width={0} height={0} sizes="60px" style={{ height: 36, width: "auto" }} />
@@ -1335,13 +1345,13 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
                     style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,.35)", padding: 3 }}>
                     <I n="trash" s={13} />
                   </button>
-                  <div style={{ transform: day.collapsed ? "rotate(-90deg)" : "rotate(0deg)", transition: "transform .2s", display: "flex" }}>
+                  <div style={{ transform: collapsed ? "rotate(-90deg)" : "rotate(0deg)", transition: "transform .2s", display: "flex" }}>
                     <I n="chevron" s={14} c="rgba(255,255,255,.5)" />
                   </div>
                 </div>
               </div>
 
-              {!day.collapsed && (
+              {!collapsed && (
                 <div>
                   {day.agenda_items.length === 0 && addingItem !== day.id && (
                     <div style={{ color: "#cbd5e1", fontSize: 12, padding: "14px 16px", textAlign: "center" }}>No items yet</div>

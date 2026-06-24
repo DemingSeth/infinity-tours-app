@@ -518,6 +518,24 @@ export function isDayInPast(dateStr: string): boolean {
   return parsed < today;
 }
 
+// Initial collapse state for the on-screen itinerary, keyed by day id. Past days
+// (device-local calendar date — see isDayInPast) start collapsed; the current day
+// and all future days start expanded. When the whole tour is already over (every
+// day past), only the LAST day stays expanded so a finished itinerary still leads
+// with something. Device-local is correct: hosts author times in the tour's local
+// clock and live viewers are physically in the tour's timezone, so the device's
+// calendar day IS the tour day during the trip (only the calendar day matters here,
+// not clock times). Collapse is DISPLAY-ONLY — callers keep every day in the
+// rendered output and let the viewer expand any day; this just seeds the map.
+export function initialCollapsedDays(days: { id: string; date: string }[]): Record<string, boolean> {
+  if (days.length === 0) return {};
+  const past = days.map(d => isDayInPast(d.date));
+  const allPast = past.every(Boolean);
+  return Object.fromEntries(
+    days.map((d, i) => [d.id, allPast ? i !== days.length - 1 : past[i]]),
+  );
+}
+
 // ─── Map URL ──────────────────────────────────────────────────────────────────
 
 const FAKE_MAP_SUFFIXES = [

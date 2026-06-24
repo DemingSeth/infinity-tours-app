@@ -9,7 +9,7 @@ import GeneralFeedback from "@/components/tour/GeneralFeedback";
 import TripInformation from "@/components/tour/TripInformation";
 import ItineraryHeaderTile from "@/components/tour/ItineraryHeaderTile";
 import GoogleMapsLink from "@/components/shared/GoogleMapsLink";
-import { BRAND, ROLES, DEFAULT_VISIBILITY, isItemVisibleTo, personaColors, sortAgendaItemsByTime, parseAgendaDate } from "@/lib/helpers";
+import { BRAND, ROLES, DEFAULT_VISIBILITY, isItemVisibleTo, personaColors, sortAgendaItemsByTime, parseAgendaDate, initialCollapsedDays } from "@/lib/helpers";
 import type { AgendaDayWithItems, Role, TripInfo } from "@/lib/types";
 
 interface Props {
@@ -58,10 +58,15 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
   // itinerary consolidates onto fewer pages; on-screen/preview keep their values.
   const mt = (n: number) => (print ? Math.max(2, Math.round(n / 2)) : n);
 
-  // Days are collapsible in every view. Seed from the host's saved collapsed flag,
-  // then toggle locally — participants/public never write this back to the DB.
+  // Days are collapsible in every view. Initial state is DATE-DRIVEN: past days
+  // collapsed, current + future expanded (see initialCollapsedDays). Purely
+  // client-side React state — it never affects what's in the rendered markup
+  // (every day's header + body stay in the DOM; collapse only hides the body),
+  // so a future server PDF render is unaffected. The viewer can expand any day,
+  // which overrides the auto state for the session. In print, collapse is forced
+  // off below, so the PDF/print output is fully expanded.
   const [collapsedDays, setCollapsedDays] = useState<Record<string, boolean>>(
-    () => Object.fromEntries(days.map(d => [d.id, !!d.collapsed])),
+    () => initialCollapsedDays(days),
   );
   const toggleDay = (id: string) => setCollapsedDays(c => ({ ...c, [id]: !c[id] }));
 
