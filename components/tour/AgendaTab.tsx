@@ -865,13 +865,18 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
   const [saving, setSaving] = useState(false);
   const [previewPersona, setPreviewPersona] = useState<string | null>(null);
   const [linksOpen, setLinksOpen] = useState(false);
+  const [printMenuOpen, setPrintMenuOpen] = useState(false);
   const [editingDayId, setEditingDayId] = useState<string | null>(null);
   const [editingDayDateVal, setEditingDayDateVal] = useState("");
 
   // Open the print-optimized itinerary view in a new tab; it auto-triggers the
   // browser's print dialog (Save as PDF). Reliable, no server-side rendering.
-  function openPrintView() {
-    window.open(`/tour/${tour.id}/print`, "_blank", "noopener");
+  // An optional persona scopes the printout to exactly that role's view, reusing
+  // the print route's ?persona= path (same visibility filter as the on-screen
+  // preview). No persona = the full Tour Host itinerary.
+  function openPrintView(personaKey?: string) {
+    const q = personaKey ? `?persona=${encodeURIComponent(personaKey)}` : "";
+    window.open(`/tour/${tour.id}/print${q}`, "_blank", "noopener");
   }
 
   const pastDays = days.filter(d => isDayInPast(d.date));
@@ -1175,11 +1180,41 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
               style={{ flex: "1 1 140px", minWidth: 130, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, background: BRAND.teal, color: "#fff", border: "none", borderRadius: 10, padding: "12px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                 <I n="link" s={15} />Share Links
               </button>
-            <button onClick={openPrintView}
-              title="Open a print-ready view of the full itinerary to save as PDF"
-              style={{ flex: "1 1 140px", minWidth: 130, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, background: BRAND.navy, color: "#fff", border: "none", borderRadius: 10, padding: "12px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+            {/* Print / Save as PDF — full itinerary, or scoped to one role's view
+                (same visibility filter as that role's on-screen preview). */}
+            <div style={{ position: "relative", flex: "1 1 140px", minWidth: 130 }}>
+              <button onClick={() => setPrintMenuOpen(o => !o)}
+                title="Print or save a PDF — the full itinerary or a specific role's view"
+                style={{ width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, background: BRAND.navy, color: "#fff", border: "none", borderRadius: 10, padding: "12px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                 <Printer size={15} />Print / Save as PDF
+                <div style={{ transform: printMenuOpen ? "rotate(180deg)" : "none", transition: "transform .15s", display: "flex" }}>
+                  <I n="chevron" s={13} c="#fff" />
+                </div>
               </button>
+              {printMenuOpen && (
+                <>
+                  {/* Click-away backdrop closes the menu. */}
+                  <div onClick={() => setPrintMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
+                  <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, zIndex: 41, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, boxShadow: "0 8px 28px rgba(0,0,0,.14)", overflow: "hidden", minWidth: 210 }}>
+                    <button onClick={() => { setPrintMenuOpen(false); openPrintView(); }}
+                      style={{ width: "100%", display: "flex", alignItems: "center", gap: 9, padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, color: "#1e293b", textAlign: "left" }}>
+                      <Printer size={14} />Full itinerary
+                      <span style={{ color: "#94a3b8", fontWeight: 600, marginLeft: "auto" }}>{personaLabel("tour_host", tour.persona_labels)}</span>
+                    </button>
+                    {activePersonaKeys(tour.active_personas).filter(k => k !== "tour_host").map(key => {
+                      const meta = personaColors(key);
+                      return (
+                        <button key={key} onClick={() => { setPrintMenuOpen(false); openPrintView(key); }}
+                          style={{ width: "100%", display: "flex", alignItems: "center", gap: 9, padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, color: "#1e293b", textAlign: "left" }}>
+                          <span style={{ width: 9, height: 9, borderRadius: "50%", background: meta.color, flexShrink: 0 }} />
+                          {personaLabel(key, tour.persona_labels)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}
