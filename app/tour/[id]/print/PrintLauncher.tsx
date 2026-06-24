@@ -14,21 +14,34 @@ export default function PrintLauncher() {
       // Wait for brand fonts so headings don't reflow after the dialog opens.
       try { await (document as Document & { fonts?: { ready?: Promise<unknown> } }).fonts?.ready; } catch { /* ignore */ }
 
-      // Wait for every image to finish (or error), capped so we never hang.
+      // Wait for every image to actually DECODE (ready to paint), not merely
+      // "load". The hero banner is a large foreground <img>; printing the moment
+      // it loads (before Safari has decoded/painted it) snapshots the page
+      // mid-relayout and exports a blank page. img.decode() resolves only once
+      // the image is decoded and paintable. Capped so we never hang on a slow or
+      // broken image. Errors (e.g. a failed decode) are swallowed per-image.
       const imgs = Array.from(document.images);
       await Promise.race([
         Promise.all(
-          imgs.map(img =>
-            img.complete
-              ? Promise.resolve()
-              : new Promise<void>(res => {
+          imgs.map(async img => {
+            try {
+              if (typeof img.decode === "function") {
+                await img.decode();
+              } else if (!img.complete) {
+                await new Promise<void>(res => {
                   img.addEventListener("load", () => res(), { once: true });
                   img.addEventListener("error", () => res(), { once: true });
-                }),
-          ),
+                });
+              }
+            } catch { /* ignore: print with whatever decoded */ }
+          }),
         ),
-        new Promise<void>(res => setTimeout(res, 4000)),
+        new Promise<void>(res => setTimeout(res, 8000)),
       ]);
+
+      // Decoded ≠ painted. Yield two animation frames so the browser commits a
+      // paint of the now-decoded images before we take the print snapshot.
+      await new Promise<void>(res => requestAnimationFrame(() => requestAnimationFrame(() => res())));
 
       if (!cancelled) window.print();
     }
