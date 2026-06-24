@@ -3,7 +3,7 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronRight, Pencil, Paperclip, Upload, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { BRAND, formatFullDate } from "@/lib/helpers";
+import { BRAND, formatFullDate, showTripSection } from "@/lib/helpers";
 import type { TripInfo } from "@/lib/types";
 
 // Tour-level confirmations reuse the existing public storage bucket.
@@ -14,10 +14,9 @@ type ConfItem = { id?: string; type: string; label: string | null; file_url: str
 type TripForm = {
   teacherName: string; teacherEmail: string; tourHostName: string; tourHostPhone: string;
   busCapacity: string;
-  // Free-text override for the Participants row; blank = use the counts below.
+  // Free-text override for the Participants row; blank = use the roster counts.
+  // Per-persona counts themselves are roster-driven and not editable here.
   participantsOverride: string;
-  // Per-persona manual counts keyed by persona key; blank = use the roster count.
-  participantCounts: Record<string, string>;
 };
 
 const confBoxStyle: React.CSSProperties = {
@@ -76,7 +75,7 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<TripForm>({
-    teacherName: "", teacherEmail: "", tourHostName: "", tourHostPhone: "", busCapacity: "", participantsOverride: "", participantCounts: {},
+    teacherName: "", teacherEmail: "", tourHostName: "", tourHostPhone: "", busCapacity: "", participantsOverride: "",
   });
 
   function startEdit() {
@@ -87,7 +86,6 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
       tourHostPhone: info.tourHostPhone ?? "",
       busCapacity: info.busCapacity != null ? String(info.busCapacity) : "",
       participantsOverride: info.participantsOverride ?? "",
-      participantCounts: Object.fromEntries(info.participants.map(p => [p.key, String(p.count)])),
     });
     setOpen(true);
     setEditing(true);
@@ -96,20 +94,15 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
   async function save() {
     setSaving(true);
     try {
-      // Build the manual count override: keep only numeric entries; a blank field
-      // is dropped so that persona falls back to the roster-derived count.
-      const participant_counts: Record<string, number> = {};
-      for (const [k, v] of Object.entries(form.participantCounts)) {
-        const n = parseInt(v, 10);
-        if (v.trim() !== "" && Number.isFinite(n) && n >= 0) participant_counts[k] = n;
-      }
+      // Persona counts are roster-driven and not edited here, so we never write
+      // participant_counts. (Any override already stored stays applied by
+      // buildTripInfo.) Only the free-text Participants override is host-editable.
       await Promise.all([
         onSaveTour?.({
           contact_name: form.teacherName.trim() || null,
           contact_email: form.teacherEmail.trim() || null,
           traveling_tour_host: form.tourHostName.trim() || null,
           bus_capacity: Number(form.busCapacity) || 0,
-          participant_counts,
           participants_display_override: form.participantsOverride.trim() || null,
         }),
         onSaveHostPhone?.(form.tourHostPhone.trim() || null),
@@ -231,7 +224,7 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
     );
   }
 
-  const rows: { label: string; content: React.ReactNode }[] = [
+  const rows: { label: string; content: React.ReactNode; id?: string }[] = [
     {
       label: "Teacher Name",
       content: editing ? (
@@ -281,17 +274,13 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
           <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b" }}>Participants (custom text)</div>
           <input style={inputStyle} value={form.participantsOverride} placeholder="e.g. 42 travelers (final count pending)"
             onChange={e => setForm(f => ({ ...f, participantsOverride: e.target.value }))} />
-          <div style={{ fontSize: 11, color: "#94a3b8" }}>Overrides the breakdown below. Leave blank to use the counts.</div>
-          {info.participants.map(p => (
-            <div key={p.key} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <input type="number" min={0} style={{ ...inputStyle, width: 80 }}
-                value={form.participantCounts[p.key] ?? ""}
-                placeholder="—"
-                onChange={e => setForm(f => ({ ...f, participantCounts: { ...f.participantCounts, [p.key]: e.target.value } }))} />
-              <span>{p.label}</span>
-            </div>
-          ))}
-          <div style={{ fontSize: 11, color: "#94a3b8" }}>Leave a field blank to use the count from the roster.</div>
+          <div style={{ fontSize: 11, color: "#94a3b8" }}>Overrides the roster breakdown below. Leave blank to use the roster counts.</div>
+          {/* Persona counts come from the roster (read-only here) — shown so the
+              host can see what the breakdown will be. Edit headcounts in the Roster. */}
+          <div style={{ fontSize: 12, color: "#475569", background: "#fafbff", border: "1px solid #eef2f7", borderRadius: 6, padding: "6px 8px" }}>
+            <span style={{ fontWeight: 700 }}>From roster: </span>
+            {info.participants.map(p => `${p.count} ${p.label}`).join(", ") || "—"}
+          </div>
         </div>
       ) : info.participantsOverride && info.participantsOverride.trim() ? (
         // Host override: render the custom text verbatim; suppress the total line
@@ -309,6 +298,7 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
     { label: "Departure", content: formatFullDate(info.departure) },
     { label: "Return", content: formatFullDate(info.returnDate) },
     {
+      id: "flight",
       label: "Flight",
       content: editing ? (
         <>
@@ -363,6 +353,7 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
       ),
     },
     {
+      id: "bus",
       label: "Bus",
       content: editing ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -407,6 +398,13 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
     },
   ];
 
+  // Data-driven section visibility — defers to the shared showTripSection() rule
+  // so the live view and the server-side PDF renderer can never diverge.
+  const visibleRows = rows.filter(r => {
+    if (r.id === "flight" || r.id === "bus") return showTripSection(r.id, info, { isHost });
+    return true;
+  });
+
   return (
     <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,.04)", marginBottom: 16 }}>
       {/* Brand-blue header bar (Infinity footer periwinkle) */}
@@ -443,7 +441,7 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
       {open && (
         <>
           <div style={{ display: "grid", gridTemplateColumns: "minmax(110px, 32%) 1fr", borderTop: "1px solid #f1f5f9" }}>
-            {rows.map((r, i) => (
+            {visibleRows.map((r, i) => (
               <Fragment key={r.label}>
                 <div style={{
                   padding: "10px 16px", fontSize: 11.5, fontWeight: 700, color: "#64748b",

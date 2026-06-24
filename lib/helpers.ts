@@ -398,6 +398,21 @@ export function buildTripInfo({ tour, members, days, hostName, hostPhone, confir
   };
 }
 
+// Which Trip Information transport sections to render. SINGLE source of truth so
+// every renderer agrees — the live React view AND the server-side PDF renderer
+// must call this, never re-derive the rule. Driven by buildTripInfo's shared
+// hasFlight/hasBus flags: outward views (participant + PDF) hide a Flight/Bus row
+// when the itinerary has no such travel item; the host editor keeps it visible
+// (to show the "add a … item" guidance).
+export function showTripSection(
+  section: "flight" | "bus",
+  info: Pick<TripInfo, "hasFlight" | "hasBus">,
+  opts?: { isHost?: boolean },
+): boolean {
+  if (opts?.isHost) return true;
+  return section === "flight" ? info.hasFlight : info.hasBus;
+}
+
 // ─── Agenda item time ordering ────────────────────────────────────────────────
 
 // Parse a display time string ("5:20 AM", "9:00 PM", "12:00 AM", "14:30") into
