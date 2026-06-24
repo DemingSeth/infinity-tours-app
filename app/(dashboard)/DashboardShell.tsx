@@ -16,7 +16,7 @@ interface Props {
 
 const NAV_LINKS = [
   { href: "/overview", label: "Overview", Icon: LayoutGrid },
-  { href: "/dashboard", label: "Pipeline", Icon: KanbanSquare },
+  { href: "/dashboard", label: "Tour Pipeline", Icon: KanbanSquare },
 ] as const;
 
 export default function DashboardShell({ children, user, tourHost }: Props) {
