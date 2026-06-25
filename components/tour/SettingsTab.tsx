@@ -46,7 +46,7 @@ function BannerUploader({ tour, isOwner, onTourChange }: {
 
   return (
     <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 14, padding: 20 }}>
-      <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.025em", fontSize: 15, fontWeight: 700, color: BRAND.navy, marginBottom: 6 }}>Banner Image</div>
+      <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 15, fontWeight: 700, color: BRAND.navy, marginBottom: 6 }}>Banner Image</div>
       <p style={{ fontSize: 12, color: "#64748b", margin: "0 0 12px", lineHeight: 1.6 }}>
         Choose from the approved image library to show behind the itinerary header. Leave empty for the default navy header.
       </p>
@@ -162,7 +162,7 @@ function PersonaConfig({ tour, isOwner, onTourChange, onPersonaAdded }: {
 
   return (
     <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 14, padding: 20 }}>
-      <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.025em", fontSize: 15, fontWeight: 700, color: BRAND.navy, marginBottom: 6 }}>Participant Personas</div>
+      <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 15, fontWeight: 700, color: BRAND.navy, marginBottom: 6 }}>Participant Personas</div>
       <p style={{ fontSize: 12, color: "#64748b", margin: "0 0 14px", lineHeight: 1.6 }}>
         Choose which participant types are active for this tour. Active personas control the preview buttons, access codes, and labels shown to travelers. Customize any label (e.g. &ldquo;Choir Member&rdquo;).
       </p>
@@ -241,7 +241,7 @@ export default function SettingsTab({ tour, isOwner, viewerIsAdmin, currentUserI
       {/* Manage Banner Library — admin only, above the chooser */}
       {viewerIsAdmin && (
         <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 14, padding: 20 }}>
-          <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.025em", fontSize: 15, fontWeight: 700, color: BRAND.navy, marginBottom: 6 }}>Manage Banner Library</div>
+          <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 15, fontWeight: 700, color: BRAND.navy, marginBottom: 6 }}>Manage Banner Library</div>
           <p style={{ fontSize: 12, color: "#64748b", margin: "0 0 12px", lineHeight: 1.6 }}>
             Approved images that all tour hosts can choose from. Admin only.
           </p>
@@ -257,7 +257,7 @@ export default function SettingsTab({ tour, isOwner, viewerIsAdmin, currentUserI
 
       {/* Room & Bus Configuration */}
       <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 14, padding: 20 }}>
-        <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.025em", fontSize: 15, fontWeight: 700, color: BRAND.navy, marginBottom: 12 }}>Room &amp; Bus Configuration</div>
+        <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 15, fontWeight: 700, color: BRAND.navy, marginBottom: 12 }}>Room &amp; Bus Configuration</div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
           <Field label="Boys per Room" third>
             <Inp type="number" min={1} value={roomConfig.boysPerRoom}
@@ -287,7 +287,7 @@ export default function SettingsTab({ tour, isOwner, viewerIsAdmin, currentUserI
 
       {/* Feedback */}
       <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 14, padding: 20 }}>
-        <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.025em", fontSize: 15, fontWeight: 700, color: BRAND.navy, marginBottom: 12 }}>Feedback</div>
+        <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 15, fontWeight: 700, color: BRAND.navy, marginBottom: 12 }}>Feedback</div>
         <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: isOwner ? "pointer" : "default" }}>
           <input
             type="checkbox"
@@ -307,7 +307,7 @@ export default function SettingsTab({ tour, isOwner, viewerIsAdmin, currentUserI
 
       {/* Itinerary Visibility Matrix */}
       <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 14, padding: 20 }}>
-        <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.025em", fontSize: 15, fontWeight: 700, color: BRAND.navy, marginBottom: 6 }}>Itinerary Item Visibility</div>
+        <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 15, fontWeight: 700, color: BRAND.navy, marginBottom: 6 }}>Itinerary Item Visibility</div>
         <p style={{ fontSize: 12, color: "#64748b", margin: "0 0 12px", lineHeight: 1.6 }}>
           Control which details each role sees on itinerary items. Tour Hosts always see everything.
         </p>

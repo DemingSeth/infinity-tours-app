@@ -98,7 +98,7 @@ export default function CalendarView({ tours, onOpenTour }: {
       {/* Section header */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 18px", borderBottom: "1px solid #f1f5f9", flexWrap: "wrap" }}>
         <CalendarDays size={18} color="#64748b" />
-        <span style={{ fontSize: 16, fontWeight: 700, color: BRAND.navy, fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.025em" }}>
+        <span style={{ fontSize: 16, fontWeight: 700, color: BRAND.navy, fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.03em" }}>
           Calendar
         </span>
 
@@ -342,7 +342,7 @@ function TourPopoverBody({ tour, onOpenTour }: { tour: TourWithHostAndMembers; o
   const initials = tour.tour_hosts?.initials || initialsFrom(hostName === "Unassigned" ? null : hostName);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-      <div style={{ fontSize: 14, fontWeight: 700, color: BRAND.navy, fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.025em", lineHeight: 1.25 }}>
+      <div style={{ fontSize: 14, fontWeight: 700, color: BRAND.navy, fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.03em", lineHeight: 1.25 }}>
         {tour.name}
       </div>
       <div style={{ fontSize: 12, color: "#64748b" }}>{tour.school}</div>

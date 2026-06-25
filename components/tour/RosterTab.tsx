@@ -241,7 +241,7 @@ export default function RosterTab({ tour, members, isOwner, viewerRole = "coordi
                   ? <ChevronRight size={18} color="#64748b" style={{ flexShrink: 0 }} />
                   : <ChevronDown size={18} color="#64748b" style={{ flexShrink: 0 }} />}
                 <span style={{ width: 9, height: 9, borderRadius: "50%", background: sec.colors.color, flexShrink: 0 }} />
-                <span style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.025em", fontSize: 16, fontWeight: 700, color: BRAND.navy }}>
+                <span style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.03em", fontSize: 16, fontWeight: 700, color: BRAND.navy }}>
                   {sec.label}
                 </span>
 

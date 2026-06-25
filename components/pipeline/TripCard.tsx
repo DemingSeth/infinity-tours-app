@@ -25,7 +25,7 @@ export default function TripCard({ tour, currentHostId, isDuplicating, onClick, 
   return (
     <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 12, padding: 14, boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
       <div onClick={onClick} style={{ cursor: "pointer" }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: BRAND.navy, marginBottom: 3, fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.025em", lineHeight: 1.3 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: BRAND.navy, marginBottom: 3, fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.03em", lineHeight: 1.3 }}>
           {tour.name}
         </div>
         <div style={{ fontSize: 12, color: "#64748b", marginBottom: 6 }}>{tour.school}</div>

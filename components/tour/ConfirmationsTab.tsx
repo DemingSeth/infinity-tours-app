@@ -58,7 +58,7 @@ export default function ConfirmationsTab({ tourId, days, onDaysChange, isOwner }
       {days.map(day => (
         <div key={day.id} style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 12, overflow: "hidden" }}>
           <div style={{ background: BRAND.navy, padding: "9px 16px", display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.025em", color: "#fff", fontWeight: 700, fontSize: 14 }}>Day {day.day_number}</span>
+            <span style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", color: "#fff", fontWeight: 700, fontSize: 14 }}>Day {day.day_number}</span>
             <span style={{ color: "#D1E8FF", fontSize: 12 }}>{day.date}</span>
           </div>
           {day.agenda_items.length === 0 ? (

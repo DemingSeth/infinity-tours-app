@@ -71,7 +71,7 @@ export default function GeneralFeedback({
   if (!expanded) {
     return (
       <div style={{ marginTop: 24, padding: "16px 18px", background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 12, boxShadow: "0 1px 4px rgba(0,0,0,.04)", textAlign: "center" }}>
-        <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.025em", fontSize: 17, fontWeight: 700, color: BRAND.navy }}>How was your tour?</div>
+        <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 17, fontWeight: 700, color: BRAND.navy }}>How was your tour?</div>
         <div style={{ fontSize: 12.5, color: "#64748b", margin: "4px 0 12px" }}>Share your feedback with the team.</div>
         <button type="button" onClick={() => setExpanded(true)}
           style={{ display: "inline-flex", alignItems: "center", gap: 7, background: BRAND.blue, color: "#fff", border: "none", borderRadius: 10, padding: "9px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>

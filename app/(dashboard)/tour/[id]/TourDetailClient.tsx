@@ -267,7 +267,7 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
       {cascadePrompt && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
           <div style={{ background: "#fff", borderRadius: 16, padding: 24, maxWidth: 420, width: "100%", boxShadow: "0 20px 60px rgba(0,0,0,.2)" }}>
-            <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.025em", fontSize: 17, fontWeight: 700, color: BRAND.navy, marginBottom: 10 }}>
+            <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 17, fontWeight: 700, color: BRAND.navy, marginBottom: 10 }}>
               Update Itinerary Dates?
             </div>
             <p style={{ fontSize: 13, color: "#475569", margin: "0 0 18px", lineHeight: 1.6 }}>
