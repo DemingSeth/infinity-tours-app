@@ -6,7 +6,6 @@ import { createClient } from "@/lib/supabase/client";
 import { BRAND, STATUSES, formatAgendaDate, expandStateName } from "@/lib/helpers";
 import StatusPill from "@/components/shared/StatusPill";
 import OverviewTab from "@/components/tour/OverviewTab";
-import InfinityLogoImg from "@/components/shared/InfinityLogoImg";
 import AgendaTab from "@/components/tour/AgendaTab";
 import RosterTab from "@/components/tour/RosterTab";
 import ConfirmationsTab from "@/components/tour/ConfirmationsTab";
@@ -139,9 +138,6 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
         >
           Back
         </button>
-        <div style={{ marginTop: 2, flexShrink: 0, filter: "invert(1)" }}>
-          <InfinityLogoImg height={48} showText={false} />
-        </div>
         <div style={{ flex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
             {isOwner && editingName ? (

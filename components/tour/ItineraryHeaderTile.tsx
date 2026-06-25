@@ -23,10 +23,6 @@ export default function ItineraryHeaderTile({
   print?: boolean;
 }) {
   const textShadow = bannerUrl ? BANNER_TEXT_SHADOW : undefined;
-  // The INFINITY wordmark sits on dark navy / the photo scrim already, so it needs
-  // far less shadow than the title — and a heavy blur hazes white-on-photo under
-  // print-color-adjust:exact in the PDF. Keep it minimal.
-  const wordmarkShadow = bannerUrl ? "0 1px 2px rgba(0,0,0,0.3)" : undefined;
   return (
     <div style={{ position: "relative", background: BRAND.navy, borderRadius: 12, padding: "20px 24px", marginBottom: 18, overflow: "hidden" }}>
       {/* Banner background photo + dark gradient overlay for text legibility */}
@@ -43,34 +39,34 @@ export default function ItineraryHeaderTile({
           <div style={{ position: "absolute", inset: 0, background: BANNER_OVERLAY_GRADIENT }} />
         </>
       )}
-      <div style={{ position: "relative", zIndex: 1 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            {print ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src="/infinity-mark-light.png" alt="Infinity Tours" style={{ height: 22, width: "auto" }} />
-            ) : (
-              <Image src="/infinity-mark-light.png" alt="Infinity Tours" width={0} height={0} sizes="80px" style={{ height: 22, width: "auto" }} />
+      {/* Lockup on the LEFT, tour info to its RIGHT, persona badge top-right.
+          The info block uses minWidth:0 + flex:1 so a long tour name wraps
+          cleanly (at spaces, overflow-wrap as a fallback) beside the lockup
+          instead of overflowing or forcing the lockup to shrink. */}
+      <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16, minWidth: 0, flex: 1 }}>
+          {print ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src="/infinity-lockup-light.png" alt="Infinity Tours + Events" style={{ height: 64, width: "auto", flexShrink: 0 }} />
+          ) : (
+            <Image src="/infinity-lockup-light.png" alt="Infinity Tours + Events" width={0} height={0} sizes="260px" style={{ height: 64, width: "auto", flexShrink: 0 }} />
+          )}
+          <div style={{ minWidth: 0 }}>
+            <h1 style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", color: "#fff", fontSize: 22, fontWeight: 700, lineHeight: 1.12, margin: "0 0 4px", overflowWrap: "break-word", textShadow }}>
+              {tourName}
+            </h1>
+            {(tourDestination || tourDates) && (
+              <div style={{ color: bannerUrl ? "#e2e8f0" : "#D1E8FF", fontSize: 13, lineHeight: 1.3, textShadow }}>
+                {[expandStateName(tourDestination), tourDates].filter(Boolean).join(" · ")}
+              </div>
             )}
-            <div style={{ display: "flex", flexDirection: "column", lineHeight: 1 }}>
-              <span style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", fontWeight: 700, fontSize: 12, color: "#fff", letterSpacing: 0.5, textShadow: wordmarkShadow }}>INFINITY</span>
-              <span style={{ fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif", fontWeight: 400, fontSize: 6, color: "rgba(255,255,255,0.6)", letterSpacing: 2, textTransform: "uppercase" }}>TOURS + EVENTS</span>
-            </div>
-          </div>
-          <div style={bannerUrl
-            ? { background: "rgba(0,0,0,0.5)", color: "#fff", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 6, padding: "3px 10px", fontSize: 11, fontWeight: 700 }
-            : { background: badgeBg, color: badgeColor, borderRadius: 6, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>
-            {badgeLabel}
           </div>
         </div>
-        <h1 style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", color: "#fff", fontSize: 22, fontWeight: 700, margin: "0 0 4px", textShadow }}>
-          {tourName}
-        </h1>
-        {(tourDestination || tourDates) && (
-          <div style={{ color: bannerUrl ? "#e2e8f0" : "#D1E8FF", fontSize: 13, textShadow }}>
-            {[expandStateName(tourDestination), tourDates].filter(Boolean).join(" · ")}
-          </div>
-        )}
+        <div style={bannerUrl
+          ? { flexShrink: 0, background: "rgba(0,0,0,0.5)", color: "#fff", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 6, padding: "3px 10px", fontSize: 11, fontWeight: 700 }
+          : { flexShrink: 0, background: badgeBg, color: badgeColor, borderRadius: 6, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>
+          {badgeLabel}
+        </div>
       </div>
     </div>
   );

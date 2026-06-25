@@ -10,7 +10,7 @@ export default function InfinityLogoImg({ height = 40, showText = true }: Props)
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
       <Image
-        src="/infinity-logo-navy.png"
+        src="/infinity-lockup-navy.png"
         alt="Infinity Tours"
         width={0}
         height={0}
