@@ -27,7 +27,7 @@ export default function VisibilitySettingsModal({ onClose }: { onClose: () => vo
             <div style={{ width: 32, height: 32, borderRadius: 9, background: "#eef2f7", display: "flex", alignItems: "center", justifyContent: "center", color: BRAND.navy }}>
               <Settings size={17} />
             </div>
-            <span style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", fontSize: 17, fontWeight: 700, color: BRAND.navy }}>
+            <span style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.025em", fontSize: 17, fontWeight: 700, color: BRAND.navy }}>
               Visibility Controls
             </span>
           </div>

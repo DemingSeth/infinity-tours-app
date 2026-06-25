@@ -190,7 +190,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
               {!print && (collapsed
                 ? <ChevronRight size={16} color="rgba(255,255,255,.7)" style={{ flexShrink: 0 }} />
                 : <ChevronDown size={16} color="rgba(255,255,255,.7)" style={{ flexShrink: 0 }} />)}
-              <span style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", color: "#fff", fontWeight: 700, fontSize: 15 }}>Day {day.day_number}</span>
+              <span style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.025em", color: "#fff", fontWeight: 700, fontSize: 15 }}>Day {day.day_number}</span>
               <span style={{ color: "#D1E8FF", fontSize: 13 }}>{day.date}</span>
               <span style={{ color: "rgba(255,255,255,.4)", fontSize: 11 }}>{items.length} item{items.length !== 1 ? "s" : ""}</span>
             </div>

@@ -418,7 +418,7 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
           }}
         >
           {open ? <ChevronDown size={18} color="#ffffff" /> : <ChevronRight size={18} color="#ffffff" />}
-          <span style={{ fontSize: 16, fontWeight: 700, color: "#ffffff", fontFamily: "'Fjalla One', Georgia, sans-serif" }}>
+          <span style={{ fontSize: 16, fontWeight: 700, color: "#ffffff", fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.025em" }}>
             Trip Information
           </span>
         </button>

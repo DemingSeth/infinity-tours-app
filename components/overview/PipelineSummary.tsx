@@ -87,7 +87,7 @@ export default function PipelineSummary({ tours, currentHostId, onOpenTour }: {
         style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "14px 18px", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}
       >
         {open ? <ChevronDown size={18} color="#64748b" /> : <ChevronRight size={18} color="#64748b" />}
-        <span style={{ fontSize: 16, fontWeight: 700, color: BRAND.navy, fontFamily: "'Fjalla One', Georgia, sans-serif" }}>
+        <span style={{ fontSize: 16, fontWeight: 700, color: BRAND.navy, fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.025em" }}>
           Tour Pipeline Summary
         </span>
         <span style={{ fontSize: 12, color: "#94a3b8", marginLeft: "auto" }}>

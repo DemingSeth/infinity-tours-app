@@ -36,7 +36,7 @@ function BannerLibraryCard({ currentHostId }: { currentHostId: string }) {
             <ImageIcon size={20} />
           </div>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: BRAND.navy, fontFamily: "'Fjalla One', Georgia, sans-serif" }}>Banner Library</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: BRAND.navy, fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.025em" }}>Banner Library</div>
             <div style={{ fontSize: 12, color: "#64748b" }}>
               {count === null ? "Loading…" : `${count} approved image${count !== 1 ? "s" : ""}`} · Admin
             </div>

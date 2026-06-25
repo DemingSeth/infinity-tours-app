@@ -32,7 +32,7 @@ interface Props {
 }
 
 const cardStyle: React.CSSProperties = { background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 12, padding: 16 };
-const headingStyle: React.CSSProperties = { fontSize: 15, fontWeight: 700, color: BRAND.navy, fontFamily: "'Fjalla One',Georgia,sans-serif", marginBottom: 12 };
+const headingStyle: React.CSSProperties = { fontSize: 15, fontWeight: 700, color: BRAND.navy, fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.025em", marginBottom: 12 };
 
 export default function PostTripTab({ tour, days, initialPostTrip, initialReview, generalFeedback, currentUserId }: Props) {
   const [postTrip, setPostTrip] = useState<PostTripRow | null>(initialPostTrip);
@@ -96,7 +96,7 @@ export default function PostTripTab({ tour, days, initialPostTrip, initialReview
       {/* Debrief fields (host working notes) */}
       {DEBRIEF_FIELDS.map(({ key, label, placeholder }) => (
         <div key={key} style={cardStyle}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: BRAND.navy, fontFamily: "'Fjalla One',Georgia,sans-serif", marginBottom: 8 }}>{label}</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: BRAND.navy, fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.025em", marginBottom: 8 }}>{label}</div>
           <Tex
             value={(draft[key] as string) || ""}
             onChange={e => update({ [key]: e.target.value })}
@@ -247,7 +247,7 @@ export default function PostTripTab({ tour, days, initialPostTrip, initialReview
 
       {/* 4. Social / Share placeholder */}
       <div style={{ background: "#f8fafc", border: "1.5px dashed #e2e8f0", borderRadius: 12, padding: 16, opacity: 0.85 }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: "#94a3b8", fontFamily: "'Fjalla One',Georgia,sans-serif", marginBottom: 4 }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: "#94a3b8", fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.025em", marginBottom: 4 }}>
           Social / Share
         </div>
         <div style={{ fontSize: 12, color: "#cbd5e1" }}>Post-trip social sharing coming soon.</div>
@@ -364,7 +364,7 @@ function PostTripSurvey({ tourId, hostId, initialReview }: {
 }
 
 function Label({ children }: { children: React.ReactNode }) {
-  return <div style={{ fontSize: 13, fontWeight: 700, color: BRAND.navy, fontFamily: "'Fjalla One',Georgia,sans-serif", marginBottom: 8 }}>{children}</div>;
+  return <div style={{ fontSize: 13, fontWeight: 700, color: BRAND.navy, fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.025em", marginBottom: 8 }}>{children}</div>;
 }
 
 function ReadRow({ label, children }: { label: string; children: React.ReactNode }) {
