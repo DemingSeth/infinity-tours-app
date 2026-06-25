@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import BrandLockup from "@/components/shared/BrandLockup";
 import { BRAND, expandStateName, BANNER_OVERLAY_GRADIENT, BANNER_TEXT_SHADOW } from "@/lib/helpers";
 
 // The dark navy / banner-photo header tile (logo, role badge, tour name,
@@ -46,10 +47,13 @@ export default function ItineraryHeaderTile({
       <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16, minWidth: 0, flex: 1 }}>
           {print ? (
+            // Print/PDF: keep the full lockup raster — live web fonts are unreliable
+            // in Safari's window.print(), and raster sharpness is fine on paper.
             // eslint-disable-next-line @next/next/no-img-element
             <img src="/infinity-lockup-light.png" alt="Infinity Tours + Events" style={{ height: 64, width: "auto", flexShrink: 0 }} />
           ) : (
-            <Image src="/infinity-lockup-light.png" alt="Infinity Tours + Events" width={0} height={0} sizes="260px" style={{ height: 64, width: "auto", flexShrink: 0 }} />
+            // On-screen: crisp mark PNG + live Fjalla One wordmark.
+            <BrandLockup height={64} variant="light" />
           )}
           <div style={{ minWidth: 0 }}>
             <h1 style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", color: "#fff", fontSize: 22, fontWeight: 700, lineHeight: 1.12, margin: "0 0 4px", overflowWrap: "break-word", textShadow }}>

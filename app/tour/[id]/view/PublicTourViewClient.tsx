@@ -114,7 +114,7 @@ export default function PublicTourViewClient({ tourId, tourName, tourDestination
         <div style={{ background: "#fff", borderRadius: 16, overflow: "hidden", boxShadow: "0 24px 80px rgba(0,0,0,0.3)" }}>
           <div style={{ padding: "28px 32px 22px", textAlign: "center", borderBottom: "1px solid #f1f5f9" }}>
             <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
-              <InfinityLogoImg height={48} showText={false} />
+              <InfinityLogoImg height={48} />
             </div>
             <div style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", fontWeight: 700, fontSize: 18, color: BRAND.navy }}>
               {tourName}

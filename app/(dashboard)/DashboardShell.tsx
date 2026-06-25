@@ -4,7 +4,7 @@ import { useRouter, usePathname } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import type { TourHostRow } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
-import Image from "next/image";
+import BrandLockup from "@/components/shared/BrandLockup";
 import { KanbanSquare, LayoutGrid, FileText } from "lucide-react";
 import { BRAND } from "@/lib/helpers";
 
@@ -46,8 +46,8 @@ export default function DashboardShell({ children, user, tourHost }: Props) {
           onClick={() => router.push("/dashboard")}
           style={{ cursor: "pointer", display: "flex", alignItems: "center" }}
         >
-          {/* Full brand lockup (mark + wordmark, single image). Light on navy. */}
-          <Image src="/infinity-lockup-light.png" alt="Infinity Tours + Events" width={0} height={0} sizes="260px" style={{ height: 52, width: "auto" }} />
+          {/* Brand lockup: crisp mark PNG + live Fjalla One wordmark. Light on navy. */}
+          <BrandLockup height={52} variant="light" />
         </div>
 
         {/* Primary nav */}

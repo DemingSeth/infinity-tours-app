@@ -48,7 +48,7 @@ export default function LoginPage() {
           {/* Brand header — light background, image logo looks natural here */}
           <div style={{ padding: "28px 32px 22px", textAlign: "center", borderBottom: "1px solid #f1f5f9" }}>
             <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
-              <InfinityLogoImg height={80} showText={false} />
+              <InfinityLogoImg height={80} />
             </div>
             <div style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", fontWeight: 700, fontSize: 18, color: BRAND.navy, letterSpacing: 0.5 }}>
               INFINITY
