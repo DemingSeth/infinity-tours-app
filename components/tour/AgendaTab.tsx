@@ -187,7 +187,7 @@ function Modal({ title, onClose, children, wide }: {
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "40px 16px", overflowY: "auto" }}>
       <div style={{ background: "#fff", borderRadius: 16, padding: 24, width: "100%", maxWidth: wide ? 680 : 420, boxShadow: "0 20px 60px rgba(0,0,0,.2)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <span style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: 16, fontWeight: 700, color: BRAND.navy }}>{title}</span>
+          <span style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", fontSize: 16, fontWeight: 700, color: BRAND.navy }}>{title}</span>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 4 }}><I n="x" s={16} /></button>
         </div>
         {children}
@@ -430,7 +430,7 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
 
   return (
     <div style={{ padding: 16, background: "#f8fafc", borderTop: "1.5px solid #e2e8f0" }} onClick={e => e.stopPropagation()}>
-      <div style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: 13, fontWeight: 700, color: BRAND.navy, marginBottom: 12 }}>
+      <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", fontSize: 13, fontWeight: 700, color: BRAND.navy, marginBottom: 12 }}>
         {isEdit ? "Edit Item" : "New Itinerary Item"}
       </div>
 
@@ -1164,7 +1164,7 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
       {/* Preview role buttons — primary action, prominent at the top */}
       {days.length > 0 && (
         <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 12, padding: 16, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: BRAND.navy, fontFamily: "'Cormorant Garamond',Georgia,serif", marginBottom: 2 }}>Preview the Itinerary</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: BRAND.navy, fontFamily: "'Fjalla One',Georgia,sans-serif", marginBottom: 2 }}>Preview the Itinerary</div>
           <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 12 }}>See exactly what each role sees on the shared view, then share the link.</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {/* One preview per active participant persona (Tour Host = the editor). */}
@@ -1179,7 +1179,7 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
             })}
             <button onClick={() => setLinksOpen(true)}
               title="Open the per-role access links below"
-              style={{ flex: "1 1 140px", minWidth: 130, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, background: BRAND.teal, color: "#fff", border: "none", borderRadius: 10, padding: "12px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+              style={{ flex: "1 1 140px", minWidth: 130, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, background: BRAND.blue, color: "#fff", border: "none", borderRadius: 10, padding: "12px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                 <I n="link" s={15} />Share Links
               </button>
             {/* Print / Save as PDF — full itinerary, or scoped to one role's view
@@ -1244,7 +1244,7 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: BRAND.navy, fontFamily: "'Cormorant Garamond',Georgia,serif" }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: BRAND.navy, fontFamily: "'Fjalla One',Georgia,sans-serif" }}>
             {days.length} day{days.length !== 1 ? "s" : ""} planned
           </span>
           {pastDays.length > 0 && (
@@ -1283,9 +1283,9 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
                 onClick={() => toggleDayCollapse(day.id)}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <Image src="/infinity-logo.png" alt="" width={0} height={0} sizes="60px" style={{ height: 36, width: "auto" }} />
+                  <Image src="/infinity-mark-light.png" alt="" width={0} height={0} sizes="60px" style={{ height: 36, width: "auto" }} />
                   <div style={{ width: 1, height: 20, background: "rgba(255,255,255,.2)" }} />
-                  <span style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", color: "#fff", fontWeight: 700, fontSize: 15 }}>Day {day.day_number}</span>
+                  <span style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", color: "#fff", fontWeight: 700, fontSize: 15 }}>Day {day.day_number}</span>
                   {editingDayId === day.id ? (
                     <div style={{ display: "flex", alignItems: "center", gap: 5 }} onClick={e => e.stopPropagation()}>
                       <input
@@ -1301,7 +1301,7 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
                       />
                       <button
                         onClick={() => updateDayDate(day.id, editingDayDateVal)}
-                        style={{ background: BRAND.teal, border: "none", borderRadius: 4, padding: "3px 8px", cursor: "pointer", color: "#fff", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}
+                        style={{ background: BRAND.blue, border: "none", borderRadius: 4, padding: "3px 8px", cursor: "pointer", color: "#fff", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}
                       >✓</button>
                       <button
                         onClick={() => setEditingDayId(null)}
@@ -1312,7 +1312,7 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
                     </div>
                   ) : (
                     <>
-                      <span style={{ color: "#7dd3d8", fontSize: 13 }}>{day.date}</span>
+                      <span style={{ color: "#D1E8FF", fontSize: 13 }}>{day.date}</span>
                       <button
                         onClick={e => {
                           e.stopPropagation();
@@ -1391,12 +1391,12 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
               <Inp value={newDayDate} onChange={e => setNewDayDate(e.target.value)} placeholder="Apr 14" autoFocus />
               {suggestedDateStr && newDayDate !== suggestedDateStr && (
                 <button onClick={() => setNewDayDate(suggestedDateStr)}
-                  style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: 11, color: BRAND.teal, textAlign: "left", marginTop: 3 }}>
+                  style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: 11, color: BRAND.blue, textAlign: "left", marginTop: 3 }}>
                   Suggested: {suggestedDateStr} - tap to use
                 </button>
               )}
               {suggestedDateStr && newDayDate === suggestedDateStr && (
-                <div style={{ fontSize: 11, color: BRAND.teal, marginTop: 3 }}>Suggested based on existing days</div>
+                <div style={{ fontSize: 11, color: BRAND.blue, marginTop: 3 }}>Suggested based on existing days</div>
               )}
             </Field>
             <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "#f8fafc", borderRadius: 9, border: "1.5px solid #e2e8f0" }}>

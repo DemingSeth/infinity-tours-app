@@ -116,7 +116,7 @@ export default function PublicTourViewClient({ tourId, tourName, tourDestination
             <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
               <InfinityLogoImg height={48} showText={false} />
             </div>
-            <div style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 700, fontSize: 18, color: BRAND.navy }}>
+            <div style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", fontWeight: 700, fontSize: 18, color: BRAND.navy }}>
               {tourName}
             </div>
             {(tourDestination || tourDates) && (
@@ -127,7 +127,7 @@ export default function PublicTourViewClient({ tourId, tourName, tourDestination
           </div>
 
           <div style={{ padding: "28px 32px 32px" }}>
-            <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 20, fontWeight: 700, color: BRAND.navy, margin: "0 0 6px" }}>
+            <h2 style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", fontSize: 20, fontWeight: 700, color: BRAND.navy, margin: "0 0 6px" }}>
               View Itinerary
             </h2>
             <p style={{ fontSize: 12, color: "#64748b", margin: "0 0 20px" }}>

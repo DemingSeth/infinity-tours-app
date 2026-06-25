@@ -190,8 +190,8 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
               {!print && (collapsed
                 ? <ChevronRight size={16} color="rgba(255,255,255,.7)" style={{ flexShrink: 0 }} />
                 : <ChevronDown size={16} color="rgba(255,255,255,.7)" style={{ flexShrink: 0 }} />)}
-              <span style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", color: "#fff", fontWeight: 700, fontSize: 15 }}>Day {day.day_number}</span>
-              <span style={{ color: "#7dd3d8", fontSize: 13 }}>{day.date}</span>
+              <span style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", color: "#fff", fontWeight: 700, fontSize: 15 }}>Day {day.day_number}</span>
+              <span style={{ color: "#D1E8FF", fontSize: 13 }}>{day.date}</span>
               <span style={{ color: "rgba(255,255,255,.4)", fontSize: 11 }}>{items.length} item{items.length !== 1 ? "s" : ""}</span>
             </div>
             {!collapsed && (
@@ -217,7 +217,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                             ? { color: "#15803d", background: "#dcfce7" }
                             : mm.type === "hotel_breakfast"
                             ? { color: "#0369a1", background: "#e0f2fe" }
-                            : { color: BRAND.teal, background: "#f0fdfa" };
+                            : { color: BRAND.blue, background: "#f0fdfa" };
                           const label = mm.type === "disney_dining"
                             ? `Disney Dining Dollars${amt != null ? ` $${amt}` : ""}`
                             : mm.type === "cash"
@@ -250,7 +250,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                       {/* Map links are useless on paper — omit them entirely in print. */}
                       {!print && vis.mapLink && item.map_link?.trim() && (
                         <div style={{ marginTop: mt(4) }}>
-                          <GoogleMapsLink address={item.address} mapLink={item.map_link} color={BRAND.teal} fontSize={11} />
+                          <GoogleMapsLink address={item.address} mapLink={item.map_link} color={BRAND.blue} fontSize={11} />
                         </div>
                       )}
 
@@ -263,7 +263,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                             href={item.website}
                             target="_blank"
                             rel="noopener noreferrer"
-                            style={{ color: BRAND.teal, textDecoration: "none", fontWeight: 600 }}
+                            style={{ color: BRAND.blue, textDecoration: "none", fontWeight: 600 }}
                           >
                             Website
                           </a>

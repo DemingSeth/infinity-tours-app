@@ -111,7 +111,7 @@ export default function OverviewTab({ tour, members, isOwner, onChange }: Props)
       {/* Trip details card */}
       <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 14, padding: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: BRAND.navy, fontFamily: "'Cormorant Garamond', Georgia, serif" }}>Trip Details</span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: BRAND.navy, fontFamily: "'Fjalla One', Georgia, sans-serif" }}>Trip Details</span>
           {isOwner && !editing && (
             <button onClick={startEdit} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "transparent", color: BRAND.navy, border: `1.5px solid ${BRAND.navy}`, borderRadius: 8, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
               <I n="edit" s={12} />Edit

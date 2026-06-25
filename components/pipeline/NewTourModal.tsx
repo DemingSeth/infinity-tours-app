@@ -67,7 +67,7 @@ export default function NewTourModal({ onClose, onCreate }: Props) {
     <div style={{ position: "fixed", inset: 0, zIndex: 300, background: "rgba(10,25,40,.65)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
       <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 24px 80px rgba(0,0,0,.3)", width: "100%", maxWidth: 520, maxHeight: "92vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 24px", borderBottom: "1.5px solid #f1f5f9", background: BRAND.navy }}>
-          <span style={{ fontSize: 15, fontWeight: 700, color: "#fff", fontFamily: "'Cormorant Garamond', Georgia, serif", letterSpacing: 0.3 }}>New Tour</span>
+          <span style={{ fontSize: 15, fontWeight: 700, color: "#fff", fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: 0.3 }}>New Tour</span>
           <button onClick={onClose} style={{ background: "rgba(255,255,255,.15)", border: "none", cursor: "pointer", color: "#fff", borderRadius: 6, padding: "4px 8px", fontSize: 18, lineHeight: 1, display: "flex", alignItems: "center" }}>×</button>
         </div>
 

@@ -36,7 +36,7 @@ function BannerLibraryCard({ currentHostId }: { currentHostId: string }) {
             <ImageIcon size={20} />
           </div>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: BRAND.navy, fontFamily: "'Cormorant Garamond', Georgia, serif" }}>Banner Library</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: BRAND.navy, fontFamily: "'Fjalla One', Georgia, sans-serif" }}>Banner Library</div>
             <div style={{ fontSize: 12, color: "#64748b" }}>
               {count === null ? "Loading…" : `${count} approved image${count !== 1 ? "s" : ""}`} · Admin
             </div>
@@ -69,7 +69,7 @@ export default function OverviewClient({ tours, currentHostId, viewerRole }: Pro
     <div data-viewer-role={viewerRole} style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       <header style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
         <div>
-          <h2 style={{ fontSize: 26, fontWeight: 700, color: BRAND.navy, fontFamily: "'Cormorant Garamond', Georgia, serif", margin: 0, letterSpacing: -0.5 }}>
+          <h2 style={{ fontSize: 26, fontWeight: 700, color: BRAND.navy, fontFamily: "'Fjalla One', Georgia, sans-serif", margin: 0, letterSpacing: -0.5 }}>
             Infinity Tours Dashboard
           </h2>
           <p style={{ color: "#64748b", fontSize: 13, marginTop: 4, marginBottom: 0 }}>

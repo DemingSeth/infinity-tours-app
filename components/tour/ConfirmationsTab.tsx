@@ -43,23 +43,23 @@ export default function ConfirmationsTab({ tourId, days, onDaysChange, isOwner }
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
         <div style={{ flex: 1, minWidth: 160, background: "#f0fdf4", border: "1.5px solid #bbf7d0", borderRadius: 12, padding: "12px 16px" }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: "#15803d", textTransform: "uppercase", letterSpacing: 0.5 }}>Confirmed</div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: "#16a34a", fontFamily: "'Cormorant Garamond',Georgia,serif" }}>{confirmed}</div>
+          <div style={{ fontSize: 24, fontWeight: 800, color: "#16a34a", fontFamily: "'Fjalla One',Georgia,sans-serif" }}>{confirmed}</div>
         </div>
         <div style={{ flex: 1, minWidth: 160, background: "#fff7ed", border: "1.5px solid #fed7aa", borderRadius: 12, padding: "12px 16px" }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: "#c2410c", textTransform: "uppercase", letterSpacing: 0.5 }}>Unconfirmed</div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: "#ea580c", fontFamily: "'Cormorant Garamond',Georgia,serif" }}>{unconfirmed}</div>
+          <div style={{ fontSize: 24, fontWeight: 800, color: "#ea580c", fontFamily: "'Fjalla One',Georgia,sans-serif" }}>{unconfirmed}</div>
         </div>
         <div style={{ flex: 1, minWidth: 160, background: "#f8fafc", border: "1.5px solid #e2e8f0", borderRadius: 12, padding: "12px 16px" }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.5 }}>No Confirmation Needed</div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: "#64748b", fontFamily: "'Cormorant Garamond',Georgia,serif" }}>{notRequired}</div>
+          <div style={{ fontSize: 24, fontWeight: 800, color: "#64748b", fontFamily: "'Fjalla One',Georgia,sans-serif" }}>{notRequired}</div>
         </div>
       </div>
 
       {days.map(day => (
         <div key={day.id} style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 12, overflow: "hidden" }}>
           <div style={{ background: BRAND.navy, padding: "9px 16px", display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", color: "#fff", fontWeight: 700, fontSize: 14 }}>Day {day.day_number}</span>
-            <span style={{ color: "#7dd3d8", fontSize: 12 }}>{day.date}</span>
+            <span style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", color: "#fff", fontWeight: 700, fontSize: 14 }}>Day {day.day_number}</span>
+            <span style={{ color: "#D1E8FF", fontSize: 12 }}>{day.date}</span>
           </div>
           {day.agenda_items.length === 0 ? (
             <div style={{ color: "#cbd5e1", fontSize: 12, padding: "12px 16px" }}>No items</div>

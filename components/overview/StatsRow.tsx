@@ -69,7 +69,7 @@ export default function StatsRow({ tours }: { tours: TourWithHostAndMembers[] })
                 {st.label}
               </span>
             </div>
-            <div style={{ fontSize: 32, fontWeight: 800, color: BRAND.navy, lineHeight: 1, fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
+            <div style={{ fontSize: 32, fontWeight: 800, color: BRAND.navy, lineHeight: 1, fontFamily: "'Fjalla One', Georgia, sans-serif" }}>
               {counts[st.id]}
             </div>
             <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>
@@ -98,11 +98,11 @@ export default function StatsRow({ tours }: { tours: TourWithHostAndMembers[] })
           <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8, background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 9, padding: "6px 10px" }}>
               <span style={{ fontSize: 10.5, fontWeight: 700, color: "#15803d", textTransform: "uppercase", letterSpacing: 0.5 }}>Received</span>
-              <span style={{ fontSize: 17, fontWeight: 800, color: "#16a34a", fontFamily: "'Cormorant Garamond', Georgia, serif" }}>{usd(received)}</span>
+              <span style={{ fontSize: 17, fontWeight: 800, color: "#16a34a", fontFamily: "'Fjalla One', Georgia, sans-serif" }}>{usd(received)}</span>
             </div>
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8, background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 9, padding: "6px 10px" }}>
               <span style={{ fontSize: 10.5, fontWeight: 700, color: "#b45309", textTransform: "uppercase", letterSpacing: 0.5 }}>Pending</span>
-              <span style={{ fontSize: 17, fontWeight: 800, color: "#d97706", fontFamily: "'Cormorant Garamond', Georgia, serif" }}>{usd(pending)}</span>
+              <span style={{ fontSize: 17, fontWeight: 800, color: "#d97706", fontFamily: "'Fjalla One', Georgia, sans-serif" }}>{usd(pending)}</span>
             </div>
           </div>
         </div>
@@ -122,7 +122,7 @@ export default function StatsRow({ tours }: { tours: TourWithHostAndMembers[] })
               Coming Soon
             </span>
           </div>
-          <div style={{ fontSize: 26, fontWeight: 800, color: "#cbd5e1", lineHeight: 1, fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
+          <div style={{ fontSize: 26, fontWeight: 800, color: "#cbd5e1", lineHeight: 1, fontFamily: "'Fjalla One', Georgia, sans-serif" }}>
             —
           </div>
           <div style={{ fontSize: 11, color: "#cbd5e1", marginTop: 5 }}>
@@ -150,7 +150,7 @@ function ComingSoonTile({ label, hint }: { label: string; hint: string }) {
           Coming Soon
         </span>
       </div>
-      <div style={{ fontSize: 26, fontWeight: 800, color: "#cbd5e1", lineHeight: 1, fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
+      <div style={{ fontSize: 26, fontWeight: 800, color: "#cbd5e1", lineHeight: 1, fontFamily: "'Fjalla One', Georgia, sans-serif" }}>
         —
       </div>
       <div style={{ fontSize: 11, color: "#cbd5e1", marginTop: 5 }}>{hint}</div>

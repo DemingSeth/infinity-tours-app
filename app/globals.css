@@ -1,17 +1,18 @@
-@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Fjalla+One&display=swap");
 
 @import "tailwindcss";
 
 :root {
-  --navy: #0d2137;
-  --teal: #2ec4b6;
-  --gold: #c9a84c;
-  --cream: #faf8f4;
+  /* 2025 style guide palette */
+  --navy: #0B1957;
+  --blue: #5784E6;
+  --light-blue: #D1E8FF;
+  --cream: #F8F3EA;
 }
 
 html,
 body {
-  font-family: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
   background: var(--cream);
   color: #1e293b;
 }

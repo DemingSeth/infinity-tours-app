@@ -154,13 +154,13 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
                 }}
                 onBlur={() => { if (nameVal.trim()) handleTourChange({ name: nameVal.trim() }); setEditingName(false); }}
                 autoFocus
-                style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 22, fontWeight: 700, color: BRAND.navy, border: "none", borderBottom: `2px solid ${BRAND.navy}`, outline: "none", background: "transparent", padding: "0 2px", minWidth: 200 }}
+                style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", fontSize: 22, fontWeight: 700, color: BRAND.navy, border: "none", borderBottom: `2px solid ${BRAND.navy}`, outline: "none", background: "transparent", padding: "0 2px", minWidth: 200 }}
               />
             ) : (
               <h2
                 onClick={isOwner ? () => { setNameVal(tour.name); setEditingName(true); } : undefined}
                 title={isOwner ? "Click to edit tour name" : undefined}
-                style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 22, fontWeight: 700, color: BRAND.navy, margin: 0, cursor: isOwner ? "text" : "default" }}
+                style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", fontSize: 22, fontWeight: 700, color: BRAND.navy, margin: 0, cursor: isOwner ? "text" : "default" }}
               >
                 {tour.name}
               </h2>
@@ -271,7 +271,7 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
       {cascadePrompt && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
           <div style={{ background: "#fff", borderRadius: 16, padding: 24, maxWidth: 420, width: "100%", boxShadow: "0 20px 60px rgba(0,0,0,.2)" }}>
-            <div style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: 17, fontWeight: 700, color: BRAND.navy, marginBottom: 10 }}>
+            <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", fontSize: 17, fontWeight: 700, color: BRAND.navy, marginBottom: 10 }}>
               Update Itinerary Dates?
             </div>
             <p style={{ fontSize: 13, color: "#475569", margin: "0 0 18px", lineHeight: 1.6 }}>

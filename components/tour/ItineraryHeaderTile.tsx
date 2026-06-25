@@ -48,13 +48,13 @@ export default function ItineraryHeaderTile({
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             {print ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src="/infinity-logo.png" alt="Infinity Tours" style={{ height: 22, width: "auto" }} />
+              <img src="/infinity-mark-light.png" alt="Infinity Tours" style={{ height: 22, width: "auto" }} />
             ) : (
-              <Image src="/infinity-logo.png" alt="Infinity Tours" width={0} height={0} sizes="80px" style={{ height: 22, width: "auto" }} />
+              <Image src="/infinity-mark-light.png" alt="Infinity Tours" width={0} height={0} sizes="80px" style={{ height: 22, width: "auto" }} />
             )}
             <div style={{ display: "flex", flexDirection: "column", lineHeight: 1 }}>
-              <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 700, fontSize: 12, color: "#fff", letterSpacing: 0.5, textShadow: wordmarkShadow }}>INFINITY</span>
-              <span style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontWeight: 400, fontSize: 6, color: "rgba(255,255,255,0.6)", letterSpacing: 2, textTransform: "uppercase" }}>TOURS + EVENTS</span>
+              <span style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", fontWeight: 700, fontSize: 12, color: "#fff", letterSpacing: 0.5, textShadow: wordmarkShadow }}>INFINITY</span>
+              <span style={{ fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif", fontWeight: 400, fontSize: 6, color: "rgba(255,255,255,0.6)", letterSpacing: 2, textTransform: "uppercase" }}>TOURS + EVENTS</span>
             </div>
           </div>
           <div style={bannerUrl
@@ -63,11 +63,11 @@ export default function ItineraryHeaderTile({
             {badgeLabel}
           </div>
         </div>
-        <h1 style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", color: "#fff", fontSize: 22, fontWeight: 700, margin: "0 0 4px", textShadow }}>
+        <h1 style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", color: "#fff", fontSize: 22, fontWeight: 700, margin: "0 0 4px", textShadow }}>
           {tourName}
         </h1>
         {(tourDestination || tourDates) && (
-          <div style={{ color: bannerUrl ? "#e2e8f0" : "#7dd3d8", fontSize: 13, textShadow }}>
+          <div style={{ color: bannerUrl ? "#e2e8f0" : "#D1E8FF", fontSize: 13, textShadow }}>
             {[expandStateName(tourDestination), tourDates].filter(Boolean).join(" · ")}
           </div>
         )}

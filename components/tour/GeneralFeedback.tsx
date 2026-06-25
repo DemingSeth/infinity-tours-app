@@ -71,10 +71,10 @@ export default function GeneralFeedback({
   if (!expanded) {
     return (
       <div style={{ marginTop: 24, padding: "16px 18px", background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 12, boxShadow: "0 1px 4px rgba(0,0,0,.04)", textAlign: "center" }}>
-        <div style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: 17, fontWeight: 700, color: BRAND.navy }}>How was your tour?</div>
+        <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", fontSize: 17, fontWeight: 700, color: BRAND.navy }}>How was your tour?</div>
         <div style={{ fontSize: 12.5, color: "#64748b", margin: "4px 0 12px" }}>Share your feedback with the team.</div>
         <button type="button" onClick={() => setExpanded(true)}
-          style={{ display: "inline-flex", alignItems: "center", gap: 7, background: BRAND.teal, color: "#fff", border: "none", borderRadius: 10, padding: "9px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+          style={{ display: "inline-flex", alignItems: "center", gap: 7, background: BRAND.blue, color: "#fff", border: "none", borderRadius: 10, padding: "9px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
           <Star size={15} /> Share Feedback
         </button>
       </div>
@@ -93,7 +93,7 @@ export default function GeneralFeedback({
       boxShadow: isBanner ? "0 6px 24px rgba(15,33,55,.25)" : "0 1px 4px rgba(0,0,0,.04)",
       color: isBanner ? "#fff" : "#1e293b",
     }}>
-      <div style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: isBanner ? 20 : 17, fontWeight: 700, color: isBanner ? "#fff" : BRAND.navy }}>
+      <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", fontSize: isBanner ? 20 : 17, fontWeight: 700, color: isBanner ? "#fff" : BRAND.navy }}>
         How was your tour?
       </div>
       <div style={{ fontSize: 12.5, color: isBanner ? "rgba(255,255,255,.8)" : "#64748b", margin: "4px 0 14px" }}>
@@ -109,12 +109,12 @@ export default function GeneralFeedback({
             <button key={opt.v} type="button" onClick={() => setSentiment(opt.v)}
               style={{
                 flex: 1, minWidth: 0, minHeight: 54, padding: "8px 4px", borderRadius: 10,
-                border: `2px solid ${active ? BRAND.teal : (isBanner ? "rgba(255,255,255,.25)" : "#e2e8f0")}`,
+                border: `2px solid ${active ? BRAND.blue : (isBanner ? "rgba(255,255,255,.25)" : "#e2e8f0")}`,
                 background: active ? "#f0fdfa" : (isBanner ? "rgba(255,255,255,.06)" : "#fff"),
                 cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, fontFamily: "inherit",
               }}>
               <Icon size={24} color={active ? color : (isBanner ? "rgba(255,255,255,.8)" : "#94a3b8")} />
-              <span style={{ fontSize: 11, fontWeight: 700, color: active ? BRAND.teal : (isBanner ? "rgba(255,255,255,.85)" : "#94a3b8") }}>{opt.l}</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: active ? BRAND.blue : (isBanner ? "rgba(255,255,255,.85)" : "#94a3b8") }}>{opt.l}</span>
             </button>
           );
         })}
@@ -141,7 +141,7 @@ export default function GeneralFeedback({
 
       <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
         <button type="button" onClick={submit} disabled={!sentiment || status === "saving"}
-          style={{ background: BRAND.teal, color: "#fff", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, fontWeight: 700, cursor: !sentiment || status === "saving" ? "default" : "pointer", fontFamily: "inherit", opacity: !sentiment || status === "saving" ? 0.6 : 1 }}>
+          style={{ background: BRAND.blue, color: "#fff", border: "none", borderRadius: 8, padding: "10px 20px", fontSize: 13, fontWeight: 700, cursor: !sentiment || status === "saving" ? "default" : "pointer", fontFamily: "inherit", opacity: !sentiment || status === "saving" ? 0.6 : 1 }}>
           {status === "saving" ? "Submitting…" : "Submit Feedback"}
         </button>
         {!isBanner && (

@@ -63,7 +63,7 @@ export function Btn({ children, onClick, variant, small, style, disabled }: {
     display: "inline-flex", alignItems: "center", gap: 5, cursor: disabled ? "default" : "pointer",
     fontFamily: "inherit", fontWeight: 600, border: "none", borderRadius: 8,
     padding: small ? "5px 11px" : "8px 16px", fontSize: small ? 11 : 12, opacity: disabled ? .6 : 1,
-    background: variant === "muted" ? "#f1f5f9" : variant === "ghost" ? "transparent" : variant === "teal" ? BRAND.teal : BRAND.navy,
+    background: variant === "muted" ? "#f1f5f9" : variant === "ghost" ? "transparent" : variant === "teal" ? BRAND.blue : BRAND.navy,
     color: variant === "muted" ? "#64748b" : variant === "ghost" ? "#64748b" : "#fff",
   };
   return <button onClick={onClick} disabled={disabled} style={{ ...base, ...style }}>{children}</button>;
@@ -81,7 +81,7 @@ export function Modal({ title, onClose, children, wide }: {
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "40px 16px", overflowY: "auto" }}>
       <div style={{ background: "#fff", borderRadius: 16, padding: 24, width: "100%", maxWidth: wide ? 680 : 420, boxShadow: "0 20px 60px rgba(0,0,0,.2)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <span style={{ fontFamily: "'Cormorant Garamond',Georgia,serif", fontSize: 16, fontWeight: 700, color: BRAND.navy }}>{title}</span>
+          <span style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", fontSize: 16, fontWeight: 700, color: BRAND.navy }}>{title}</span>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 4 }}><I n="x" s={16} /></button>
         </div>
         {children}

@@ -110,14 +110,14 @@ export default function ItemFeedback({ itemId, tourId, role, preview = false }: 
               onClick={() => setSentiment(opt.v)}
               style={{
                 flex: 1, minWidth: 0, minHeight: 46, padding: "6px 4px", borderRadius: 8,
-                border: `2px solid ${active ? BRAND.teal : "#e2e8f0"}`,
+                border: `2px solid ${active ? BRAND.blue : "#e2e8f0"}`,
                 background: active ? "#f0fdfa" : "#fff", cursor: "pointer",
                 display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3,
                 fontFamily: "inherit",
               }}
             >
               <Icon size={22} color={active ? color : "#94a3b8"} />
-              <span style={{ fontSize: 10, fontWeight: 700, color: active ? BRAND.teal : "#94a3b8" }}>{opt.l}</span>
+              <span style={{ fontSize: 10, fontWeight: 700, color: active ? BRAND.blue : "#94a3b8" }}>{opt.l}</span>
             </button>
           );
         })}

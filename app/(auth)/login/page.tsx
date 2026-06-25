@@ -50,16 +50,16 @@ export default function LoginPage() {
             <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
               <InfinityLogoImg height={80} showText={false} />
             </div>
-            <div style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 700, fontSize: 18, color: BRAND.navy, letterSpacing: 0.5 }}>
+            <div style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", fontWeight: 700, fontSize: 18, color: BRAND.navy, letterSpacing: 0.5 }}>
               INFINITY
             </div>
-            <div style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: 9, color: BRAND.navy, opacity: 0.45, letterSpacing: 3, textTransform: "uppercase", marginTop: 1 }}>
+            <div style={{ fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif", fontSize: 9, color: BRAND.navy, opacity: 0.45, letterSpacing: 3, textTransform: "uppercase", marginTop: 1 }}>
               TOURS + EVENTS
             </div>
           </div>
 
           <div style={{ padding: "28px 32px 32px" }}>
-          <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 22, fontWeight: 700, color: BRAND.navy, margin: "0 0 24px" }}>
+          <h2 style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", fontSize: 22, fontWeight: 700, color: BRAND.navy, margin: "0 0 24px" }}>
             Sign in
           </h2>
 

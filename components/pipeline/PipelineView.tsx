@@ -27,7 +27,7 @@ export default function PipelineView({
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 10 }}>
         <div>
-          <h2 style={{ fontSize: 26, fontWeight: 700, color: BRAND.navy, fontFamily: "'Cormorant Garamond', Georgia, serif", margin: 0, letterSpacing: -0.5 }}>
+          <h2 style={{ fontSize: 26, fontWeight: 700, color: BRAND.navy, fontFamily: "'Fjalla One', Georgia, sans-serif", margin: 0, letterSpacing: -0.5 }}>
             Tour Pipeline
           </h2>
           <p style={{ color: "#64748b", fontSize: 13, marginTop: 4, marginBottom: 0 }}>

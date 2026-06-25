@@ -31,9 +31,9 @@ const confBtnStyle: React.CSSProperties = {
 const HOTLINE_DISPLAY = "(801) 477-8963";
 const HOTLINE_TEL = "8014778963";
 
-// Infinity Tours brand blue (the periwinkle/slate band from the website footer).
-const INFINITY_BLUE = "#6B7FD7";
-const INFINITY_BLUE_DEEP = "#4f63c4";
+// Trip Information header band (navy) + emphasis accent (medium blue), 2025 guide.
+const INFINITY_BLUE = "#0B1957";
+const INFINITY_BLUE_DEEP = "#5784E6";
 
 const linkStyle: React.CSSProperties = { color: "#0369a1", textDecoration: "none", fontWeight: 600 };
 const dash = (v: string | null | undefined) => (v && v.trim() ? v : "—");
@@ -418,7 +418,7 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
           }}
         >
           {open ? <ChevronDown size={18} color="#ffffff" /> : <ChevronRight size={18} color="#ffffff" />}
-          <span style={{ fontSize: 16, fontWeight: 700, color: "#ffffff", fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
+          <span style={{ fontSize: 16, fontWeight: 700, color: "#ffffff", fontFamily: "'Fjalla One', Georgia, sans-serif" }}>
             Trip Information
           </span>
         </button>
@@ -475,7 +475,7 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
                 type="button"
                 onClick={save}
                 disabled={saving}
-                style={{ background: BRAND.teal, border: "none", borderRadius: 8, padding: "7px 16px", fontSize: 13, fontWeight: 700, color: "#fff", cursor: "pointer", fontFamily: "inherit", opacity: saving ? 0.6 : 1 }}
+                style={{ background: BRAND.blue, border: "none", borderRadius: 8, padding: "7px 16px", fontSize: 13, fontWeight: 700, color: "#fff", cursor: "pointer", fontFamily: "inherit", opacity: saving ? 0.6 : 1 }}
               >
                 {saving ? "Saving…" : "Save"}
               </button>

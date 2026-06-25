@@ -54,7 +54,7 @@ export default function BannerLibraryPicker({ tourDestination, currentUrl, onSel
                 onClick={() => setSelected(img.url)}
                 style={{ background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}
               >
-                <div style={{ position: "relative", width: "100%", aspectRatio: "4 / 3", borderRadius: 10, overflow: "hidden", border: `2px solid ${isSel ? BRAND.teal : "#e2e8f0"}`, background: "#f1f5f9" }}>
+                <div style={{ position: "relative", width: "100%", aspectRatio: "4 / 3", borderRadius: 10, overflow: "hidden", border: `2px solid ${isSel ? BRAND.blue : "#e2e8f0"}`, background: "#f1f5f9" }}>
                   <Image src={img.url} alt={img.label} fill sizes="200px" style={{ objectFit: "cover" }} />
                   {matches(img) && (
                     <span style={{ position: "absolute", top: 6, left: 6, background: "rgba(46,196,182,.9)", color: "#fff", fontSize: 9, fontWeight: 700, borderRadius: 5, padding: "2px 6px", textTransform: "uppercase", letterSpacing: 0.4 }}>
@@ -62,7 +62,7 @@ export default function BannerLibraryPicker({ tourDestination, currentUrl, onSel
                     </span>
                   )}
                   {isSel && (
-                    <span style={{ position: "absolute", top: 6, right: 6, width: 22, height: 22, borderRadius: "50%", background: BRAND.teal, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 4px rgba(0,0,0,.3)" }}>
+                    <span style={{ position: "absolute", top: 6, right: 6, width: 22, height: 22, borderRadius: "50%", background: BRAND.blue, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 4px rgba(0,0,0,.3)" }}>
                       <Check size={14} strokeWidth={3} />
                     </span>
                   )}

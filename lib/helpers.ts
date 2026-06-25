@@ -3,10 +3,14 @@ import type { TourMemberRow, RoomConfig, TripInfo, Role } from "@/lib/types";
 // ─── Brand ────────────────────────────────────────────────────────────────────
 
 export const BRAND = {
-  navy: "#0d2137",
-  teal: "#2ec4b6",
-  gold: "#c9a84c",
-  cream: "#faf8f4",
+  // 2025 style guide palette.
+  navy: "#0B1957",       // primary dark — headers, footer bands, dark text
+  blue: "#5784E6",       // primary accent — buttons, active states, links, highlights
+  lightBlue: "#D1E8FF",  // soft accent panels / subtle backgrounds
+  cream: "#F8F3EA",      // page background / surface
+  // Temporary alias: the nav-hidden quote builder still references BRAND.teal.
+  // Kept ONLY so it keeps compiling; remove when the quote builder is redesigned.
+  teal: "#5784E6",
   phone: "801-477-8963",
   email: "info@infinitytours.us",
 } as const;

@@ -46,10 +46,10 @@ export default function DashboardShell({ children, user, tourHost }: Props) {
           onClick={() => router.push("/dashboard")}
           style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}
         >
-          <Image src="/infinity-logo.png" alt="Infinity Tours" width={0} height={0} sizes="80px" style={{ height: 48, width: "auto" }} />
+          <Image src="/infinity-mark-light.png" alt="Infinity Tours" width={0} height={0} sizes="80px" style={{ height: 48, width: "auto" }} />
           <div style={{ display: "flex", flexDirection: "column", lineHeight: 1 }}>
-            <span style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 700, fontSize: 14, color: "#fff", letterSpacing: 0.5 }}>INFINITY</span>
-            <span style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontWeight: 400, fontSize: 7, color: "rgba(255,255,255,0.6)", letterSpacing: 2, textTransform: "uppercase" }}>TOURS + EVENTS</span>
+            <span style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", fontWeight: 700, fontSize: 14, color: "#fff", letterSpacing: 0.5 }}>INFINITY</span>
+            <span style={{ fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif", fontWeight: 400, fontSize: 7, color: "rgba(255,255,255,0.6)", letterSpacing: 2, textTransform: "uppercase" }}>TOURS + EVENTS</span>
           </div>
         </div>
 
@@ -82,7 +82,7 @@ export default function DashboardShell({ children, user, tourHost }: Props) {
               width: 30,
               height: 30,
               borderRadius: "50%",
-              background: BRAND.teal,
+              background: BRAND.blue,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
