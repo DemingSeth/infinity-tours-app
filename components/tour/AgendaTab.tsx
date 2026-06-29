@@ -350,6 +350,18 @@ function mealLegacyType(entries: MealMoneyForm[]): "group" | "stipend" | "disney
 const TYPE_COLORS = AGENDA_TYPE_COLORS;
 
 const UNDO_WINDOW_MS = 5000;
+
+// Persist a contiguous 1..N renumber for the given (already-ordered) days,
+// writing only the rows whose sort_order / day_number actually change. Used after
+// a permanent day delete so the print / role / confirmation views never show a
+// gap. Fire-and-forget — the local state is updated separately by the caller.
+function persistDayRenumber(supabase: ReturnType<typeof createClient>, survivors: AgendaDayWithItems[]) {
+  survivors.forEach((d, i) => {
+    if (d.sort_order !== i + 1 || d.day_number !== i + 1) {
+      supabase.from("agenda_days").update({ sort_order: i + 1, day_number: i + 1 }).eq("id", d.id);
+    }
+  });
+}
 const STORAGE_BUCKET = "agenda-images";
 const STORAGE_MARKER = `/${STORAGE_BUCKET}/`;
 
@@ -403,7 +415,7 @@ function ImageUploader({ tourId, itemId, urls, onChange }: {
   );
 }
 
-function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, itemId, activePersonas, personaLabels, confirmationControl }: {
+function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, itemId, activePersonas, personaLabels, confirmationControl, moveDayOptions, moveTargetDayId, onMoveTargetChange }: {
   form: ItemFormState;
   setForm: React.Dispatch<React.SetStateAction<ItemFormState>>;
   onSave: () => void; onCancel: () => void; isEdit?: boolean; saving?: boolean;
@@ -414,6 +426,11 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
   // control — which writes the same agenda_items record as the Confirmations
   // page — and the inline "No confirmation required" checkbox is hidden.
   confirmationControl?: React.ReactNode;
+  // "Move to day" control (edit modal only). Rendered when there is more than one
+  // day; selecting a different day reassigns the item on save.
+  moveDayOptions?: { value: string; label: string }[];
+  moveTargetDayId?: string;
+  onMoveTargetChange?: (dayId: string) => void;
 }) {
   const f = (v: Partial<ItemFormState>) => setForm(p => ({ ...p, ...v }));
   // For NEW items, recompute the smart defaults when type/travel changes:
@@ -435,6 +452,13 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
       <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 13, fontWeight: 700, color: BRAND.navy, marginBottom: 12 }}>
         {isEdit ? "Edit Item" : "New Itinerary Item"}
       </div>
+
+      {isEdit && moveDayOptions && moveDayOptions.length > 1 && (
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>Move to day</label>
+          <Sel options={moveDayOptions} value={moveTargetDayId ?? ""} onChange={e => onMoveTargetChange?.(e.target.value)} />
+        </div>
+      )}
 
       <div style={{ marginBottom: 14 }}>
         <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>Type</label>
@@ -863,6 +887,10 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
   const [itemForm, setItemForm] = useState<ItemFormState>(BLANK);
   const [editCtx, setEditCtx] = useState<{ dayId: string; itemId: string } | null>(null);
   const [editForm, setEditForm] = useState<ItemFormState>(BLANK);
+  // Destination day for the edit modal's "Move to day" control. Initialized to the
+  // item's current day each time the modal opens; on save, a different value moves
+  // the item to that day (reassigns agenda_items.day_id).
+  const [moveTargetDayId, setMoveTargetDayId] = useState<string>("");
   // Client-only day collapse (matches the participant/shared view): past days
   // start collapsed, current + future expanded; every day stays rendered (header
   // visible), and the host can expand any past day in place. Per-session — no
@@ -885,12 +913,22 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
   const [undoDay, setUndoDay] = useState<{ day: AgendaDayWithItems; index: number } | null>(null);
   const pendingDeleteRef = useRef<{ day: AgendaDayWithItems; index: number } | null>(null);
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Always-fresh mirror of `days` so the deferred commit/renumber and the unmount
+  // cleanup read the latest state (incl. edits made during the undo window). All
+  // reads happen in event handlers / timers (post-commit), so an effect-time sync
+  // is sufficient and keeps refs out of render.
+  const daysRef = useRef(days);
+  useEffect(() => { daysRef.current = days; });
 
-  // On unmount, commit any still-pending soft-delete so it isn't silently lost.
+  // On unmount, commit any still-pending soft-delete so it isn't silently lost,
+  // and renumber the survivors so the persisted order stays gap-free.
   useEffect(() => () => {
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
     const pending = pendingDeleteRef.current;
-    if (pending) createClient().from("agenda_days").delete().eq("id", pending.day.id);
+    if (!pending) return;
+    const supabase = createClient();
+    supabase.from("agenda_days").delete().eq("id", pending.day.id);
+    persistDayRenumber(supabase, daysRef.current.filter(d => d.id !== pending.day.id));
   }, []);
 
   // Open the print-optimized itinerary view in a new tab; it auto-triggers the
@@ -999,35 +1037,49 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
   // state immediately (optimistic), but the Supabase delete is deferred: an undo
   // toast lets the user restore it with no DB write. If the window elapses (or a
   // second day is deleted, or the tab unmounts), the deferred delete is committed.
-  function commitDayDelete(dayId: string) {
+  // Permanently delete a day, then renumber the survivors to a contiguous 1..N so
+  // sort_order and day_number stay gap-free everywhere (print / role /
+  // confirmation views). `survivors` is the current local state with the day
+  // already removed; only changed rows are written. Returns the renumbered array
+  // so a caller can chain a follow-up optimistic update off the fresh order.
+  function commitDayDelete(dayId: string, survivors: AgendaDayWithItems[], syncLocal = true): AgendaDayWithItems[] {
     const supabase = createClient();
-    return supabase.from("agenda_days").delete().eq("id", dayId);
+    supabase.from("agenda_days").delete().eq("id", dayId);
+    persistDayRenumber(supabase, survivors);
+    const renumbered = survivors.map((d, i) => ({ ...d, sort_order: i + 1, day_number: i + 1 }));
+    const changed = renumbered.some((d, i) => survivors[i].sort_order !== d.sort_order || survivors[i].day_number !== d.day_number);
+    if (syncLocal && changed) onDaysChange(renumbered);
+    return renumbered;
   }
 
-  // Commit any in-flight soft-delete right now and clear the toast/timer. Safe to
-  // call when nothing is pending. Reads from a ref so it works synchronously.
-  function flushPendingDelete() {
+  // Commit any in-flight soft-delete right now and clear the toast/timer; returns
+  // the resulting (renumbered) day list, or null if nothing was pending. Reads
+  // from refs so it works synchronously (e.g. when a second delete preempts).
+  function flushPendingDelete(): AgendaDayWithItems[] | null {
     if (undoTimerRef.current) { clearTimeout(undoTimerRef.current); undoTimerRef.current = null; }
     const pending = pendingDeleteRef.current;
-    if (pending) {
-      commitDayDelete(pending.day.id);
-      pendingDeleteRef.current = null;
-      setUndoDay(null);
-    }
+    if (!pending) return null;
+    const renumbered = commitDayDelete(pending.day.id, daysRef.current.filter(d => d.id !== pending.day.id));
+    pendingDeleteRef.current = null;
+    setUndoDay(null);
+    return renumbered;
   }
 
   function requestDeleteDay(dayId: string) {
-    const index = days.findIndex(d => d.id === dayId);
+    // Only one undo can be pending at a time — commit the previous one first and
+    // build the new removal off the order it leaves behind.
+    const base = flushPendingDelete() ?? daysRef.current;
+    const index = base.findIndex(d => d.id === dayId);
     if (index === -1) return;
-    const day = days[index];
-    // Only one undo can be pending at a time — commit the previous one first.
-    flushPendingDelete();
-    // Optimistically drop the day from the UI.
-    onDaysChange(days.filter(d => d.id !== dayId));
+    const day = base[index];
+    // Optimistically drop the day from the UI (no renumber yet — keeps undo simple
+    // and the restore exact; the renumber happens only on the permanent commit).
+    onDaysChange(base.filter(d => d.id !== dayId));
     pendingDeleteRef.current = { day, index };
     setUndoDay({ day, index });
     undoTimerRef.current = setTimeout(() => {
-      commitDayDelete(day.id);
+      // Renumber against the freshest state so edits during the window survive.
+      commitDayDelete(day.id, daysRef.current.filter(d => d.id !== day.id));
       pendingDeleteRef.current = null;
       undoTimerRef.current = null;
       setUndoDay(null);
@@ -1039,7 +1091,7 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
     const pending = pendingDeleteRef.current;
     if (!pending) return;
     // Restore the day (with its items) at its original position; no DB write.
-    const restored = [...days];
+    const restored = [...daysRef.current];
     restored.splice(Math.min(pending.index, restored.length), 0, pending.day);
     onDaysChange(restored);
     pendingDeleteRef.current = null;
@@ -1114,10 +1166,14 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
     // writes immediately), so exclude it here to avoid overwriting it with the
     // form's stale value on save.
     const { day_id, tour_id, sort_order, confirmation_not_required, ...patch } = formToInsert(editForm, editCtx.dayId, 0);
+    // "Move to day": if the host picked a different day, reassign the FK by adding
+    // day_id back into the patch (otherwise it's deliberately excluded).
+    const targetDayId = moveTargetDayId && moveTargetDayId !== editCtx.dayId ? moveTargetDayId : null;
+    const updatePayload = targetDayId ? { ...patch, day_id: targetDayId } : patch;
     const supabase = createClient();
     // Inspect the response — surface errors / zero-row updates instead of
     // applying the change to local state and looking saved while nothing persists.
-    const { data, error } = await supabase.from("agenda_items").update(patch).eq("id", editCtx.itemId).select();
+    const { data, error } = await supabase.from("agenda_items").update(updatePayload).eq("id", editCtx.itemId).select();
     setSaving(false);
     if (error || !data || data.length === 0) {
       console.error("[agenda_items.update] save failed", { itemId: editCtx.itemId, error });
@@ -1126,9 +1182,20 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
       }
       return; // keep the edit modal open; local state stays at the last-saved truth
     }
-    onDaysChange(days.map(d => d.id === editCtx.dayId ? {
-      ...d, agenda_items: d.agenda_items.map(i => i.id === editCtx.itemId ? { ...i, ...patch } : i),
-    } : d));
+    if (targetDayId) {
+      // Move locally: drop from the current day, append to the destination day
+      // (the per-day list re-sorts by time on render, so order is handled).
+      const moving = days.find(d => d.id === editCtx.dayId)?.agenda_items.find(i => i.id === editCtx.itemId);
+      onDaysChange(days.map(d => {
+        if (d.id === editCtx.dayId) return { ...d, agenda_items: d.agenda_items.filter(i => i.id !== editCtx.itemId) };
+        if (d.id === targetDayId && moving) return { ...d, agenda_items: [...d.agenda_items, { ...moving, ...patch, day_id: targetDayId }] };
+        return d;
+      }));
+    } else {
+      onDaysChange(days.map(d => d.id === editCtx.dayId ? {
+        ...d, agenda_items: d.agenda_items.map(i => i.id === editCtx.itemId ? { ...i, ...patch } : i),
+      } : d));
+    }
     setEditCtx(null);
   }
 
@@ -1207,6 +1274,7 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
   const openEditItem = (dayId: string, item: AgendaItemWithFeedback) => {
     setEditCtx({ dayId, itemId: item.id });
     setEditForm(itemToForm(item));
+    setMoveTargetDayId(dayId);
   };
   const itemLocs = days.flatMap(d => (d.agenda_items ?? []).map(item => ({ dayId: d.id, item })));
   const hotelLocs = itemLocs.filter(x => x.item.type === "hotel");
@@ -1458,7 +1526,7 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
                     <ItemRow
                       key={item.id}
                       item={item}
-                      onEdit={() => { setEditCtx({ dayId: day.id, itemId: item.id }); setEditForm(itemToForm(item)); }}
+                      onEdit={() => { setEditCtx({ dayId: day.id, itemId: item.id }); setEditForm(itemToForm(item)); setMoveTargetDayId(day.id); }}
                       onRemove={() => removeItem(day.id, item.id)}
                       onToggleCostPaid={() => toggleCostPaid(day.id, item)}
                       onRemoveImage={url => removeItemImage(day.id, item, url)}
@@ -1537,6 +1605,9 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
               tourId={tour.id} itemId={editCtx.itemId}
               activePersonas={activePersonaKeys(tour.active_personas)}
               personaLabels={tour.persona_labels || {}}
+              moveDayOptions={days.map((d, i) => ({ value: d.id, label: d.date ? `Day ${i + 1}, ${d.date}` : `Day ${i + 1}` }))}
+              moveTargetDayId={moveTargetDayId}
+              onMoveTargetChange={setMoveTargetDayId}
               confirmationControl={editItem && (
                 <ItemConfirmationControl
                   tourId={tour.id}
