@@ -126,13 +126,13 @@ function TimePicker({ value, onChange, placeholder = "Pick a time" }: {
     if (!open) return;
     setTimeout(() => {
       (hourRef.current?.children[h - 1] as HTMLElement)?.scrollIntoView({ block: "center" });
-      (minRef.current?.children[Math.floor(m / 5)] as HTMLElement)?.scrollIntoView({ block: "center" });
+      (minRef.current?.children[m] as HTMLElement)?.scrollIntoView({ block: "center" });
     }, 60);
   }, [open]);
 
   const emit = (nh: number, nm: number, na: string) => onChange(`${nh}:${String(nm).padStart(2, "0")} ${na}`);
   const hours = [1,2,3,4,5,6,7,8,9,10,11,12];
-  const mins  = [0,5,10,15,20,25,30,35,40,45,50,55];
+  const mins  = Array.from({ length: 60 }, (_, i) => i); // 1-minute increments (0–59)
   const col: React.CSSProperties = { height: 156, overflowY: "auto", display: "flex", flexDirection: "column", gap: 1, padding: "4px 0", scrollbarWidth: "thin" };
   const btn = (active: boolean): React.CSSProperties => ({
     padding: "5px 0", borderRadius: 6, fontSize: 13, fontWeight: active ? 700 : 400,
@@ -1427,6 +1427,9 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
         {days.map((day, idx) => {
           const past = isDayInPast(day.date);
           const collapsed = collapsedDays[day.id] ?? false;
+          // Weekday derived client-side from the same date value the header
+          // renders — no new data field. Empty when the day has no parseable date.
+          const weekday = parseAgendaDate(day.date)?.toLocaleDateString("en-US", { weekday: "long" }) ?? "";
           return (
             <div key={day.id} style={{ background: "#fff", border: `1.5px solid ${past ? "#e5e7eb" : "#e8eef4"}`, borderRadius: 12, overflow: "hidden", opacity: past ? .8 : 1, boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
               <div
@@ -1463,7 +1466,7 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
                     </div>
                   ) : (
                     <>
-                      <span style={{ color: "#D1E8FF", fontSize: 13 }}>{day.date}</span>
+                      <span style={{ color: "#D1E8FF", fontSize: 13 }}>{weekday ? `${weekday}, ${day.date}` : day.date}</span>
                       <button
                         onClick={e => {
                           e.stopPropagation();
