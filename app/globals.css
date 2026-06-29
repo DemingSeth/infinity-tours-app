@@ -32,3 +32,13 @@ body {
   background: #cbd5e1;
   border-radius: 99px;
 }
+
+/* Undo-toast countdown bar (e.g. day-delete soft undo) */
+@keyframes it-undo-bar {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}

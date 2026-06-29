@@ -348,6 +348,7 @@ function mealLegacyType(entries: MealMoneyForm[]): "group" | "stipend" | "disney
 
 const TYPE_COLORS = AGENDA_TYPE_COLORS;
 
+const UNDO_WINDOW_MS = 5000;
 const STORAGE_BUCKET = "agenda-images";
 const STORAGE_MARKER = `/${STORAGE_BUCKET}/`;
 
@@ -877,7 +878,19 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
   const [editingDayId, setEditingDayId] = useState<string | null>(null);
   const [editingDayDateVal, setEditingDayDateVal] = useState("");
   const [confirmDeleteDayId, setConfirmDeleteDayId] = useState<string | null>(null);
-  const [deletingDay, setDeletingDay] = useState(false);
+  // Soft-delete undo: the day pending a deferred Supabase delete, plus its
+  // original index for restore. The ref mirrors the state so flush/commit logic
+  // can read it synchronously (e.g. when a second delete preempts the first).
+  const [undoDay, setUndoDay] = useState<{ day: AgendaDayWithItems; index: number } | null>(null);
+  const pendingDeleteRef = useRef<{ day: AgendaDayWithItems; index: number } | null>(null);
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // On unmount, commit any still-pending soft-delete so it isn't silently lost.
+  useEffect(() => () => {
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    const pending = pendingDeleteRef.current;
+    if (pending) createClient().from("agenda_days").delete().eq("id", pending.day.id);
+  }, []);
 
   // Open the print-optimized itinerary view in a new tab; it auto-triggers the
   // browser's print dialog (Save as PDF). Reliable, no server-side rendering.
@@ -981,10 +994,55 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
     setShowAddDay(false);
   }
 
-  async function removeDay(dayId: string) {
+  // Soft-delete with a 5s undo window. The confirmed day is removed from local
+  // state immediately (optimistic), but the Supabase delete is deferred: an undo
+  // toast lets the user restore it with no DB write. If the window elapses (or a
+  // second day is deleted, or the tab unmounts), the deferred delete is committed.
+  function commitDayDelete(dayId: string) {
     const supabase = createClient();
-    await supabase.from("agenda_days").delete().eq("id", dayId);
+    return supabase.from("agenda_days").delete().eq("id", dayId);
+  }
+
+  // Commit any in-flight soft-delete right now and clear the toast/timer. Safe to
+  // call when nothing is pending. Reads from a ref so it works synchronously.
+  function flushPendingDelete() {
+    if (undoTimerRef.current) { clearTimeout(undoTimerRef.current); undoTimerRef.current = null; }
+    const pending = pendingDeleteRef.current;
+    if (pending) {
+      commitDayDelete(pending.day.id);
+      pendingDeleteRef.current = null;
+      setUndoDay(null);
+    }
+  }
+
+  function requestDeleteDay(dayId: string) {
+    const index = days.findIndex(d => d.id === dayId);
+    if (index === -1) return;
+    const day = days[index];
+    // Only one undo can be pending at a time — commit the previous one first.
+    flushPendingDelete();
+    // Optimistically drop the day from the UI.
     onDaysChange(days.filter(d => d.id !== dayId));
+    pendingDeleteRef.current = { day, index };
+    setUndoDay({ day, index });
+    undoTimerRef.current = setTimeout(() => {
+      commitDayDelete(day.id);
+      pendingDeleteRef.current = null;
+      undoTimerRef.current = null;
+      setUndoDay(null);
+    }, UNDO_WINDOW_MS);
+  }
+
+  function undoDeleteDay() {
+    if (undoTimerRef.current) { clearTimeout(undoTimerRef.current); undoTimerRef.current = null; }
+    const pending = pendingDeleteRef.current;
+    if (!pending) return;
+    // Restore the day (with its items) at its original position; no DB write.
+    const restored = [...days];
+    restored.splice(Math.min(pending.index, restored.length), 0, pending.day);
+    onDaysChange(restored);
+    pendingDeleteRef.current = null;
+    setUndoDay(null);
   }
 
 
@@ -1460,33 +1518,52 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
         const dayToDelete = days.find(d => d.id === confirmDeleteDayId);
         const itemCount = dayToDelete?.agenda_items.length ?? 0;
         return (
-          <Modal title="Delete Day?" onClose={() => { if (!deletingDay) setConfirmDeleteDayId(null); }}>
+          <Modal title="Delete Day?" onClose={() => setConfirmDeleteDayId(null)}>
             <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
               <div style={{ fontSize: 14, lineHeight: 1.55, color: "#334155" }}>
                 {dayToDelete
                   ? <>You&rsquo;re about to delete <strong style={{ color: BRAND.navy }}>{dayToDelete.date}</strong>{itemCount > 0 ? <> and its {itemCount} itinerary item{itemCount !== 1 ? "s" : ""}</> : null}.</>
                   : <>You&rsquo;re about to delete this day.</>}
-                {" "}This action <strong>cannot be undone</strong>.
+                {" "}You&rsquo;ll have a few seconds to undo before it&rsquo;s permanently removed.
               </div>
               <div style={{ display: "flex", gap: 8 }}>
-                <Btn onClick={() => setConfirmDeleteDayId(null)} variant="muted" disabled={deletingDay} style={{ flex: 1 }}>Cancel</Btn>
+                <Btn onClick={() => setConfirmDeleteDayId(null)} variant="muted" style={{ flex: 1 }}>Cancel</Btn>
                 <button
-                  onClick={async () => {
-                    setDeletingDay(true);
-                    await removeDay(confirmDeleteDayId);
-                    setDeletingDay(false);
+                  onClick={() => {
+                    const id = confirmDeleteDayId;
                     setConfirmDeleteDayId(null);
+                    if (id) requestDeleteDay(id);
                   }}
-                  disabled={deletingDay}
-                  style={{ flex: 1, background: "#dc2626", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600, fontFamily: "inherit", cursor: deletingDay ? "default" : "pointer", opacity: deletingDay ? 0.7 : 1 }}
+                  style={{ flex: 1, background: "#dc2626", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600, fontFamily: "inherit", cursor: "pointer" }}
                 >
-                  {deletingDay ? "Deleting…" : "Delete Day"}
+                  Delete Day
                 </button>
               </div>
             </div>
           </Modal>
         );
       })()}
+
+      {undoDay && (
+        <div style={{ position: "fixed", left: 0, right: 0, bottom: 24, display: "flex", justifyContent: "center", padding: "0 16px", zIndex: 1100, pointerEvents: "none" }}>
+          <div style={{ pointerEvents: "auto", background: BRAND.navy, color: "#fff", borderRadius: 12, minWidth: 280, maxWidth: 440, overflow: "hidden", boxShadow: "0 12px 40px rgba(0,0,0,.3)", fontFamily: "'Helvetica Neue',Helvetica,Arial,sans-serif" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "13px 16px" }}>
+              <span style={{ flex: 1, fontSize: 13.5, fontWeight: 500 }}>
+                Day deleted<span style={{ color: "rgba(255,255,255,.55)" }}> — {undoDay.day.date}</span>
+              </span>
+              <button
+                onClick={undoDeleteDay}
+                style={{ background: "none", border: "none", color: BRAND.blue, fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.04em", textTransform: "uppercase", fontSize: 13, fontWeight: 700, cursor: "pointer", padding: "2px 4px" }}
+              >
+                Undo
+              </button>
+            </div>
+            <div style={{ height: 3, background: "rgba(255,255,255,.12)" }}>
+              <div key={undoDay.day.id} style={{ height: "100%", background: BRAND.blue, transformOrigin: "left", animation: `it-undo-bar ${UNDO_WINDOW_MS}ms linear forwards` }} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
