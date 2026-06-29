@@ -32,6 +32,7 @@ const ICONS: Record<string, string> = {
   edit:     "M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z",
   pencil:   "M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z",
   chevron:  "M19 9l-7 7-7-7",
+  chevronUp: "M5 15l7-7 7 7",
   chevronRight: "M9 18l6-6-6-6",
   plus:     "M12 5v14M5 12h14",
   link:     "M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71",
@@ -1045,6 +1046,28 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
     setUndoDay(null);
   }
 
+  // Move the day at `index` one slot up (dir -1) or down (dir +1). The visible
+  // order is the array order, so we swap the two neighbours, then renumber to a
+  // contiguous 1..N. Both sort_order (ordering) and day_number (the label other
+  // views render) are kept in sync so the whole app stays consistent. Local state
+  // updates first so the UI feels instant; only changed rows are persisted.
+  async function moveDay(index: number, dir: -1 | 1) {
+    const target = index + dir;
+    if (target < 0 || target >= days.length) return;
+    const reordered = [...days];
+    [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
+    const next = reordered.map((d, i) => ({ ...d, sort_order: i + 1, day_number: i + 1 }));
+    const changed = next.filter(d => {
+      const prev = days.find(o => o.id === d.id);
+      return prev?.sort_order !== d.sort_order || prev?.day_number !== d.day_number;
+    });
+    onDaysChange(next);
+    const supabase = createClient();
+    await Promise.all(
+      changed.map(d => supabase.from("agenda_days").update({ sort_order: d.sort_order, day_number: d.day_number }).eq("id", d.id)),
+    );
+  }
+
 
   async function updateDayDate(dayId: string, isoDate: string) {
     if (!isoDate) return;
@@ -1333,7 +1356,7 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {days.map(day => {
+        {days.map((day, idx) => {
           const past = isDayInPast(day.date);
           const collapsed = collapsedDays[day.id] ?? false;
           return (
@@ -1345,7 +1368,7 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <Image src="/infinity-mark-light.png" alt="" width={0} height={0} sizes="60px" style={{ height: 36, width: "auto" }} />
                   <div style={{ width: 1, height: 20, background: "rgba(255,255,255,.2)" }} />
-                  <span style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", color: "#fff", fontWeight: 700, fontSize: 15 }}>Day {day.day_number}</span>
+                  <span style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", color: "#fff", fontWeight: 700, fontSize: 15 }}>Day {idx + 1}</span>
                   {editingDayId === day.id ? (
                     <div style={{ display: "flex", alignItems: "center", gap: 5 }} onClick={e => e.stopPropagation()}>
                       <input
@@ -1391,6 +1414,20 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
                   <span style={{ color: "rgba(255,255,255,.4)", fontSize: 11 }}>{day.agenda_items.length} item{day.agenda_items.length !== 1 ? "s" : ""}</span>
                 </div>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", marginRight: 2 }}>
+                    <button onClick={e => { e.stopPropagation(); moveDay(idx, -1); }}
+                      disabled={idx === 0}
+                      title="Move day up"
+                      style={{ background: "none", border: "none", cursor: idx === 0 ? "default" : "pointer", color: "rgba(255,255,255,.45)", padding: 0, display: "flex", lineHeight: 0, visibility: idx === 0 ? "hidden" : "visible" }}>
+                      <I n="chevronUp" s={14} />
+                    </button>
+                    <button onClick={e => { e.stopPropagation(); moveDay(idx, 1); }}
+                      disabled={idx === days.length - 1}
+                      title="Move day down"
+                      style={{ background: "none", border: "none", cursor: idx === days.length - 1 ? "default" : "pointer", color: "rgba(255,255,255,.45)", padding: 0, display: "flex", lineHeight: 0, visibility: idx === days.length - 1 ? "hidden" : "visible" }}>
+                      <I n="chevron" s={14} />
+                    </button>
+                  </div>
                   <DayVisibilityButton
                     dayId={day.id}
                     activePersonas={activePersonaKeys(tour.active_personas)}
