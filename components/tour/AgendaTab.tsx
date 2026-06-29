@@ -1505,7 +1505,7 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
                     </div>
                   ) : (
                     <>
-                      <span style={{ color: "#D1E8FF", fontSize: 13 }}>{weekday ? `${weekday}, ${day.date}` : day.date}</span>
+                      <span style={{ color: "#D1E8FF", fontSize: 13 }}>{weekday ? `${weekday}, ${day.date.replace(/,\s*\d{4}$/, "")}` : day.date}</span>
                       <button
                         onClick={e => {
                           e.stopPropagation();
