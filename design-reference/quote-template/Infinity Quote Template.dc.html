@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&amp;family=Mulish:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&amp;family=Pinyon+Script&amp;display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;background:#dcdad3;font-family:'Mulish',sans-serif;-webkit-font-smoothing:antialiased;}
+  a{color:inherit;}
+  @media print{ body{background:#fff;} .inf-screen-only{display:none !important;} @page{size:letter portrait;margin:0;} .inf-page{box-shadow:none !important;} }
+</style>
+</helmet>
+<div style="min-height:100vh;padding:36px 16px;display:flex;justify-content:center;">
+  <div class="inf-screen-only" style="position:fixed;top:16px;right:16px;z-index:1000;display:flex;gap:8px;">
+    <button type="button" onClick="{{ togglePanel }}" style="font-family:'Oswald';font-weight:600;font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:#ffffff;background:#3c8d9a;border:1px solid #347e8a;border-radius:6px;padding:8px 15px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.16);">Build quote</button>
+    <button type="button" onClick="{{ onReplace }}" style="font-family:'Oswald';font-weight:500;font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:#3a93a0;background:rgba(255,255,255,0.94);border:1px solid #cfe3e6;border-radius:6px;padding:8px 13px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.14);">Replace photo</button>
+    <button type="button" onClick="{{ onRemove }}" style="font-family:'Oswald';font-weight:500;font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:#9a6b5e;background:rgba(255,255,255,0.94);border:1px solid #e6d3cf;border-radius:6px;padding:8px 13px;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.14);">Remove photo</button>
+  </div>
+
+  <sc-if value="{{ panelOpen }}" hint-placeholder-val="{{ true }}">
+  <div class="inf-screen-only" style="position:fixed;top:0;right:0;bottom:0;width:384px;z-index:1100;background:#f7f6f2;box-shadow:-10px 0 34px rgba(0,0,0,.22);display:flex;flex-direction:column;">
+
+    <div style="flex:none;display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:#3c8d9a;color:#ffffff;">
+      <div style="font-family:'Oswald';font-weight:600;letter-spacing:1px;text-transform:uppercase;font-size:15px;">Build Quote</div>
+      <button type="button" onClick="{{ togglePanel }}" style="font-family:'Oswald';font-size:12px;letter-spacing:.5px;text-transform:uppercase;color:#ffffff;background:rgba(255,255,255,0.2);border:none;border-radius:5px;padding:6px 13px;cursor:pointer;">Done</button>
+    </div>
+
+    <div style="flex:1;overflow-y:auto;padding:16px 18px 28px;font-family:'Mulish',sans-serif;">
+
+      <div style="font-family:'Oswald';font-weight:600;font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:#3c8d9a;border-bottom:1px solid #e1ddd3;padding-bottom:5px;margin:2px 0 6px;">Header</div>
+      <label style="display:block;font-size:10px;letter-spacing:.4px;text-transform:uppercase;color:#9a927f;margin:8px 0 2px;">Group name</label>
+      <input data-path="group" value="{{ data.group }}" onChange="{{ onField }}" style="width:100%;box-sizing:border-box;font-family:'Mulish';font-size:13px;padding:7px 9px;border:1px solid #d8d6cc;border-radius:6px;color:#333;background:#fff;">
+      <div style="display:flex;gap:10px;">
+        <div style="flex:1;">
+          <label style="display:block;font-size:10px;letter-spacing:.4px;text-transform:uppercase;color:#9a927f;margin:8px 0 2px;">Destination</label>
+          <input data-path="destination" value="{{ data.destination }}" onChange="{{ onField }}" style="width:100%;box-sizing:border-box;font-family:'Mulish';font-size:13px;padding:7px 9px;border:1px solid #d8d6cc;border-radius:6px;color:#333;background:#fff;">
+        </div>
+        <div style="width:96px;flex:none;">
+          <label style="display:block;font-size:10px;letter-spacing:.4px;text-transform:uppercase;color:#9a927f;margin:8px 0 2px;">Year</label>
+          <input data-path="year" value="{{ data.year }}" onChange="{{ onField }}" style="width:100%;box-sizing:border-box;font-family:'Mulish';font-size:13px;padding:7px 9px;border:1px solid #d8d6cc;border-radius:6px;color:#333;background:#fff;">
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <div style="flex:1;">
+          <label style="display:block;font-size:10px;letter-spacing:.4px;text-transform:uppercase;color:#9a927f;margin:8px 0 2px;">Tour host</label>
+          <input data-path="hostName" value="{{ data.hostName }}" onChange="{{ onField }}" style="width:100%;box-sizing:border-box;font-family:'Mulish';font-size:13px;padding:7px 9px;border:1px solid #d8d6cc;border-radius:6px;color:#333;background:#fff;">
+        </div>
+        <div style="flex:1;">
+          <label style="display:block;font-size:10px;letter-spacing:.4px;text-transform:uppercase;color:#9a927f;margin:8px 0 2px;">Host phone</label>
+          <input data-path="hostPhone" value="{{ data.hostPhone }}" onChange="{{ onField }}" style="width:100%;box-sizing:border-box;font-family:'Mulish';font-size:13px;padding:7px 9px;border:1px solid #d8d6cc;border-radius:6px;color:#333;background:#fff;">
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <div style="flex:1;">
+          <label style="display:block;font-size:10px;letter-spacing:.4px;text-transform:uppercase;color:#9a927f;margin:8px 0 2px;">Embassy</label>
+          <input data-path="embassyName" value="{{ data.embassyName }}" onChange="{{ onField }}" style="width:100%;box-sizing:border-box;font-family:'Mulish';font-size:13px;padding:7px 9px;border:1px solid #d8d6cc;border-radius:6px;color:#333;background:#fff;">
+        </div>
+        <div style="flex:1;">
+          <label style="display:block;font-size:10px;letter-spacing:.4px;text-transform:uppercase;color:#9a927f;margin:8px 0 2px;">Embassy phone</label>
+          <input data-path="embassyPhone" value="{{ data.embassyPhone }}" onChange="{{ onField }}" style="width:100%;box-sizing:border-box;font-family:'Mulish';font-size:13px;padding:7px 9px;border:1px solid #d8d6cc;border-radius:6px;color:#333;background:#fff;">
+        </div>
+      </div>
+
+      <div style="font-family:'Oswald';font-weight:600;font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:#3c8d9a;border-bottom:1px solid #e1ddd3;padding-bottom:5px;margin:20px 0 8px;">Trip Detail Links</div>
+      <sc-for list="{{ tripLinks }}" as="l" hint-placeholder-count="2">
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:7px;">
+          <div style="flex:1;">
+            <input data-path="tripLinks.{{ l.li }}.label" value="{{ l.label }}" onChange="{{ onField }}" placeholder="Label" style="width:100%;box-sizing:border-box;font-family:'Mulish';font-size:13px;padding:6px 8px;border:1px solid #d8d6cc;border-radius:6px;color:#333;background:#fff;">
+            <input data-path="tripLinks.{{ l.li }}.url" value="{{ l.url }}" onChange="{{ onField }}" placeholder="https://" style="width:100%;box-sizing:border-box;font-family:'Mulish';font-size:11px;padding:5px 8px;border:1px solid #e3e1d8;border-radius:6px;color:#777;background:#fff;margin-top:4px;">
+          </div>
+          <button data-act="delTrip" data-li="{{ l.li }}" onClick="{{ onAction }}" style="flex:none;background:none;border:none;color:#b06a5c;font-size:18px;cursor:pointer;line-height:1;padding:4px 6px;">&times;</button>
+        </div>
+      </sc-for>
+      <button data-act="addTrip" onClick="{{ onAction }}" style="font-family:'Oswald';font-size:11px;letter-spacing:.4px;text-transform:uppercase;background:#eef4f4;color:#3c8d9a;border:1px solid #cfe3e6;border-radius:6px;padding:6px 11px;cursor:pointer;">+ Add link</button>
+
+      <div style="font-family:'Oswald';font-weight:600;font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:#3c8d9a;border-bottom:1px solid #e1ddd3;padding-bottom:5px;margin:20px 0 8px;">Rooming &amp; Activities</div>
+      <label style="display:block;font-size:10px;letter-spacing:.4px;text-transform:uppercase;color:#9a927f;margin:8px 0 2px;">Rooming list — label / URL</label>
+      <input data-path="roomingLink.label" value="{{ roomingLink.label }}" onChange="{{ onField }}" style="width:100%;box-sizing:border-box;font-family:'Mulish';font-size:13px;padding:6px 8px;border:1px solid #d8d6cc;border-radius:6px;color:#333;background:#fff;">
+      <input data-path="roomingLink.url" value="{{ roomingLink.url }}" onChange="{{ onField }}" placeholder="https://" style="width:100%;box-sizing:border-box;font-family:'Mulish';font-size:11px;padding:5px 8px;border:1px solid #e3e1d8;border-radius:6px;color:#777;background:#fff;margin-top:4px;">
+      <label style="display:block;font-size:10px;letter-spacing:.4px;text-transform:uppercase;color:#9a927f;margin:10px 0 2px;">Activities — label / URL</label>
+      <input data-path="activitiesLink.label" value="{{ activitiesLink.label }}" onChange="{{ onField }}" style="width:100%;box-sizing:border-box;font-family:'Mulish';font-size:13px;padding:6px 8px;border:1px solid #d8d6cc;border-radius:6px;color:#333;background:#fff;">
+      <input data-path="activitiesLink.url" value="{{ activitiesLink.url }}" onChange="{{ onField }}" placeholder="https://" style="width:100%;box-sizing:border-box;font-family:'Mulish';font-size:11px;padding:5px 8px;border:1px solid #e3e1d8;border-radius:6px;color:#777;background:#fff;margin-top:4px;">
+
+      <div style="font-family:'Oswald';font-weight:600;font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:#3c8d9a;border-bottom:1px solid #e1ddd3;padding-bottom:5px;margin:20px 0 8px;">Hotels</div>
+      <sc-for list="{{ hotels }}" as="h" hint-placeholder-count="2">
+        <div style="border:1px solid #e1ddd3;border-radius:8px;padding:10px;margin-bottom:10px;background:#ffffff;">
+          <div style="display:flex;gap:6px;align-items:center;">
+            <input data-path="hotels.{{ h.hi }}.city" value="{{ h.city }}" onChange="{{ onField }}" placeholder="City" style="flex:1;box-sizing:border-box;font-family:'Oswald';font-weight:600;letter-spacing:.5px;text-transform:uppercase;font-size:13px;padding:6px 8px;border:1px solid #d8d6cc;border-radius:6px;color:#4d4d4d;background:#fff;">
+            <button data-act="delHotel" data-hi="{{ h.hi }}" onClick="{{ onAction }}" style="flex:none;font-family:'Oswald';font-size:10px;letter-spacing:.4px;text-transform:uppercase;background:none;border:none;color:#b06a5c;cursor:pointer;">Delete</button>
+          </div>
+          <sc-for list="{{ h.items }}" as="it" hint-placeholder-count="1">
+            <div style="margin-top:8px;padding-top:8px;border-top:1px dashed #ece9df;">
+              <input data-path="hotels.{{ it.hi }}.items.{{ it.ii }}.name" value="{{ it.name }}" onChange="{{ onField }}" placeholder="Hotel name" style="width:100%;box-sizing:border-box;font-family:'Mulish';font-size:12px;padding:5px 8px;border:1px solid #d8d6cc;border-radius:6px;color:#333;background:#fff;">
+              <input data-path="hotels.{{ it.hi }}.items.{{ it.ii }}.addr" value="{{ it.addr }}" onChange="{{ onField }}" placeholder="Address" style="width:100%;box-sizing:border-box;font-family:'Mulish';font-size:11px;padding:5px 8px;border:1px solid #e3e1d8;border-radius:6px;color:#777;background:#fff;margin-top:4px;">
+              <div style="display:flex;gap:6px;margin-top:4px;align-items:center;">
+                <input data-path="hotels.{{ it.hi }}.items.{{ it.ii }}.url" value="{{ it.url }}" onChange="{{ onField }}" placeholder="https://" style="flex:1;box-sizing:border-box;font-family:'Mulish';font-size:11px;padding:5px 8px;border:1px solid #e3e1d8;border-radius:6px;color:#777;background:#fff;">
+                <button data-act="delItem" data-hi="{{ it.hi }}" data-ii="{{ it.ii }}" onClick="{{ onAction }}" style="flex:none;background:none;border:none;color:#b06a5c;font-size:18px;cursor:pointer;line-height:1;padding:2px 4px;">&times;</button>
+              </div>
+            </div>
+          </sc-for>
+          <button data-act="addItem" data-hi="{{ h.hi }}" onClick="{{ onAction }}" style="font-family:'Oswald';font-size:10px;letter-spacing:.4px;text-transform:uppercase;background:#f3f6f6;color:#3c8d9a;border:1px solid #d9e7e9;border-radius:5px;padding:5px 9px;cursor:pointer;margin-top:8px;">+ Hotel option</button>
+        </div>
+      </sc-for>
+      <button data-act="addHotel" onClick="{{ onAction }}" style="font-family:'Oswald';font-size:11px;letter-spacing:.4px;text-transform:uppercase;background:#eef4f4;color:#3c8d9a;border:1px solid #cfe3e6;border-radius:6px;padding:6px 11px;cursor:pointer;">+ Add city</button>
+
+      <div style="font-family:'Oswald';font-weight:600;font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:#3c8d9a;border-bottom:1px solid #e1ddd3;padding-bottom:5px;margin:20px 0 6px;">Daily Itinerary</div>
+      <div style="font-size:11px;color:#9a927f;margin-bottom:10px;line-height:1.4;">Add a link inside any line with <span style="font-family:monospace;background:#efece2;padding:1px 4px;border-radius:3px;">[label](https://…)</span></div>
+      <sc-for list="{{ days }}" as="day" hint-placeholder-count="3">
+        <div style="border:1px solid #e1ddd3;border-radius:8px;padding:10px;margin-bottom:10px;background:#ffffff;">
+          <div style="display:flex;gap:6px;align-items:center;">
+            <input data-path="days.{{ day.di }}.date" value="{{ day.d }}" onChange="{{ onField }}" placeholder="Day label (e.g. Wed. June 29)" style="flex:1;box-sizing:border-box;font-family:'Oswald';font-weight:500;letter-spacing:.4px;font-size:13px;padding:6px 8px;border:1px solid #d8d6cc;border-radius:6px;color:#4d4d4d;background:#fff;">
+            <button data-act="delDay" data-di="{{ day.di }}" onClick="{{ onAction }}" style="flex:none;font-family:'Oswald';font-size:10px;letter-spacing:.4px;text-transform:uppercase;background:none;border:none;color:#b06a5c;cursor:pointer;">Delete</button>
+          </div>
+          <sc-for list="{{ day.rows }}" as="row" hint-placeholder-count="2">
+            <div style="display:flex;gap:6px;align-items:flex-start;margin-top:6px;">
+              <input data-path="days.{{ row.di }}.rows.{{ row.ri }}.time" value="{{ row.time }}" onChange="{{ onField }}" placeholder="Time" style="width:64px;flex:none;box-sizing:border-box;font-family:'Mulish';font-size:11px;padding:5px 6px;border:1px solid #e3e1d8;border-radius:6px;color:#777;background:#fff;">
+              <input data-path="days.{{ row.di }}.rows.{{ row.ri }}.text" value="{{ row.text }}" onChange="{{ onField }}" placeholder="Activity (supports [label](url))" style="flex:1;box-sizing:border-box;font-family:'Mulish';font-size:12px;padding:5px 8px;border:1px solid #d8d6cc;border-radius:6px;color:#333;background:#fff;">
+              <button data-act="delRow" data-di="{{ row.di }}" data-ri="{{ row.ri }}" onClick="{{ onAction }}" style="flex:none;background:none;border:none;color:#b06a5c;font-size:16px;cursor:pointer;line-height:1;padding:3px 4px;">&times;</button>
+            </div>
+          </sc-for>
+          <button data-act="addRow" data-di="{{ day.di }}" onClick="{{ onAction }}" style="font-family:'Oswald';font-size:10px;letter-spacing:.4px;text-transform:uppercase;background:#f3f6f6;color:#3c8d9a;border:1px solid #d9e7e9;border-radius:5px;padding:5px 9px;cursor:pointer;margin-top:6px;">+ Row</button>
+          <label style="display:block;font-size:10px;letter-spacing:.4px;text-transform:uppercase;color:#9a927f;margin:10px 0 2px;">Overnight</label>
+          <input data-path="days.{{ day.di }}.overnight" value="{{ day.overnightText }}" onChange="{{ onField }}" placeholder="Overnight stay (optional, supports links)" style="width:100%;box-sizing:border-box;font-family:'Mulish';font-size:12px;padding:5px 8px;border:1px solid #d8d6cc;border-radius:6px;color:#333;background:#fff;">
+        </div>
+      </sc-for>
+      <button data-act="addDay" onClick="{{ onAction }}" style="font-family:'Oswald';font-size:11px;letter-spacing:.4px;text-transform:uppercase;background:#eef4f4;color:#3c8d9a;border:1px solid #cfe3e6;border-radius:6px;padding:7px 13px;cursor:pointer;">+ Add day</button>
+
+    </div>
+
+    <div style="flex:none;display:flex;gap:7px;padding:12px 16px;border-top:1px solid #e1ddd3;background:#ffffff;">
+      <button type="button" onClick="{{ exportJson }}" style="flex:1;font-family:'Oswald';font-weight:600;font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:#fff;background:#3c8d9a;border:none;border-radius:6px;padding:9px;cursor:pointer;">Export JSON</button>
+      <label style="font-family:'Oswald';font-weight:500;font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:#3c8d9a;background:#eef4f4;border:1px solid #cfe3e6;border-radius:6px;padding:9px 12px;cursor:pointer;">Import<input type="file" accept="application/json,.json" onChange="{{ importJson }}" style="display:none;"></label>
+      <button type="button" onClick="{{ loadSample }}" style="font-family:'Oswald';font-weight:500;font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:#7a7363;background:#f0eee6;border:1px solid #ddd8cc;border-radius:6px;padding:9px 11px;cursor:pointer;">Sample</button>
+      <button type="button" onClick="{{ newQuote }}" style="font-family:'Oswald';font-weight:500;font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:#7a7363;background:#f0eee6;border:1px solid #ddd8cc;border-radius:6px;padding:9px 11px;cursor:pointer;">New</button>
+    </div>
+  </div>
+  </sc-if>
+  <div class="inf-page" style="position:relative;width:816px;background:#ffffff;box-shadow:0 8px 36px rgba(0,0,0,.16);overflow:hidden;">
+
+    <!-- HERO (photo lives in this top band only, like the original) -->
+    <div style="position:relative;height:222px;overflow:hidden;background:#c4ced0;">
+      <div style="position:absolute;inset:0;">
+        <x-import component-from-global-scope="image-slot" from="./image-slot.js" id="inf-hero-photo" shape="rect" fit="cover" placeholder="Drop destination photo" hint-size="816px,222px"></x-import>
+      </div>
+      <div style="position:absolute;inset:0;background:linear-gradient(105deg,rgba(0,0,0,.20),rgba(0,0,0,0) 40%);pointer-events:none;"></div>
+      <div style="position:absolute;top:22px;right:30px;text-align:right;pointer-events:none;">
+        <div style="font-family:'Oswald';font-weight:500;font-size:44px;letter-spacing:6px;color:#ffffff;line-height:.9;text-shadow:0 1px 10px rgba(0,0,0,.35);">INFINITY</div>
+        <div style="font-family:'Oswald';font-weight:300;font-size:12px;letter-spacing:7px;color:#ffffff;margin-top:5px;margin-right:2px;text-shadow:0 1px 8px rgba(0,0,0,.35);">TOURS + EVENTS</div>
+      </div>
+      <div style="position:absolute;left:0;bottom:24px;">
+        <div style="color: #ffffff; font-family: 'Oswald'; font-weight: 600; font-size: 24px; letter-spacing: 1.5px; text-transform: uppercase; padding: 8px 32px 8px 26px; background-color: #3c8d9a00">{{ group }}</div>
+        <div style="display: inline-block; color: #ffffff; font-family: 'Pinyon Script'; font-size: 36px; padding: 0 32px 8px 26px; line-height: .95; background-color: #3c8d9a04">{{ destLine }}</div>
+      </div>
+    </div>
+
+    <!-- BODY -->
+    <div style="display:flex;align-items:stretch;">
+
+      <!-- SIDEBAR -->
+      <div style="width:236px;flex:none;background:#efece5;padding:24px 22px 28px;border-right:1px solid #b3b3b3;">
+
+        <div style="font-family:'Oswald';font-weight:600;font-size:13px;letter-spacing:.7px;color:#8b7d67;text-transform:uppercase;line-height:1.05;margin-bottom:9px;">Additional<br>Trip Details</div>
+        <sc-for list="{{ tripLinks }}" as="l" hint-placeholder-count="3">
+          <a href="{{ l.url }}" target="_blank" style="display:block;color:#3a93a0;font-style:italic;text-decoration:underline;font-size:12px;line-height:1.45;">{{ l.label }}</a>
+        </sc-for>
+
+        <div style="margin-top:16px;font-size:12px;color:#6f6f6f;font-style:italic;line-height:1.4;">{{ embassyName }}</div>
+        <div style="font-size:12px;color:#6f6f6f;font-style:italic;">{{ embassyPhone }}</div>
+
+        <div style="font-family:'Oswald';font-weight:600;font-size:13px;letter-spacing:.7px;color:#8b7d67;text-transform:uppercase;margin-top:18px;margin-bottom:6px;">Hotels</div>
+        <a href="{{ roomingLink.url }}" target="_blank" style="display:block;color:#3a93a0;font-style:italic;text-decoration:underline;font-size:12px;">{{ roomingLink.label }}</a>
+        <sc-for list="{{ hotels }}" as="h" hint-placeholder-count="4">
+          <div style="font-family:'Oswald';font-weight:600;font-size:12px;letter-spacing:.6px;color:#8b7d67;text-transform:uppercase;margin-top:13px;">{{ h.city }}</div>
+          <sc-for list="{{ h.items }}" as="it" hint-placeholder-count="1">
+            <div style="font-family:'Oswald';font-weight:500;font-size:12.5px;color:#4d4d4d;margin-top:4px;">{{ it.name }}</div>
+            <a href="{{ it.url }}" target="_blank" style="display:block;color:#3a93a0;font-style:italic;text-decoration:underline;font-size:11.5px;line-height:1.4;">{{ it.addr }}</a>
+          </sc-for>
+        </sc-for>
+
+        <div style="font-family:'Oswald';font-weight:600;font-size:13px;letter-spacing:.7px;color:#8b7d67;text-transform:uppercase;margin-top:18px;margin-bottom:6px;">Activities</div>
+        <a href="{{ activitiesLink.url }}" target="_blank" style="display:block;color:#3a93a0;font-style:italic;text-decoration:underline;font-size:12px;line-height:1.4;">{{ activitiesLink.label }}</a>
+
+        <div style="font-family:'Oswald';font-weight:600;font-size:13px;letter-spacing:.7px;color:#8b7d67;text-transform:uppercase;margin-top:18px;margin-bottom:6px;">Tour Host Details</div>
+        <div style="font-size:12.5px;color:#4d4d4d;font-style:italic;">{{ hostName }}</div>
+        <div style="font-size:12.5px;color:#4d4d4d;font-style:italic;">{{ hostPhone }}</div>
+
+      </div>
+
+      <!-- MAIN -->
+      <div style="flex:1;padding:22px 24px 30px;">
+        <div style="column-count:2;column-gap:26px;">
+          <sc-for list="{{ days }}" as="day" hint-placeholder-count="8">
+            <div style="break-inside:avoid;-webkit-column-break-inside:avoid;margin-bottom:16px;">
+              <div style="background:#a9d2d8;color:#ffffff;font-family:'Oswald';font-weight:500;font-size:14px;letter-spacing:.6px;text-align:center;padding:6px;margin-bottom:8px;">{{ day.d }}</div>
+              <sc-for list="{{ day.rows }}" as="row" hint-placeholder-count="4">
+                <div style="display:flex;gap:8px;margin-bottom:4px;font-size:11px;line-height:1.32;">
+                  <div style="width:50px;flex:none;text-align:right;color:#a8a298;font-style:italic;">{{ row.time }}</div>
+                  <div style="flex:1;color:#4d4d4d;font-style:italic;">
+                    <sc-for list="{{ row.segs }}" as="seg">
+                      <sc-if value="{{ seg.plain }}" hint-placeholder-val="{{ true }}"><span>{{ seg.t }}</span></sc-if>
+                      <sc-if value="{{ seg.u }}"><a href="{{ seg.u }}" target="_blank" style="color:#3a93a0;text-decoration:underline;font-style:italic;">{{ seg.t }}</a></sc-if>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-for>
+              <sc-if value="{{ day.hasOvernight }}">
+                <div style="display:flex;gap:8px;margin-top:5px;font-size:11px;line-height:1.32;">
+                  <div style="width:50px;flex:none;text-align:right;color:#a8a298;font-style:italic;font-size:9.5px;">Overnight</div>
+                  <div style="flex:1;color:#4d4d4d;font-style:italic;">
+                    <sc-for list="{{ day.overnight }}" as="seg">
+                      <sc-if value="{{ seg.plain }}" hint-placeholder-val="{{ true }}"><span>{{ seg.t }}</span></sc-if>
+                      <sc-if value="{{ seg.u }}"><a href="{{ seg.u }}" target="_blank" style="color:#3a93a0;text-decoration:underline;font-style:italic;">{{ seg.t }}</a></sc-if>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- FOOTER: full-width brand band, like the original -->
+    <div style="background:#acd1d7;padding:15px 28px 17px;">
+      <div style="font-family:'Oswald';font-weight:500;font-size:27px;letter-spacing:4px;color:#ffffff;line-height:.85;">INFINITY</div>
+      <div style="font-family:'Oswald';font-weight:300;font-size:9px;letter-spacing:5px;color:rgba(255,255,255,0.9);margin-top:3px;">TOURS + EVENTS</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { data: this._initData(), panelOpen: false };
+
+  componentDidMount() { this._sizeHero(0); }
+
+  // ---- Quote data: edit-friendly model + persistence -------------------------
+  _initData() {
+    try { const s = localStorage.getItem("infinity_quote_v1"); if (s) return JSON.parse(s); } catch (e) {}
+    return this._rawToEditable(this.buildData());
+  }
+  // Convert the baked sample (segment arrays) to the flat, form-editable model.
+  // Inline links are stored as markdown: [label](url).
+  _rawToEditable(raw) {
+    const md = (segs) => (segs || []).map(s => s[1] ? "[" + s[0] + "](" + s[1] + ")" : s[0]).join("");
+    return {
+      group: raw.group, destination: raw.destination, year: raw.year,
+      hostName: raw.hostName, hostPhone: raw.hostPhone,
+      embassyName: raw.embassyName, embassyPhone: raw.embassyPhone,
+      tripLinks: raw.tripLinks.map(l => ({ label: l.label, url: l.url })),
+      roomingLink: { label: raw.roomingLink.label, url: raw.roomingLink.url },
+      activitiesLink: { label: raw.activitiesLink.label, url: raw.activitiesLink.url },
+      hotels: raw.hotels.map(h => ({ city: h.city, items: h.items.map(it => ({ name: it.name, addr: it.addr, url: it.url })) })),
+      days: raw.days.map(d => ({ date: d.d, rows: (d.rows || []).map(r => ({ time: r[0] || "", text: md(r[1]) })), overnight: md(d.overnight) }))
+    };
+  }
+  _blank() {
+    return {
+      group: "Group Name", destination: "Destination", year: "2026",
+      hostName: "", hostPhone: "", embassyName: "US Embassy", embassyPhone: "",
+      tripLinks: [{ label: "Detailed Itinerary", url: "" }, { label: "F.A.Q.", url: "" }],
+      roomingLink: { label: "Rooming List", url: "" },
+      activitiesLink: { label: "Activities Schedule with Names", url: "" },
+      hotels: [{ city: "CITY", items: [{ name: "", addr: "", url: "" }] }],
+      days: [{ date: "Day 1", rows: [{ time: "", text: "" }], overnight: "" }]
+    };
+  }
+  _commit(data) { try { localStorage.setItem("infinity_quote_v1", JSON.stringify(data)); } catch (e) {} this.setState({ data }); }
+  _clone() { return JSON.parse(JSON.stringify(this.state.data)); }
+  onField = (e) => {
+    const data = this._clone(); const parts = e.target.dataset.path.split(".");
+    let o = data; for (let i = 0; i < parts.length - 1; i++) o = o[parts[i]];
+    o[parts[parts.length - 1]] = e.target.value; this._commit(data);
+  };
+  onAction = (e) => {
+    const t = e.currentTarget, act = t.dataset.act;
+    const di = +t.dataset.di, ri = +t.dataset.ri, hi = +t.dataset.hi, ii = +t.dataset.ii, li = +t.dataset.li;
+    const data = this._clone();
+    if (act === "addDay") data.days.push({ date: "New Day", rows: [{ time: "", text: "" }], overnight: "" });
+    else if (act === "delDay") data.days.splice(di, 1);
+    else if (act === "addRow") data.days[di].rows.push({ time: "", text: "" });
+    else if (act === "delRow") data.days[di].rows.splice(ri, 1);
+    else if (act === "addTrip") data.tripLinks.push({ label: "New link", url: "" });
+    else if (act === "delTrip") data.tripLinks.splice(li, 1);
+    else if (act === "addHotel") data.hotels.push({ city: "CITY", items: [{ name: "", addr: "", url: "" }] });
+    else if (act === "delHotel") data.hotels.splice(hi, 1);
+    else if (act === "addItem") data.hotels[hi].items.push({ name: "", addr: "", url: "" });
+    else if (act === "delItem") data.hotels[hi].items.splice(ii, 1);
+    this._commit(data);
+  };
+  togglePanel = () => this.setState(s => ({ panelOpen: !s.panelOpen }));
+  newQuote = () => { if (confirm("Start a new blank quote? This clears the current content.")) this._commit(this._blank()); };
+  loadSample = () => { if (confirm("Load the Cantorum sample content?")) this._commit(this._rawToEditable(this.buildData())); };
+  exportJson = () => {
+    const blob = new Blob([JSON.stringify(this.state.data, null, 2)], { type: "application/json" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+    a.download = ((this.state.data.group || "infinity-quote").replace(/[^a-z0-9]+/gi, "-").toLowerCase()) + ".json";
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  };
+  importJson = (e) => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = () => { try { this._commit(JSON.parse(r.result)); } catch (err) { alert("Could not read that JSON file."); } };
+    r.readAsText(f); e.target.value = "";
+  };
+  // The image-slot host defaults to 240x160; force it to fill the full document
+  // at runtime so the sizing survives visual-editor saves and the lazy mount.
+  _sizeHero(tries) {
+    const el = document.getElementById("inf-hero-photo");
+    if (el) {
+      el.style.position = "absolute";
+      el.style.inset = "0";
+      el.style.width = "100%";
+      el.style.height = "100%";
+      el.style.display = "block";
+    }
+    if (tries < 60) setTimeout(() => this._sizeHero(tries + 1), 100);
+  }
+  // Drive the background photo slot's own controls directly, so the full-bleed
+  // layering (slot behind content) never blocks replacing/removing the image.
+  _photoAction(kind) {
+    const el = document.getElementById("inf-hero-photo");
+    if (!el || !el.shadowRoot) return;
+    const sel = kind === "clear" ? "[data-act=clear]" : "[data-act=replace]";
+    const btn = el.shadowRoot.querySelector(sel);
+    if (btn) btn.click();
+  }
+
+  buildData() {
+    const DET = "https://docs.google.com/document/d/1PPRRo3faDFLolG_D9TUBYKc_UhfOOAzFzRGAdgWtXpQ/edit?usp=sharing";
+    return {
+      group: "Cantorum Chamber Choir",
+      destination: "United Kingdom",
+      year: "2022",
+      hostName: "Mike Crockett",
+      hostPhone: "(801) 885-3780",
+      embassyName: "US Embassy",
+      embassyPhone: "(44) (0)20 7499-9000",
+      tripLinks: [
+        { label: "Detailed Itinerary", url: DET },
+        { label: "F.A.Q.", url: "https://docs.google.com/document/d/1d3waT5z9C1462DG0RI5GJSWbKPu07DNKUvNFt_vxsCM/edit" },
+        { label: "Google Photo Share", url: "https://photos.app.goo.gl/7kFLZsWweGunDxQk6" }
+      ],
+      roomingLink: { label: "Rooming List", url: "https://drive.google.com/file/d/1JQeeo3IoZyTpzIF7ds7HmEYHwZOq5MF9/view?usp=sharing" },
+      activitiesLink: { label: "Activities Schedule with Names", url: "https://drive.google.com/file/d/18WLbIVo_nY_tK46_I-gxY5ocnimpiMaQ/view?usp=sharing" },
+      hotels: [
+        { city: "Stratford", items: [
+          { name: "Double Tree", addr: "Arden St, Stratford-upon-Avon CV37 6QQ, United Kingdom", url: "https://www.hilton.com/en/hotels/bhxsadi-doubletree-stratford-upon-avon/" },
+          { name: "Swans Nest", addr: "Banbury Rd, Bridge Foot, Stratford-upon-Avon CV37 7LT, United Kingdom", url: "https://swansnesthotel.co.uk/about/" }
+        ]},
+        { city: "Cardiff", items: [
+          { name: "Marriott", addr: "Mill Ln, Cardiff CF10 1EZ, United Kingdom", url: "https://www.marriott.com/en-us/hotels/cwldt-cardiff-marriott-hotel/photos/" }
+        ]},
+        { city: "Bath", items: [
+          { name: "Hampton Inn", addr: "Avon St, Bath BA1 1UP, United Kingdom", url: "https://www.hilton.com/en/hotels/batumhx-hampton-bath-city/gallery/" }
+        ]},
+        { city: "London", items: [
+          { name: "Hampton Inn", addr: "157 Waterloo Rd, London SE1 8XA, United Kingdom", url: "https://www.hilton.com/en/hotels/" }
+        ]}
+      ],
+      days: [
+        { d: "Wed. June 29", rows: [
+          ["", [["Meet at SLC Airport"]]],
+          ["", [["Flight Confirmation", DET]]],
+          ["6:00 pm", [["Check into flight Delta Flight 50"]]],
+          ["8:50 pm", [["Depart on Delta Flight 220 for London"]]]
+        ]},
+        { d: "Thu. June 30", rows: [
+          ["1:30 pm", [["Arrive in London Heathrow Airport"]]],
+          ["2:30 pm", [["Depart for Stratford-upon-Avon"]]],
+          ["4:30 pm", [["Last Entry to Birthplace"]]],
+          ["5:30 pm", [["Check into Hotel"]]],
+          ["", [["Dinner on your own"]]],
+          ["7:30 pm", [["Optional Activity: "], ["Shakespeare Richard III", "https://www.shakespeare.org.uk/explore-shakespeare/shakespedia/shakespeares-plays/richard-iii/"]]]
+        ], overnight: [["Stratford-upon-Avon - "], ["DoubleTree", "https://www.hilton.com/en/hotels/bhxsadi-doubletree-stratford-upon-avon/"], [" and "], ["Swans Nest Hotel", "https://swansnesthotel.co.uk/about/"]] },
+        { d: "Fri. July 1", rows: [
+          ["8:00 am", [["Breakfast at hotel "], ["Performance attire", DET]]],
+          ["", [["Depart for "], ["Cotswolds", "https://youtu.be/kqOTwn313O8"], [", Meet Guide for tour of Cotswolds in Stratford-upon-Avon"]]],
+          ["", [["Chipping Campden, "], ["Stow on the Wold", "https://www.cotswolds.com/plan-your-trip/towns-and-villages/stow-on-the-wold-p670753"], [", "], ["Bourton on the Water", "https://www.cotswolds.com/plan-your-trip/towns-and-villages/bourton-on-the-water-p670103"]]],
+          ["11:00 am", [["Depart for "], ["Worcester Cathedral", "https://www.worcestercathedral.co.uk/"], [" Box'd Lunch will be provided"]]],
+          ["12:30 pm", [["Midday Concert at "], ["Worcester Cathedral", "https://www.worcestercathedral.co.uk/"]]],
+          ["1:30 pm", [["Depart for Cardiff"]]],
+          ["4:00 pm", [["Arrive in Cardiff Check into Festival and Hotel, Rehearsal for Opening Concert"]]],
+          ["7:30 pm", [["Festival Opening Concert, "], ["Tabernacle Chapel", "https://www.google.com/maps/dir//Tabernacle+Welsh+Baptist+Chapel"]]]
+        ], overnight: [["Cardiff Hotel - "], ["Marriott", "https://www.marriott.com/en-us/hotels/cwldt-cardiff-marriott-hotel/photos/"]] },
+        { d: "Sat. July 2", rows: [
+          ["9:00 am", [["Breakfast at hotel "], ["Performance attire", DET]]],
+          ["11:45 am", [["Freetime in Cardiff"]]],
+          ["", [["Rehearsal and Festival (see Detailed Itinerary for exact start and end times)"]]],
+          ["3:30 pm", [["Sightseeing in Cardiff Bay"]]],
+          ["7:00 pm", [["Category Competitions, "], ["Hoddinott Hall", "https://www.google.com/maps/dir//Hoddinott+Hall,+Cardiff+Bay"]]],
+          ["9:30 pm", [["Choir of Choirs Competition"]]]
+        ], overnight: [["Return to Cardiff Hotel - "], ["Marriott", "https://www.marriott.com/en-us/hotels/cwldt-cardiff-marriott-hotel/photos/"]] },
+        { d: "Sun. July 3", rows: [
+          ["", [["Breakfast at hotel "], ["Performance attire", DET]]],
+          ["", [["Check out of Hotel"]]],
+          ["", [["Choral Festival in Cardiff"]]],
+          ["", [["Change from Concert Dress"]]],
+          ["10:00 am", [["Depart for Bath"]]],
+          ["3:00 pm", [["Arrive in Bath"]]],
+          ["", [["Check into Hotel"]]],
+          ["4:30 pm", [["Sightseeing in "], ["Bath", "https://www.thecrazytourist.com/15-best-things-to-do-in-bath-somerset-england/"], [" (Jane Austin House, Roman Baths, Bath Abbey)"]]]
+        ], overnight: [["Bath, UK - "], ["Hampton by Hilton", "https://www.hilton.com/en/hotels/batumhx-hampton-bath-city/gallery/"]] },
+        { d: "Mon. July 4", rows: [
+          ["", [["Breakfast at hotel "], ["Performance attire", DET]]],
+          ["9:00 am", [["Sightseeing in Bath"]]],
+          ["", [["Jane Austin House, Bath Abbey,"]]],
+          ["11:30 am", [["Depart for Wells Cathedral"]]],
+          ["12:30 pm", [["Arrive at "], ["Wells Cathedral", "https://www.wellscathedral.org.uk/your-visit/explore-wells-cathedral/"], [" (video)(architecture)"]]],
+          ["1:05 pm", [["Midday Recital at Wells Cathedral"]]],
+          ["1:45 pm", [["Recital Ends"]]],
+          ["2:00 pm", [["Depart for Oxford"]]],
+          ["5:00 pm", [["Rehearsal at "], ["Christ Church", "https://www.youtube.com/watch?v=nY4RElKhRNA"]]],
+          ["6:00 pm", [["Evensong Performance at Christ Church"]]],
+          ["7:00 pm", [["Dinner in Oxford"]]],
+          ["8:30 pm", [["Oxford Walking Ghost tour"]]],
+          ["10:00 pm", [["Depart for London"]]]
+        ], overnight: [["Check into Waterloo "], ["Hampton by Hilton", "https://www.hilton.com/en/hotels/"]] },
+        { d: "Tue. July 5", rows: [
+          ["7:30 am", [["Breakfast at hotel "], ["Performance attire", DET]]],
+          ["8:15 am", [["Depart for Churchill War Rooms"]]],
+          ["9:00 am", [["Private Tour of "], ["Churchill War Rooms", "https://youtu.be/zj7-isBtLKg"], [" (life of a typist)"]]],
+          ["10:30 am", [["St. James Park, "], ["Buckingham Palace", "https://www.rct.uk/visit/buckingham-palace"]]],
+          ["11:00 am", [["Changing of the Guard @ Buckingham Palace"]]],
+          ["11:30 am", [["Lunch on your own and Travel to St. James"]]],
+          ["1:00 pm", [["Performance at St. James Sussex Gardens"]]],
+          ["2:00 pm", [["Free time in London or Depart for London Dungeon"]]],
+          ["3:15 pm", [["Optional "], ["London Dungeon", "https://www.thedungeons.com/london/"]]],
+          ["5:00 pm", [["Free time in London"]]],
+          ["7:30 pm", [["Optional: "], ["Mousetrap", "https://www.agathachristie.com/stories/the-mousetrap"]]],
+          ["8:00 pm", [["Optional: "], ["SIX", "https://www.sixthemusical.com/london/about"]]]
+        ], overnight: [["London Waterloo"]] },
+        { d: "Wed. July 6", rows: [
+          ["9:00 am", [["Breakfast at hotel "], ["Performance attire", DET]]],
+          ["12:00 pm", [["Tower of London", "https://www.hrp.org.uk/tower-of-london/history-and-stories/the-story-of-the-tower-of-london/"]]],
+          ["1:00 pm", [["Rehearsal at St. Stephen's Walbrooks"]]],
+          ["2:00 pm", [["Christopher Wren Chapel"]]],
+          ["", [["Afternoon Recital"]]],
+          ["7:00 pm", [["Free time in London"]]],
+          ["", [["Optional "], ["My Fair Lady", "https://www.londontheatre.co.uk/show/24277-my-fair-lady"]]]
+        ], overnight: [["London"]] },
+        { d: "Thurs. July 7", rows: [
+          ["Morning", [["Breakfast at hotel"]]],
+          ["", [["TBD London Activities"]]],
+          ["12:00 pm", [["Depart for Heathrow"]]],
+          ["12:30 pm", [["Arrive at Heathrow and check in for Delta 051"]]],
+          ["3:20 pm", [["Depart for SLC"]]],
+          ["6:50 pm", [["Arrive in SLC"]]]
+        ]}
+      ]
+    };
+  }
+
+  renderVals() {
+    const d = this.state.data;
+    const seg = (text) => {
+      const s = text || "", out = []; let last = 0, m; const re = /\[([^\]]+)\]\(([^)]*)\)/g;
+      while ((m = re.exec(s))) {
+        if (m.index > last) out.push({ t: s.slice(last, m.index), u: null, plain: true });
+        out.push({ t: m[1], u: m[2], plain: false });
+        last = m.index + m[0].length;
+      }
+      if (last < s.length) out.push({ t: s.slice(last), u: null, plain: true });
+      return out;
+    };
+    const days = (d.days || []).map((day, di) => ({
+      d: day.date, di,
+      rows: (day.rows || []).map((r, ri) => ({ time: r.time || "", text: r.text || "", segs: seg(r.text), di, ri })),
+      hasOvernight: !!(day.overnight && day.overnight.trim()),
+      overnight: seg(day.overnight),
+      overnightText: day.overnight || ""
+    }));
+    return {
+      group: d.group, destLine: (d.destination || "") + " " + (d.year || ""),
+      destination: d.destination, year: d.year,
+      hostName: d.hostName, hostPhone: d.hostPhone,
+      embassyName: d.embassyName, embassyPhone: d.embassyPhone,
+      tripLinks: (d.tripLinks || []).map((l, li) => ({ label: l.label, url: l.url, li })),
+      roomingLink: d.roomingLink || {}, activitiesLink: d.activitiesLink || {},
+      hotels: (d.hotels || []).map((h, hi) => ({ city: h.city, hi, items: (h.items || []).map((it, ii) => ({ name: it.name, addr: it.addr, url: it.url, hi, ii })) })),
+      days, data: d, panelOpen: this.state.panelOpen,
+      onField: this.onField, onAction: this.onAction, togglePanel: this.togglePanel,
+      newQuote: this.newQuote, loadSample: this.loadSample, exportJson: this.exportJson, importJson: this.importJson,
+      onReplace: () => this._photoAction("replace"), onRemove: () => this._photoAction("clear")
+    };
+  }
+}
+</script>
+</body>
+</html>

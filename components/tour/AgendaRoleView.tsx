@@ -202,7 +202,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                     {item.time && (
                       <span style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", minWidth: 52, paddingTop: 4, flexShrink: 0 }}>{item.time}</span>
                     )}
-                    <TypeDot type={item.type} travelMethod={(item.travel_methods ?? [])[0] ?? null} subtype={(item.activity_subtypes ?? [])[0] ?? null} size={24} />
+                    <TypeDot type={item.type} travelMethod={(item.travel_methods ?? [])[0] ?? null} subtype={(item.activity_subtypes ?? [])[0] ?? null} size={24} flightColor={item.flight_icon_color} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
                         <span style={{ fontSize: 14, fontWeight: 700, color: BRAND.navy }}>{item.title}</span>

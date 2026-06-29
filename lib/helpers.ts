@@ -67,6 +67,7 @@ export const ACTIVITY_SUBTYPES = [
   { value: "beach",          label: "Beach" },
   { value: "clinic",         label: "Clinic" },
   { value: "concert",        label: "Concert" },
+  { value: "broadway",       label: "Broadway" },
 ] as const;
 
 // Instructions sub-types (wake-up / lights-out). Also stored in `activity_subtype`.

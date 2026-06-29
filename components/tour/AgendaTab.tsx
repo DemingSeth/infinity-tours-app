@@ -308,6 +308,7 @@ type ItemFormState = {
   persona_visibility: Record<string, boolean>;
   feedback_enabled: boolean;
   image_urls: string[];
+  flight_icon_color: string | null;
 };
 
 const BLANK: ItemFormState = {
@@ -316,7 +317,7 @@ const BLANK: ItemFormState = {
   contact_name: "", contact_phone: "", contact_email: "",
   cost: "", cost_paid: false, confirmation_not_required: false, driver_note: "", internal_note: "",
   meal_money: [], persona_visibility: defaultPersonaVisibility("activity", []),
-  feedback_enabled: isActivityType("activity", []), image_urls: [],
+  feedback_enabled: isActivityType("activity", []), image_urls: [], flight_icon_color: null,
 };
 
 // Toggle a value in/out of a string array (used for multi-select sub-types).
@@ -348,6 +349,17 @@ function mealLegacyType(entries: MealMoneyForm[]): "group" | "stipend" | "disney
 }
 
 const TYPE_COLORS = AGENDA_TYPE_COLORS;
+
+// Flight icon color choices (item 7). A neutral white plus four colors that read
+// well on the navy chip the colored flight plane renders against. Stored as the
+// hex value on agenda_items.flight_icon_color; null = default rendering.
+const FLIGHT_ICON_COLORS: { value: string; label: string }[] = [
+  { value: "#FFFFFF", label: "White" },
+  { value: "#FBBF24", label: "Gold" },
+  { value: "#34D399", label: "Green" },
+  { value: "#38BDF8", label: "Sky" },
+  { value: "#FB7185", label: "Rose" },
+];
 
 const UNDO_WINDOW_MS = 5000;
 
@@ -521,6 +533,30 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
           })}
         </div>
       </div>
+
+      {/* Flight icon color — only when a flight method is selected. The plane in
+          each swatch previews exactly how it renders (colored plane on a navy
+          chip). No stored color falls back to the default rendering. */}
+      {form.travel_methods.includes("flight") && (() => {
+        const Plane = getSubtypeIcon("travel", "flight");
+        return (
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>Flight Icon Color</label>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {FLIGHT_ICON_COLORS.map(c => {
+                const selected = (form.flight_icon_color || "").toUpperCase() === c.value.toUpperCase();
+                return (
+                  <button key={c.value} type="button" title={c.label}
+                    onClick={() => f({ flight_icon_color: c.value })}
+                    style={{ width: 34, height: 34, borderRadius: 9, background: BRAND.navy, border: `2px solid ${selected ? BRAND.blue : "transparent"}`, boxShadow: selected ? `0 0 0 2px ${BRAND.blue}33` : "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
+                    {Plane && <Plane size={17} strokeWidth={2} color={c.value} />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Per-persona visibility for this item */}
       <div style={{ marginBottom: 14 }}>
@@ -754,7 +790,7 @@ function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onRemoveImage }: {
         <div style={{ width: 56, fontSize: 11, fontWeight: 700, color: "#94a3b8", flexShrink: 0, paddingTop: 6, textAlign: "right" }}>
           {item.time || "-"}
         </div>
-        <TypeDot type={item.type} travelMethod={travelMethods[0] ?? null} subtype={activitySubtypes[0] ?? null} size={32} />
+        <TypeDot type={item.type} travelMethod={travelMethods[0] ?? null} subtype={activitySubtypes[0] ?? null} size={32} flightColor={item.flight_icon_color} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", marginBottom: 3 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: BRAND.navy }}>{item.title}</span>
@@ -990,6 +1026,8 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
       persona_visibility: f.persona_visibility,
       feedback_enabled: f.feedback_enabled,
       image_urls: f.image_urls,
+      // Flight icon color only meaningful when the item carries a flight method.
+      flight_icon_color: f.travel_methods.includes("flight") ? (f.flight_icon_color || null) : null,
     };
   }
 
@@ -1012,6 +1050,7 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
       persona_visibility: item.persona_visibility ?? defaultPersonaVisibility(item.type, item.travel_methods ?? (item.travel_method ? [item.travel_method] : [])),
       feedback_enabled: item.feedback_enabled ?? isActivityType(item.type, item.activity_subtypes ?? item.activity_subtype),
       image_urls: item.image_urls || [],
+      flight_icon_color: item.flight_icon_color ?? null,
     };
   }
 

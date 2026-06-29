@@ -128,6 +128,7 @@ export default function PipelineClient({ initialTours, currentHostId, currentHos
             activity_subtypes: item.activity_subtypes,
             travel_method: item.travel_method,
             activity_subtype: item.activity_subtype,
+            flight_icon_color: item.flight_icon_color,
             contact_name: item.contact_name,
             contact_phone: item.contact_phone,
             contact_email: item.contact_email,

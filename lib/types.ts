@@ -218,6 +218,8 @@ export interface AgendaItemRow {
   map_link: string | null;
   website: string | null;
   travel_method: TravelMethod | null;
+  // Optional host-chosen color for the flight icon (hex). Null = default rendering.
+  flight_icon_color: string | null;
   contact_name: string | null;
   contact_phone: string | null;
   contact_email: string | null;
