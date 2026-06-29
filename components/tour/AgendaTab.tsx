@@ -82,18 +82,18 @@ function Sel({ options, ...props }: { options: { value: string; label: string }[
   );
 }
 
-function Btn({ children, onClick, variant, small, style }: {
+function Btn({ children, onClick, variant, small, style, disabled }: {
   children: React.ReactNode; onClick?: () => void;
-  variant?: "muted" | "ghost"; small?: boolean; style?: React.CSSProperties;
+  variant?: "muted" | "ghost"; small?: boolean; style?: React.CSSProperties; disabled?: boolean;
 }) {
   const base: React.CSSProperties = {
-    display: "inline-flex", alignItems: "center", gap: 5, cursor: "pointer",
-    fontFamily: "inherit", fontWeight: 600, border: "none", borderRadius: 8,
+    display: "inline-flex", alignItems: "center", gap: 5, cursor: disabled ? "default" : "pointer",
+    fontFamily: "inherit", fontWeight: 600, border: "none", borderRadius: 8, opacity: disabled ? .6 : 1,
     padding: small ? "5px 11px" : "8px 16px", fontSize: small ? 11 : 12,
     background: variant === "muted" ? "#f1f5f9" : variant === "ghost" ? "transparent" : BRAND.navy,
     color: variant === "muted" ? "#64748b" : variant === "ghost" ? "#64748b" : "#fff",
   };
-  return <button onClick={onClick} style={{ ...base, ...style }}>{children}</button>;
+  return <button onClick={onClick} disabled={disabled} style={{ ...base, ...style }}>{children}</button>;
 }
 
 // ── TimePicker ─────────────────────────────────────────────────────────────────
@@ -876,6 +876,8 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
   const [printMenuOpen, setPrintMenuOpen] = useState(false);
   const [editingDayId, setEditingDayId] = useState<string | null>(null);
   const [editingDayDateVal, setEditingDayDateVal] = useState("");
+  const [confirmDeleteDayId, setConfirmDeleteDayId] = useState<string | null>(null);
+  const [deletingDay, setDeletingDay] = useState(false);
 
   // Open the print-optimized itinerary view in a new tab; it auto-triggers the
   // browser's print dialog (Save as PDF). Reliable, no server-side rendering.
@@ -1341,7 +1343,8 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
                     style={{ background: "rgba(255,255,255,.15)", border: "none", borderRadius: 5, padding: "4px 10px", fontSize: 11, color: "#fff", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>
                     + Add
                   </button>
-                  <button onClick={e => { e.stopPropagation(); removeDay(day.id); }}
+                  <button onClick={e => { e.stopPropagation(); setConfirmDeleteDayId(day.id); }}
+                    title="Delete day"
                     style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,.35)", padding: 3 }}>
                     <I n="trash" s={13} />
                   </button>
@@ -1449,6 +1452,38 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
                 />
               )}
             />
+          </Modal>
+        );
+      })()}
+
+      {confirmDeleteDayId && (() => {
+        const dayToDelete = days.find(d => d.id === confirmDeleteDayId);
+        const itemCount = dayToDelete?.agenda_items.length ?? 0;
+        return (
+          <Modal title="Delete Day?" onClose={() => { if (!deletingDay) setConfirmDeleteDayId(null); }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+              <div style={{ fontSize: 14, lineHeight: 1.55, color: "#334155" }}>
+                {dayToDelete
+                  ? <>You&rsquo;re about to delete <strong style={{ color: BRAND.navy }}>{dayToDelete.date}</strong>{itemCount > 0 ? <> and its {itemCount} itinerary item{itemCount !== 1 ? "s" : ""}</> : null}.</>
+                  : <>You&rsquo;re about to delete this day.</>}
+                {" "}This action <strong>cannot be undone</strong>.
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <Btn onClick={() => setConfirmDeleteDayId(null)} variant="muted" disabled={deletingDay} style={{ flex: 1 }}>Cancel</Btn>
+                <button
+                  onClick={async () => {
+                    setDeletingDay(true);
+                    await removeDay(confirmDeleteDayId);
+                    setDeletingDay(false);
+                    setConfirmDeleteDayId(null);
+                  }}
+                  disabled={deletingDay}
+                  style={{ flex: 1, background: "#dc2626", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600, fontFamily: "inherit", cursor: deletingDay ? "default" : "pointer", opacity: deletingDay ? 0.7 : 1 }}
+                >
+                  {deletingDay ? "Deleting…" : "Delete Day"}
+                </button>
+              </div>
+            </div>
           </Modal>
         );
       })()}
