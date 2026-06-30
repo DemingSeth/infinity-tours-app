@@ -1476,10 +1476,13 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
             const d = new Date(hasYear ? day.date : `${day.date} ${new Date().getFullYear()}`);
             return isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-US", { weekday: "long" });
           })();
+          // TEMP DIAGNOSTIC (remove once weekday rendering is confirmed) — logs the
+          // raw stored date and the derived weekday so we can see the real runtime values.
+          console.log("[weekday-debug]", { rawDate: day.date, weekday });
           return (
-            <div key={day.id} style={{ background: "#fff", border: `1.5px solid ${past ? "#e5e7eb" : "#e8eef4"}`, borderRadius: 12, overflow: "hidden", opacity: past ? .8 : 1, boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
+            <div key={day.id} style={{ background: "#fff", border: `1.5px solid ${past ? "#e5e7eb" : "#e8eef4"}`, borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
               <div
-                style={{ background: past ? BRAND.navy + "cc" : BRAND.navy, padding: "11px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}
+                style={{ background: BRAND.navy, padding: "11px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}
                 onClick={() => toggleDayCollapse(day.id)}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
