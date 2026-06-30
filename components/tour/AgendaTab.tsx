@@ -1681,7 +1681,6 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
                 {dayToDelete
                   ? <>You&rsquo;re about to delete <strong style={{ color: BRAND.navy }}>{dayToDelete.date}</strong>{itemCount > 0 ? <> and its {itemCount} itinerary item{itemCount !== 1 ? "s" : ""}</> : null}.</>
                   : <>You&rsquo;re about to delete this day.</>}
-                {" "}You&rsquo;ll have a few seconds to undo before it&rsquo;s permanently removed.
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <Btn onClick={() => setConfirmDeleteDayId(null)} variant="muted" style={{ flex: 1 }}>Cancel</Btn>
