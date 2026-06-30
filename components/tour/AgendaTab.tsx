@@ -1466,9 +1466,19 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
         {days.map((day, idx) => {
           const past = isDayInPast(day.date);
           const collapsed = collapsedDays[day.id] ?? false;
-          // Weekday derived client-side from the same date value the header
-          // renders — no new data field. Empty when the day has no parseable date.
-          const weekday = parseAgendaDate(day.date)?.toLocaleDateString("en-US", { weekday: "long" }) ?? "";
+          // Weekday derived client-side from the same date value the header renders
+          // — no new data field. Many rows store a short, year-less date ("Apr 14",
+          // "Jun 2"); those need the current year appended for the Date constructor
+          // to resolve them. Year-included ("Mar 21, 2027") and ISO ("2025-04-14")
+          // strings parse on their own via parseAgendaDate and must NOT get a second
+          // year appended (it can misparse), so they're routed there instead.
+          const weekday = (() => {
+            if (!day.date) return "";
+            const d = /\b\d{4}\b/.test(day.date)
+              ? (parseAgendaDate(day.date) ?? new Date(day.date))
+              : new Date(`${day.date} ${new Date().getFullYear()}`);
+            return d && !isNaN(d.getTime()) ? d.toLocaleDateString("en-US", { weekday: "long" }) : "";
+          })();
           return (
             <div key={day.id} style={{ background: "#fff", border: `1.5px solid ${past ? "#e5e7eb" : "#e8eef4"}`, borderRadius: 12, overflow: "hidden", opacity: past ? .8 : 1, boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
               <div
