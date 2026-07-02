@@ -23,6 +23,7 @@ export default function BannerLibraryManager({ currentHostId }: { currentHostId:
   const [label, setLabel] = useState("");
   const [destination, setDestination] = useState("");
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -36,21 +37,53 @@ export default function BannerLibraryManager({ currentHostId }: { currentHostId:
   }, []);
 
   async function add() {
-    if (!file || !label.trim() || busy) return;
+    setError(null);
+    // Label is required — banner_image_library.label is NOT NULL. Block the
+    // submit and say why (rather than silently disabling the button).
+    if (!file) { setError("Choose an image file to add."); return; }
+    if (!label.trim()) { setError("Label is required."); return; }
+    if (busy) return;
+
     setBusy(true);
     const supabase = createClient();
     const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
     const path = `${Date.now()}-${safe}`;
-    const { error: upErr } = await supabase.storage.from(STORAGE_BUCKET).upload(path, file, { cacheControl: "3600", upsert: false });
-    if (upErr) { console.error("Banner library upload failed", upErr.message); setBusy(false); return; }
+
+    const { error: upErr } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .upload(path, file, { cacheControl: "3600", upsert: false });
+    if (upErr) {
+      setError(`Upload failed: ${upErr.message}`);
+      setBusy(false);
+      return;
+    }
+
     const { data: pub } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
-    const { data: row, error } = await supabase
+
+    // The library ROW is the source of truth for the picker. Do not treat the
+    // upload as success on its own: insert the row and surface any error. If the
+    // insert fails, roll back the just-uploaded object so we never leave a stored
+    // image with no matching row (the exact broken state this bug produced).
+    const { data: row, error: insErr } = await supabase
       .from("banner_image_library")
-      .insert({ url: pub.publicUrl, label: label.trim(), destination: destination.trim() || null, uploaded_by: currentHostId })
-      .select().single();
-    if (error) { console.error("Banner library insert failed", error.message); }
-    else if (row) setImages(prev => [row as BannerImageLibraryRow, ...prev]);
-    setFile(null); setLabel(""); setDestination(""); setBusy(false);
+      .insert({
+        url: pub.publicUrl,
+        label: label.trim(),
+        destination: destination.trim() || null,
+        uploaded_by: currentHostId,
+      })
+      .select()
+      .single();
+
+    if (insErr || !row) {
+      await supabase.storage.from(STORAGE_BUCKET).remove([path]).catch(() => {});
+      setError(`Could not save to the library: ${insErr?.message ?? "no row was created"}`);
+      setBusy(false);
+      return;
+    }
+
+    setImages(prev => [row as BannerImageLibraryRow, ...prev]);
+    setFile(null); setLabel(""); setDestination(""); setError(null); setBusy(false);
     if (inputRef.current) inputRef.current.value = "";
   }
 
@@ -77,8 +110,13 @@ export default function BannerLibraryManager({ currentHostId }: { currentHostId:
           <Inp value={label} onChange={e => setLabel(e.target.value)} placeholder="Label (e.g. Anaheim - Convention Center)" style={{ flex: "1 1 220px" }} />
           <Inp value={destination} onChange={e => setDestination(e.target.value)} placeholder="Destination tag (e.g. Anaheim, CA)" style={{ flex: "1 1 160px" }} />
         </div>
+        {error && (
+          <div style={{ marginTop: 8, background: "#fee2e2", color: "#b91c1c", border: "1px solid #fecaca", borderRadius: 8, padding: "8px 10px", fontSize: 12, lineHeight: 1.45 }}>
+            {error}
+          </div>
+        )}
         <div style={{ marginTop: 8 }}>
-          <Btn onClick={add} disabled={!file || !label.trim() || busy}><I n="plus" s={13} />{busy ? "Adding…" : "Add to Library"}</Btn>
+          <Btn onClick={add} disabled={busy}><I n="plus" s={13} />{busy ? "Adding…" : "Add to Library"}</Btn>
         </div>
       </div>
 
