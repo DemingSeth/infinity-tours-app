@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { isAdmin } from "@/lib/roles";
 import TourDetailClient from "./TourDetailClient";
 
 export default async function TourDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -59,7 +60,7 @@ export default async function TourDetailPage({ params }: { params: Promise<{ id:
       initialPostTripReview={postTripReview ?? null}
       initialGeneralFeedback={generalFeedback ?? []}
       currentUserId={user.id}
-      viewerIsAdmin={viewerHost?.role === "admin"}
+      viewerIsAdmin={isAdmin(viewerHost?.role)}
     />
   );
 }

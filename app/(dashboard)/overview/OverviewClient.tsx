@@ -12,6 +12,7 @@ import PipelineSummary from "@/components/overview/PipelineSummary";
 import CalendarView from "@/components/overview/CalendarView";
 import VisibilitySettingsModal from "@/components/overview/VisibilitySettingsModal";
 import type { TourWithHostAndMembers, HostRole } from "@/lib/types";
+import { isAdmin } from "@/lib/roles";
 
 // Admin-only card: library image count + a button to manage the library.
 function BannerLibraryCard({ currentHostId }: { currentHostId: string }) {
@@ -86,7 +87,7 @@ export default function OverviewClient({ tours, currentHostId, viewerRole }: Pro
         </button>
       </header>
 
-      {viewerRole === "admin" && <BannerLibraryCard currentHostId={currentHostId} />}
+      {isAdmin(viewerRole) && <BannerLibraryCard currentHostId={currentHostId} />}
 
       <StatsRow tours={tours} />
       <PipelineSummary tours={tours} currentHostId={currentHostId} onOpenTour={openTour} />
