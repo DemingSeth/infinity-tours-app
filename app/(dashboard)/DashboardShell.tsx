@@ -94,6 +94,21 @@ export default function DashboardShell({ children, user, tourHost }: Props) {
             </span>
           </div>
           <button
+            onClick={() => router.push("/account")}
+            style={{
+              background: "rgba(255,255,255,0.1)",
+              border: "1px solid rgba(255,255,255,0.15)",
+              color: "rgba(255,255,255,0.7)",
+              borderRadius: 6,
+              padding: "5px 12px",
+              fontSize: 12,
+              cursor: "pointer",
+              fontFamily: "inherit",
+            }}
+          >
+            Account
+          </button>
+          <button
             onClick={handleSignOut}
             style={{
               background: "rgba(255,255,255,0.1)",

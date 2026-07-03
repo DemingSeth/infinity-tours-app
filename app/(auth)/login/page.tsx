@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import InfinityLogoImg from "@/components/shared/InfinityLogoImg";
@@ -12,6 +13,16 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  // proxy.ts already bounces authenticated visitors off /login (and leaves
+  // /reset-password reachable for a recovery session). Here we only surface the
+  // post-reset success notice carried back on ?reset=success.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("reset") === "success") {
+      setNotice("Your password has been updated. Please sign in with your new password.");
+    }
+  }, []);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -60,6 +71,11 @@ export default function LoginPage() {
           </h2>
 
           <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {notice && (
+              <div style={{ background: "#dcfce7", color: "#15803d", borderRadius: 8, padding: "10px 14px", fontSize: 13 }}>
+                {notice}
+              </div>
+            )}
             <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
               <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.8 }}>Email</label>
               <input
@@ -84,6 +100,12 @@ export default function LoginPage() {
                 required
                 autoComplete="current-password"
               />
+            </div>
+
+            <div style={{ textAlign: "right", marginTop: -8 }}>
+              <Link href="/forgot-password" style={{ fontSize: 13, fontWeight: 600, color: BRAND.blue, textDecoration: "none" }}>
+                Forgot password?
+              </Link>
             </div>
 
             {error && (
