@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import InfinityLogoImg from "@/components/shared/InfinityLogoImg";
 import { BRAND } from "@/lib/helpers";
@@ -17,13 +18,16 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const ran = useRef(false);
 
-  // Establish the recovery session from whichever form the email link used:
-  //  - PKCE:   /reset-password?code=...            -> exchangeCodeForSession
-  //  - Hash:   /reset-password#access_token=...&type=recovery  -> setSession
-  // The @supabase/ssr client may also surface the hash form itself via the
-  // PASSWORD_RECOVERY auth event, so we listen for that too. Any failure (an
-  // expired or already-used link, or a link opened without a valid token) drops
-  // the user to the "invalid" state with a way back to /forgot-password.
+  // Establish the recovery session. The recovery email link carries a token hash
+  // (?token_hash=...&type=recovery), verified with verifyOtp — the robust path
+  // for email links: it needs nothing from prior browser storage, so it works no
+  // matter where the link is opened (a different browser, device, or incognito).
+  // Legacy PKCE (?code=) and implicit-hash (#access_token=) forms are kept only
+  // as minimal fallbacks; verifyOtp on the token hash is the expected path. The
+  // @supabase/ssr client may also surface recovery via the PASSWORD_RECOVERY
+  // event. Any failure (an expired or already-used link, or a link opened
+  // without a valid token) drops the user to the branded "invalid" state with a
+  // way back to /forgot-password.
   useEffect(() => {
     if (ran.current) return;
     ran.current = true;
@@ -36,29 +40,39 @@ export default function ResetPasswordPage() {
     (async () => {
       try {
         const url = new URL(window.location.href);
+        const token_hash = url.searchParams.get("token_hash");
+        const type = url.searchParams.get("type");
         const code = url.searchParams.get("code");
         const hash = window.location.hash.startsWith("#")
           ? window.location.hash.slice(1)
           : window.location.hash;
         const hashParams = new URLSearchParams(hash);
 
-        if (code) {
+        if (token_hash) {
+          // Primary, expected path for email recovery links.
+          const { error } = await supabase.auth.verifyOtp({
+            token_hash,
+            type: (type ?? "recovery") as EmailOtpType,
+          });
+          if (error) throw error;
+        } else if (code) {
+          // Legacy PKCE fallback.
           const { error } = await supabase.auth.exchangeCodeForSession(code);
           if (error) throw error;
         } else if (hashParams.get("access_token")) {
+          // Legacy implicit-hash fallback.
           const access_token = hashParams.get("access_token")!;
           const refresh_token = hashParams.get("refresh_token") ?? "";
           const { error } = await supabase.auth.setSession({ access_token, refresh_token });
           if (error) throw error;
         }
 
-        // Whether we exchanged a token above or the client auto-detected the hash,
-        // confirm an actual session exists before showing the form.
+        // Confirm an actual session exists before showing the form.
         const { data: { session } } = await supabase.auth.getSession();
         setStatus(session ? "ready" : "invalid");
 
         // Strip the token from the address bar once consumed.
-        if (code || hashParams.get("access_token")) {
+        if (token_hash || code || hashParams.get("access_token")) {
           window.history.replaceState(null, "", window.location.pathname);
         }
       } catch {
