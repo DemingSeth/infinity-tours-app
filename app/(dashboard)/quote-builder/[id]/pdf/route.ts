@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { isAdmin } from "@/lib/roles";
 import { renderQuoteHtml } from "@/lib/quotes/renderQuoteHtml";
 import { renderHtmlToPdf } from "@/lib/pdf/renderHtmlToPdf";
 import type { QuoteData } from "@/lib/quotes/types";
@@ -13,6 +14,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return new Response("Unauthorized", { status: 401 });
+
+  // Quote Builder is admin-only: logged-in non-admins are forbidden (403).
+  const { data: viewerHost } = await supabase
+    .from("tour_hosts")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  if (!isAdmin(viewerHost?.role)) return new Response("Forbidden", { status: 403 });
 
   // RLS scopes what this user may read.
   const { data: quote, error } = await supabase

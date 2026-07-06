@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import BrandLockup from "@/components/shared/BrandLockup";
 import { KanbanSquare, LayoutGrid, FileText } from "lucide-react";
 import { BRAND } from "@/lib/helpers";
+import { isAdmin } from "@/lib/roles";
 
 interface Props {
   children: React.ReactNode;
@@ -14,15 +15,13 @@ interface Props {
   tourHost: TourHostRow | null;
 }
 
-// Quote Builder ships behind this flag: the routes exist and work when reached
-// directly (/quote-builder…), but the nav link stays hidden until we're ready to
-// reveal the teaser — flip to true to surface it. Keeps the FileText import in use.
-const SHOW_QUOTE_BUILDER_NAV = false;
+// Quote Builder is admin-only. With this flag on, the nav link renders for admins
+// only (the routes themselves also enforce admin); non-admin hosts never see it.
+const SHOW_QUOTE_BUILDER_NAV = true;
 
-const NAV_LINKS = [
+const BASE_NAV_LINKS = [
   { href: "/overview", label: "Overview", Icon: LayoutGrid },
   { href: "/dashboard", label: "Tour Pipeline", Icon: KanbanSquare },
-  ...(SHOW_QUOTE_BUILDER_NAV ? [{ href: "/quote-builder", label: "Quote Builder", Icon: FileText }] : []),
 ];
 
 export default function DashboardShell({ children, user, tourHost }: Props) {
@@ -30,6 +29,14 @@ export default function DashboardShell({ children, user, tourHost }: Props) {
   const pathname = usePathname();
   const initials = tourHost?.initials ||
     (tourHost?.name || user.email || "TH").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+
+  // Quote Builder link only for admins (role already arrives via tourHost.role).
+  const navLinks = [
+    ...BASE_NAV_LINKS,
+    ...(SHOW_QUOTE_BUILDER_NAV && isAdmin(tourHost?.role)
+      ? [{ href: "/quote-builder", label: "Quote Builder", Icon: FileText }]
+      : []),
+  ];
 
   async function handleSignOut() {
     const supabase = createClient();
@@ -52,7 +59,7 @@ export default function DashboardShell({ children, user, tourHost }: Props) {
 
         {/* Primary nav */}
         <nav style={{ display: "flex", alignItems: "center", gap: 4, marginRight: "auto", marginLeft: 28 }}>
-          {NAV_LINKS.map(({ href, label, Icon }) => {
+          {navLinks.map(({ href, label, Icon }) => {
             const active = pathname === href || (href === "/dashboard" && pathname.startsWith("/tour"));
             return (
               <button
