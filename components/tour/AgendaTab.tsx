@@ -200,9 +200,9 @@ function Modal({ title, onClose, children, wide }: {
 // ── AccessLinkManager ──────────────────────────────────────────────────────────
 const ROLES_TYPED = ROLES as Record<string, { label: string; color: string; bg: string }>;
 
-function AccessLinkManager({ tour, onTourChange, open, setOpen }: {
+function AccessLinkManager({ tour, onTourChange, open, setOpen, isOwner }: {
   tour: TourRow; onTourChange: (patch: Record<string, any>) => void;
-  open: boolean; setOpen: (v: boolean) => void;
+  open: boolean; setOpen: (v: boolean) => void; isOwner: boolean;
 }) {
   const codes = (tour.access_codes as unknown as Record<string, string>) || {};
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -214,11 +214,13 @@ function AccessLinkManager({ tour, onTourChange, open, setOpen }: {
   const personaKeys = activePersonaKeys(tour.active_personas).filter(k => k !== "tour_host");
 
   // Auto-generate-and-persist a code for any participant persona missing one, so
-  // every persona always has a working link. The write fires ONLY when a code is
-  // actually absent: missing codes are batched into a single onTourChange (the
-  // normal save path — never a direct DB write), and once persisted the effect
-  // re-runs, finds nothing missing, and writes nothing. No per-render write loop.
+  // every persona always has a working link. OWNER ONLY: this writes to the tour,
+  // so it must never run for a non-owner. RLS would block that write, and because
+  // handleTourChange rolls back on failure the missing-code condition would stay
+  // true and re-fire this effect into a relentless loop. Non-owners just view (and
+  // copy) whatever codes already exist; RLS stays the last line of defense.
   useEffect(() => {
+    if (!isOwner) return;
     const additions: Record<string, string> = {};
     for (const key of personaKeys) {
       const codeKey = getPersona(key)!.codeKey;
@@ -228,7 +230,7 @@ function AccessLinkManager({ tour, onTourChange, open, setOpen }: {
       onTourChange({ access_codes: { ...codes, ...additions } });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tour.id, tour.active_personas, tour.access_codes]);
+  }, [tour.id, tour.active_personas, tour.access_codes, isOwner]);
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const linkFor = (codeKey: string) => `${origin}/tour/${tour.id}/view?c=${encodeURIComponent(codes[codeKey] || "")}`;
@@ -253,6 +255,10 @@ function AccessLinkManager({ tour, onTourChange, open, setOpen }: {
     return { key, codeKey: p.codeKey, label: personaLabel(key, tour.persona_labels), color: meta.color, bg: meta.bg };
   });
   const readyCount = rows.filter(r => (codes[r.codeKey] || "").trim()).length;
+  // Non-owners get a clean read-only view: only personas that already have a code
+  // (no empty or broken link affordances), and no regenerate control below. Owners
+  // see every persona so they can mint and rotate codes.
+  const visibleRows = isOwner ? rows : rows.filter(r => (codes[r.codeKey] || "").trim());
 
   // Subdued, collapsed-by-default secondary card (the preview buttons above are
   // the primary action). Expands to one shareable link per participant persona.
@@ -268,7 +274,10 @@ function AccessLinkManager({ tour, onTourChange, open, setOpen }: {
       </button>
       {open && (
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
-          {rows.map(r => {
+          {visibleRows.length === 0 && (
+            <div style={{ fontSize: 11, color: "#94a3b8" }}>No shareable links yet.</div>
+          )}
+          {visibleRows.map(r => {
             const copied = copiedKey === r.codeKey;
             return (
               <div key={r.key} style={{ display: "flex", alignItems: "center", gap: 8, background: "#fff", border: "1px solid #eef2f7", borderRadius: 9, padding: "8px 10px" }}>
@@ -276,10 +285,12 @@ function AccessLinkManager({ tour, onTourChange, open, setOpen }: {
                 <input readOnly value={linkFor(r.codeKey)}
                   onFocus={e => e.currentTarget.select()}
                   style={{ flex: 1, minWidth: 0, border: "1px solid #e2e8f0", borderRadius: 6, padding: "5px 8px", fontSize: 11, fontFamily: "inherit", color: "#64748b", background: "#f8fafc", outline: "none" }} />
-                <button onClick={() => regenerate(r.codeKey)} title="Generate a new link (the old one stops working)"
-                  style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 4, display: "flex", flexShrink: 0 }}>
-                  <I n="refresh" s={13} />
-                </button>
+                {isOwner && (
+                  <button onClick={() => regenerate(r.codeKey)} title="Generate a new link (the old one stops working)"
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 4, display: "flex", flexShrink: 0 }}>
+                    <I n="refresh" s={13} />
+                  </button>
+                )}
                 <button onClick={() => copy(r.codeKey)}
                   style={{ display: "inline-flex", alignItems: "center", gap: 4, border: "none", borderRadius: 6, padding: "5px 10px", cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit", flexShrink: 0, background: copied ? "#dcfce7" : r.color, color: copied ? "#15803d" : "#fff" }}>
                   {copied ? <><Check size={12} strokeWidth={3} />Copied</> : "Copy"}
@@ -913,7 +924,7 @@ interface AgendaTabProps {
   onDismissAddedPersona?: () => void;
 }
 
-export default function AgendaTab({ tour, days, members, onDaysChange, onTourChange, onSaveHostPhone, recentlyAddedPersona, onDismissAddedPersona }: AgendaTabProps) {
+export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, onTourChange, onSaveHostPhone, recentlyAddedPersona, onDismissAddedPersona }: AgendaTabProps) {
   const [showAddDay, setShowAddDay] = useState(false);
   const [newDayDate, setNewDayDate] = useState("");
   const [addMultiple, setAddMultiple] = useState(false);
@@ -1412,7 +1423,7 @@ export default function AgendaTab({ tour, days, members, onDaysChange, onTourCha
       )}
 
       {/* Access codes — secondary, subdued and collapsed below the preview */}
-      <AccessLinkManager tour={tour} onTourChange={onTourChange} open={linksOpen} setOpen={setLinksOpen} />
+      <AccessLinkManager tour={tour} onTourChange={onTourChange} open={linksOpen} setOpen={setLinksOpen} isOwner={isOwner} />
 
       {/* Trip Information — same card the participants see, editable by the host. */}
       <TripInformation
