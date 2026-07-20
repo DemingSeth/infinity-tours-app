@@ -433,6 +433,16 @@ export function buildTripInfo({ tour, members, days, hostName, hostPhone, confir
         ? [{ name: (tour?.traveling_tour_host || hostName) as string, contact: hostPhone ?? null }]
         : []);
 
+  // Consultants: prefer the new multi list, backfill a single entry from the
+  // legacy planning_tour_host so existing tours look unchanged.
+  const rawConsultants = (tour?.consultants as { name?: string; contact?: string | null }[] | null) || [];
+  const consultantEntries = rawConsultants.filter(c => (c?.name ?? "").trim() || (c?.contact ?? "").trim());
+  const consultantList = consultantEntries.length
+    ? consultantEntries.map(c => ({ name: (c.name ?? "").trim(), contact: (c.contact ?? "").trim() || null }))
+    : ((tour?.planning_tour_host ?? "").trim()
+        ? [{ name: (tour!.planning_tour_host as string).trim(), contact: null }]
+        : []);
+
   const infoOverrides = (tour?.trip_info_overrides as { flight?: string | null; hotel?: string | null; bus?: string | null } | null) || {};
   const customRows = ((tour?.custom_trip_rows as { id?: string; label?: string; value?: string | null; url?: string | null }[] | null) || [])
     .filter(r => (r?.label ?? "").trim() || (r?.value ?? "").trim() || (r?.url ?? "").trim())
@@ -445,7 +455,8 @@ export function buildTripInfo({ tour, members, days, hostName, hostPhone, confir
     tourHostPhone: hostPhone || null,
     teachers: teacherList,
     tourHosts: hostList,
-    consultantName: (tour?.planning_tour_host ?? "").trim() || null,
+    consultants: consultantList,
+    consultantName: consultantList[0]?.name || (tour?.planning_tour_host ?? "").trim() || null,
     overrides: infoOverrides,
     customRows,
     driverMapUrls: (tour?.driver_map_urls as string[] | null) || [],

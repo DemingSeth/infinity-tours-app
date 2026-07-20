@@ -4,7 +4,7 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronRight, Pencil, Paperclip, Upload, X, Link as LinkIcon, Plus, ImagePlus, Map } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { BRAND, formatFullDate, showTripSection } from "@/lib/helpers";
-import type { TripInfo, Role } from "@/lib/types";
+import type { TripInfo, Role, PersonnelRow } from "@/lib/types";
 
 // Tour-level confirmations reuse the existing public storage bucket.
 const STORAGE_BUCKET = "agenda-images";
@@ -18,8 +18,8 @@ type TripForm = {
   // Multiple teachers ({ name, contact: email }) and tour hosts ({ name, contact: phone }).
   teachers: PersonForm[];
   hosts: PersonForm[];
-  // Tour consultant (travel planner) — separate from the traveling tour host.
-  consultantName: string;
+  // Multiple tour consultants / travel planners ({ name, contact: email }).
+  consultants: PersonForm[];
   busCapacity: string;
   // Free-text override for the Participants row; blank = use the roster counts.
   participantsOverride: string;
@@ -97,29 +97,70 @@ interface TripInformationProps {
   print?: boolean;
 }
 
-// Editable list of people (teachers: name+email, hosts: name+phone).
-function PersonListEditor({ people, onChange, namePlaceholder, contactPlaceholder, addLabel }: {
+// Editable list of people (teachers: name+email, hosts: name+phone). Each row
+// has an optional "select existing" dropdown sourced from Infinity staff
+// accounts + this tour's teachers; picking one fills name + contact, both still
+// editable afterward. `contactKind` decides which contact field to pull from a
+// staff account (phone for hosts, email for consultants/teachers).
+function PersonListEditor({ people, onChange, namePlaceholder, contactPlaceholder, addLabel, personnel = [], teacherRefs = [], contactKind = "email" }: {
   people: PersonForm[];
   onChange: (next: PersonForm[]) => void;
   namePlaceholder: string;
   contactPlaceholder: string;
   addLabel: string;
+  personnel?: PersonnelRow[];
+  teacherRefs?: PersonForm[];
+  contactKind?: "phone" | "email";
 }) {
   const rows = people.length ? people : [{ name: "", contact: "" }];
   const set = (i: number, patch: Partial<PersonForm>) =>
     onChange(rows.map((p, idx) => (idx === i ? { ...p, ...patch } : p)));
+  const hasDropdown = personnel.length > 0 || teacherRefs.some(t => t.name.trim());
+
+  function pick(i: number, val: string) {
+    if (!val) return;
+    const sep = val.indexOf(":");
+    const src = val.slice(0, sep);
+    const key = val.slice(sep + 1);
+    if (src === "staff") {
+      const p = personnel.find(x => x.id === key);
+      if (p) set(i, { name: p.name ?? "", contact: (contactKind === "phone" ? p.phone : p.email) ?? "" });
+    } else if (src === "teacher") {
+      const t = teacherRefs[parseInt(key, 10)];
+      if (t) set(i, { name: t.name, contact: t.contact ?? "" });
+    }
+  }
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       {rows.map((p, i) => (
-        <div key={i} style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          <input style={{ ...inputStyle, flex: 1 }} value={p.name} placeholder={namePlaceholder}
-            onChange={e => set(i, { name: e.target.value })} />
-          <input style={{ ...inputStyle, flex: 1 }} value={p.contact} placeholder={contactPlaceholder}
-            onChange={e => set(i, { contact: e.target.value })} />
-          <button type="button" title="Remove" onClick={() => onChange(rows.filter((_, idx) => idx !== i))}
-            style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 2, display: "flex", flexShrink: 0 }}>
-            <X size={13} />
-          </button>
+        <div key={i} style={{ display: "flex", flexDirection: "column", gap: 5, background: "#fafbff", border: "1px solid #eef2f7", borderRadius: 8, padding: 8 }}>
+          {hasDropdown && (
+            <select value="" onChange={e => pick(i, e.target.value)}
+              style={{ ...inputStyle, fontSize: 12, color: "#475569", cursor: "pointer" }}>
+              <option value="">＋ Select existing…</option>
+              {personnel.length > 0 && (
+                <optgroup label="Infinity staff">
+                  {personnel.map(pr => <option key={pr.id} value={`staff:${pr.id}`}>{pr.name}</option>)}
+                </optgroup>
+              )}
+              {teacherRefs.some(t => t.name.trim()) && (
+                <optgroup label="This tour's teachers">
+                  {teacherRefs.map((t, ti) => t.name.trim() ? <option key={ti} value={`teacher:${ti}`}>{t.name}</option> : null)}
+                </optgroup>
+              )}
+            </select>
+          )}
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <input style={{ ...inputStyle, flex: 1 }} value={p.name} placeholder={namePlaceholder}
+              onChange={e => set(i, { name: e.target.value })} />
+            <input style={{ ...inputStyle, flex: 1 }} value={p.contact} placeholder={contactPlaceholder}
+              onChange={e => set(i, { contact: e.target.value })} />
+            <button type="button" title="Remove" onClick={() => onChange(rows.filter((_, idx) => idx !== i))}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 2, display: "flex", flexShrink: 0 }}>
+              <X size={13} />
+            </button>
+          </div>
         </div>
       ))}
       <button type="button" style={smallAddBtn} onClick={() => onChange([...rows, { name: "", contact: "" }])}>
@@ -134,15 +175,32 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<TripForm>({
-    teachers: [], hosts: [], consultantName: "", busCapacity: "", participantsOverride: "",
+    teachers: [], hosts: [], consultants: [], busCapacity: "", participantsOverride: "",
     flightOverride: "", hotelOverride: "", busOverride: "", customRows: [],
   });
+
+  // Personnel directory for the host/consultant/teacher dropdowns (staff
+  // accounts). Fetched once for host views via the SECURITY DEFINER RPC.
+  const [personnel, setPersonnel] = useState<PersonnelRow[]>([]);
+  useEffect(() => {
+    if (!isHost) return;
+    let active = true;
+    (async () => {
+      const { data } = await createClient().rpc("list_personnel");
+      if (active && Array.isArray(data)) setPersonnel(data as PersonnelRow[]);
+    })();
+    return () => { active = false; };
+  }, [isHost]);
+
+  // Teacher candidates for the host/consultant dropdowns come from the teachers
+  // currently entered on the form (live), so a just-added teacher is selectable.
+  const teacherRefs = form.teachers.filter(t => t.name.trim() || t.contact.trim());
 
   function startEdit() {
     setForm({
       teachers: (info.teachers ?? []).map(t => ({ name: t.name ?? "", contact: t.contact ?? "" })),
       hosts: (info.tourHosts ?? []).map(h => ({ name: h.name ?? "", contact: h.contact ?? "" })),
-      consultantName: info.consultantName ?? "",
+      consultants: (info.consultants ?? []).map(c => ({ name: c.name ?? "", contact: c.contact ?? "" })),
       busCapacity: info.busCapacity != null ? String(info.busCapacity) : "",
       participantsOverride: info.participantsOverride ?? "",
       flightOverride: info.overrides?.flight ?? "",
@@ -163,6 +221,9 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
       const hosts = form.hosts
         .map(h => ({ name: h.name.trim(), contact: h.contact.trim() || null }))
         .filter(h => h.name || h.contact);
+      const consultants = form.consultants
+        .map(c => ({ name: c.name.trim(), contact: c.contact.trim() || null }))
+        .filter(c => c.name || c.contact);
       const customRows = form.customRows
         .map(r => ({ id: r.id, label: r.label.trim(), value: r.value.trim() || null, url: r.url.trim() || null }))
         .filter(r => r.label || r.value || r.url);
@@ -174,7 +235,8 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
           contact_name: teachers[0]?.name || null,
           contact_email: teachers[0]?.contact || null,
           traveling_tour_host: hosts[0]?.name || null,
-          planning_tour_host: form.consultantName.trim() || null,
+          consultants,
+          planning_tour_host: consultants[0]?.name || null,
           bus_capacity: Number(form.busCapacity) || 0,
           participants_display_override: form.participantsOverride.trim() || null,
           trip_info_overrides: {
@@ -399,7 +461,8 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
       content: editing ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <PersonListEditor people={form.teachers} onChange={t => setForm(f => ({ ...f, teachers: t }))}
-            namePlaceholder="Teacher name" contactPlaceholder="Teacher email" addLabel="Add teacher" />
+            namePlaceholder="Teacher name" contactPlaceholder="Teacher email" addLabel="Add teacher"
+            personnel={personnel} contactKind="email" />
         </div>
       ) : teachers.length ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
@@ -419,7 +482,8 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
       content: editing ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <PersonListEditor people={form.hosts} onChange={h => setForm(f => ({ ...f, hosts: h }))}
-            namePlaceholder="Tour host name" contactPlaceholder="Tour host phone" addLabel="Add tour host" />
+            namePlaceholder="Tour host name" contactPlaceholder="Tour host phone" addLabel="Add tour host"
+            personnel={personnel} teacherRefs={teacherRefs} contactKind="phone" />
           <div style={{ color: "#64748b", fontSize: 12 }}>
             Infinity Hotline {HOTLINE_DISPLAY}
           </div>
@@ -438,14 +502,22 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
         </>
       ),
     },
-    // Tour consultant (travel planner) — separate from the traveling tour host.
-    ...(editing || info.consultantName ? [{
-      label: "Tour Consultant",
+    // Tour consultants (travel planners) — separate from the traveling tour host.
+    ...(editing || (info.consultants ?? []).length ? [{
+      label: (info.consultants ?? []).length > 1 ? "Tour Consultants" : "Tour Consultant",
       content: editing ? (
-        <input style={inputStyle} value={form.consultantName} placeholder="Consultant (travel planner) name"
-          onChange={e => setForm(f => ({ ...f, consultantName: e.target.value }))} />
+        <PersonListEditor people={form.consultants} onChange={c => setForm(f => ({ ...f, consultants: c }))}
+          namePlaceholder="Consultant (travel planner) name" contactPlaceholder="Consultant email" addLabel="Add consultant"
+          personnel={personnel} teacherRefs={teacherRefs} contactKind="email" />
       ) : (
-        <div>{dash(info.consultantName)}</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          {(info.consultants ?? []).map((c, i) => (
+            <div key={i}>
+              {c.name || "—"}
+              {c.contact && <> · {link(`mailto:${c.contact}`, c.contact)}</>}
+            </div>
+          ))}
+        </div>
       ),
     }] : []),
     {

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { BRAND, calcRoster, calcRooms } from "@/lib/helpers";
-import type { TourMemberRow, TourNoteRow } from "@/lib/types";
+import type { TourMemberRow, TourNoteRow, NotePriority } from "@/lib/types";
 
 // ─── Shared micro-components ──────────────────────────────────────────────────
 
@@ -46,10 +46,20 @@ function noteDateLabel(iso: string): string {
     " · " + d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 }
 
+// Priority tag styling (Low / Medium / High). Medium is the default and reads
+// as neutral; High is red, Low is muted.
+const PRIORITY_META: Record<NotePriority, { label: string; color: string; bg: string; border: string }> = {
+  low:    { label: "Low",    color: "#475569", bg: "#f1f5f9", border: "#e2e8f0" },
+  medium: { label: "Medium", color: "#0369a1", bg: "#e0f2fe", border: "#bae6fd" },
+  high:   { label: "High",   color: "#b91c1c", bg: "#fee2e2", border: "#fecaca" },
+};
+const PRIORITY_ORDER: NotePriority[] = ["low", "medium", "high"];
+
 function NotesLog({ tourId, isOwner }: { tourId: string; isOwner: boolean }) {
   const [notes, setNotes] = useState<TourNoteRow[]>([]);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [draft, setDraft] = useState("");
+  const [draftPriority, setDraftPriority] = useState<NotePriority>("medium");
   const [adding, setAdding] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -72,7 +82,7 @@ function NotesLog({ tourId, isOwner }: { tourId: string; isOwner: boolean }) {
     const { data: { user } } = await supabase.auth.getUser();
     const { data, error } = await supabase
       .from("tour_notes")
-      .insert({ tour_id: tourId, text, created_by: user?.id ?? null })
+      .insert({ tour_id: tourId, text, priority: draftPriority, created_by: user?.id ?? null })
       .select().single();
     setSaving(false);
     if (error || !data) {
@@ -83,7 +93,18 @@ function NotesLog({ tourId, isOwner }: { tourId: string; isOwner: boolean }) {
     setNotes(prev => [data as TourNoteRow, ...prev]);
     setExpanded(prev => ({ ...prev, [(data as TourNoteRow).id]: true }));
     setDraft("");
+    setDraftPriority("medium");
     setAdding(false);
+  }
+
+  async function changePriority(id: string, priority: NotePriority) {
+    const prev = notes;
+    setNotes(cur => cur.map(n => n.id === id ? { ...n, priority } : n));
+    const { error } = await createClient().from("tour_notes").update({ priority }).eq("id", id);
+    if (error) {
+      console.error("[tour_notes.priority] failed", error.message);
+      setNotes(prev); // roll back
+    }
   }
 
   async function deleteNote(id: string) {
@@ -114,8 +135,23 @@ function NotesLog({ tourId, isOwner }: { tourId: string; isOwner: boolean }) {
           <textarea autoFocus value={draft} onChange={e => setDraft(e.target.value)}
             placeholder="What happened / what to remember (a timestamp is added automatically)…"
             style={{ ...inp, resize: "vertical", minHeight: 80 }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6 }}>Priority</span>
+              {PRIORITY_ORDER.map(p => {
+                const m = PRIORITY_META[p];
+                const active = draftPriority === p;
+                return (
+                  <button key={p} type="button" onClick={() => setDraftPriority(p)}
+                    style={{ padding: "4px 12px", borderRadius: 999, border: `1.5px solid ${active ? m.color : "#e2e8f0"}`, background: active ? m.bg : "#fff", color: active ? m.color : "#94a3b8", fontSize: 12, fontWeight: active ? 700 : 500, cursor: "pointer", fontFamily: "inherit" }}>
+                    {m.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-            <button onClick={() => { setAdding(false); setDraft(""); }}
+            <button onClick={() => { setAdding(false); setDraft(""); setDraftPriority("medium"); }}
               style={{ background: "#f1f5f9", color: "#64748b", border: "1.5px solid #e2e8f0", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
               Cancel
             </button>
@@ -137,14 +173,16 @@ function NotesLog({ tourId, isOwner }: { tourId: string; isOwner: boolean }) {
         {notes.map(n => {
           const isOpen = !!expanded[n.id];
           const firstLine = (n.text.split("\n")[0] || "").slice(0, 80);
+          const pr = PRIORITY_META[(n.priority ?? "medium") as NotePriority] ?? PRIORITY_META.medium;
           return (
-            <div key={n.id} style={{ border: "1px solid #eef2f7", borderRadius: 9, overflow: "hidden" }}>
+            <div key={n.id} style={{ border: "1px solid #eef2f7", borderRadius: 9, overflow: "hidden", borderLeft: `3px solid ${pr.color}` }}>
               <div
                 onClick={() => setExpanded(prev => ({ ...prev, [n.id]: !isOpen }))}
                 style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#fafbff", cursor: "pointer" }}
               >
                 {isOpen ? <ChevronDown size={14} color="#94a3b8" style={{ flexShrink: 0 }} /> : <ChevronRight size={14} color="#94a3b8" style={{ flexShrink: 0 }} />}
                 <span style={{ fontSize: 11, fontWeight: 700, color: BRAND.blue, flexShrink: 0 }}>{noteDateLabel(n.created_at)}</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: pr.color, background: pr.bg, border: `1px solid ${pr.border}`, borderRadius: 999, padding: "1px 8px", flexShrink: 0, textTransform: "uppercase", letterSpacing: 0.4 }}>{pr.label}</span>
                 {!isOpen && (
                   <span style={{ fontSize: 12, color: "#64748b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1 }}>
                     {firstLine}
@@ -158,8 +196,25 @@ function NotesLog({ tourId, isOwner }: { tourId: string; isOwner: boolean }) {
                 )}
               </div>
               {isOpen && (
-                <div style={{ padding: "10px 14px", fontSize: 13, color: "#1e293b", whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
-                  {n.text}
+                <div style={{ padding: "10px 14px" }}>
+                  <div style={{ fontSize: 13, color: "#1e293b", whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
+                    {n.text}
+                  </div>
+                  {isOwner && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10, paddingTop: 8, borderTop: "1px solid #f1f5f9" }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6 }}>Priority</span>
+                      {PRIORITY_ORDER.map(p => {
+                        const m = PRIORITY_META[p];
+                        const active = (n.priority ?? "medium") === p;
+                        return (
+                          <button key={p} type="button" onClick={() => changePriority(n.id, p)}
+                            style={{ padding: "3px 10px", borderRadius: 999, border: `1.5px solid ${active ? m.color : "#e2e8f0"}`, background: active ? m.bg : "#fff", color: active ? m.color : "#94a3b8", fontSize: 11, fontWeight: active ? 700 : 500, cursor: "pointer", fontFamily: "inherit" }}>
+                            {m.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

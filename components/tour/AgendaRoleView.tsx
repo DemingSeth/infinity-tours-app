@@ -316,6 +316,29 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                           Note: {item.internal_note}
                         </div>
                       )}
+
+                      {/* Bus-driver maps for this stop — host + driver only (same
+                          gate as driver notes). Shown on screen and in print. */}
+                      {vis.driverNote && (item.driver_map_urls?.length ?? 0) > 0 && (
+                        <div style={{ marginTop: mt(6) }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, fontWeight: 700, color: "#92400e", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 3 }}>
+                            <Bus size={12} style={{ flexShrink: 0 }} />Driver Maps
+                          </div>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                            {item.driver_map_urls.map(url => (
+                              print ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img key={url} className="agenda-photo" src={url} alt="Driver map" style={{ width: 150, height: 106, objectFit: "cover", borderRadius: 6, border: "1px solid #fcd34d" }} />
+                              ) : (
+                                <a key={url} href={url} target="_blank" rel="noopener noreferrer" title="Open full size">
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img src={url} alt="Driver map" style={{ width: 110, height: 78, objectFit: "cover", borderRadius: 6, border: "1px solid #fcd34d", display: "block" }} />
+                                </a>
+                              )
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                   {showFeedback && item.feedback_enabled && (

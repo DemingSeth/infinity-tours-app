@@ -200,7 +200,10 @@ export interface TourRow {
   // Multiple tour hosts ({ name, contact: phone }). Empty → fall back to the
   // legacy traveling_tour_host + host profile phone.
   tour_hosts_list: PersonRef[];
-  // Map images for bus drivers (visible to hosts + bus drivers only).
+  // Multiple tour consultants / travel planners ({ name, contact: email }).
+  // Empty → fall back to the legacy planning_tour_host single field.
+  consultants: PersonRef[];
+  // Tour-level map images for bus drivers (visible to hosts + bus drivers only).
   driver_map_urls: string[];
   created_at: string;
   updated_at: string;
@@ -266,6 +269,9 @@ export interface AgendaItemRow {
   flight_icon_color: string | null;
   // Optional host-chosen color for the bus icon (hex). Null = default rendering.
   bus_icon_color: string | null;
+  // Bus-driver map images for THIS item (host + driver only), e.g. a parking
+  // or drop-off map for the stop. Separate from image_urls (visible to all).
+  driver_map_urls: string[];
   contact_name: string | null;
   contact_phone: string | null;
   contact_email: string | null;
@@ -388,14 +394,27 @@ export interface PostTripReviewRow {
   submitted_at: string;
 }
 
+export type NotePriority = "low" | "medium" | "high";
+
 // A timestamped overview note (multiple per tour, minimizable in the UI).
 export interface TourNoteRow {
   id: string;
   tour_id: string;
   text: string;
+  priority: NotePriority;
   created_by: string | null;
   created_at: string;
   updated_at: string;
+}
+
+// A staff member from the personnel directory (list_personnel RPC), used to
+// populate the Tour Host / Consultant dropdowns.
+export interface PersonnelRow {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  role: string;
 }
 
 // Curated banner image available to tour hosts (managed by admins).
@@ -418,7 +437,9 @@ export interface TripInfo {
   // single fields carry data (buildTripInfo backfills from them).
   teachers: PersonRef[];
   tourHosts: PersonRef[];
-  // Tour consultant (travel planner) — separate from the traveling tour host.
+  // Tour consultants (travel planners) — separate from the traveling tour host.
+  // Multi-entry; consultantName mirrors the first for any single-value consumer.
+  consultants: PersonRef[];
   consultantName: string | null;
   // Free-text overrides for Flight / Hotel / Bus rows (non-empty replaces the
   // derived summary) + host-named custom rows.

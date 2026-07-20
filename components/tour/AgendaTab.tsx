@@ -99,43 +99,110 @@ function Btn({ children, onClick, variant, small, style, disabled }: {
 }
 
 // ── TimePicker ─────────────────────────────────────────────────────────────────
-// `value` may be cleared back to blank with the inline ✕ (for "we don't know the
-// time yet / the time changed" — July 2026 request).
+// Typeable time field + a wheel assist. You can type free-form ("2:30 pm",
+// "230p", "14:30", "2") and it normalizes on blur/Enter; the clock button opens
+// the wheel, and Done ALWAYS commits the shown selection (so opening it and
+// pressing Done with no change still saves). The ✕ clears the field to blank.
+const pad2 = (n: number) => String(n).padStart(2, "0");
+
+// Parse free-form typed input to canonical "h:mm AM/PM". Returns "" for empty
+// (clears the field) and null for unparseable input (caller reverts).
+function parseTimeInput(raw: string): string | null {
+  let s = raw.trim().toLowerCase();
+  if (!s) return "";
+  let mer: "a" | "p" | null = null;
+  const mm = s.match(/([ap])\.?m?\.?\s*$/);
+  if (mm) { mer = mm[1] as "a" | "p"; s = s.slice(0, mm.index).trim(); }
+  s = s.replace(/[^\d:]/g, "");
+  if (!s) return null;
+  let h: number, min: number;
+  if (s.includes(":")) {
+    const [hp, mp] = s.split(":");
+    if (mp === undefined || mp === "") return null;
+    h = parseInt(hp || "0", 10);
+    // A single minute digit means ones, not tens: "2:3" → 2:03, not 2:30.
+    min = parseInt(mp.length === 1 ? mp : mp.slice(0, 2), 10);
+  } else if (s.length <= 2) {
+    h = parseInt(s, 10); min = 0;
+  } else if (s.length === 3) {
+    h = parseInt(s.slice(0, 1), 10); min = parseInt(s.slice(1), 10);
+  } else {
+    h = parseInt(s.slice(0, 2), 10); min = parseInt(s.slice(2, 4), 10);
+  }
+  if (Number.isNaN(h) || Number.isNaN(min) || min > 59) return null;
+  if (mer) {
+    if (h < 1 || h > 12) return null;
+    return `${h}:${pad2(min)} ${mer === "a" ? "AM" : "PM"}`;
+  }
+  // No meridiem: read as 24-hour. 1–11 default to AM (add "pm" to override).
+  if (h > 23) return null;
+  if (h === 0) return `12:${pad2(min)} AM`;
+  if (h < 12) return `${h}:${pad2(min)} AM`;
+  if (h === 12) return `12:${pad2(min)} PM`;
+  return `${h - 12}:${pad2(min)} PM`;
+}
+
 function TimePicker({ value, onChange, placeholder = "Pick a time" }: {
   value: string; onChange: (v: string) => void; placeholder?: string;
 }) {
   const [open, setOpen] = useState(false);
+  // Editable text mirrors `value`; committed on blur/Enter (or reverted).
+  const [text, setText] = useState(value);
   const ref = useRef<HTMLDivElement>(null);
   const hourRef = useRef<HTMLDivElement>(null);
   const minRef = useRef<HTMLDivElement>(null);
 
   const parseT = (v: string) => {
-    if (!v) return { h: 9, m: 0, ap: "AM" };
     const match = v.match(/^(\d+):(\d{2})\s*(AM|PM)$/i);
     return match ? { h: parseInt(match[1]), m: parseInt(match[2]), ap: match[3].toUpperCase() } : { h: 9, m: 0, ap: "AM" };
   };
-  const { h, m, ap } = parseT(value);
+  // Wheel draft, seeded from the current value (or a 9:00 AM default) each open.
+  const [draft, setDraft] = useState(() => parseT(value));
+
+  // Keep the visible text in sync when the value changes from outside.
+  useEffect(() => { setText(value); }, [value]);
 
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node)) { commitText(); setOpen(false); }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, text, value]);
 
   useEffect(() => {
     if (!open) return;
     setTimeout(() => {
-      (hourRef.current?.children[h - 1] as HTMLElement)?.scrollIntoView({ block: "center" });
-      (minRef.current?.children[m] as HTMLElement)?.scrollIntoView({ block: "center" });
+      (hourRef.current?.children[draft.h - 1] as HTMLElement)?.scrollIntoView({ block: "center" });
+      (minRef.current?.children[draft.m] as HTMLElement)?.scrollIntoView({ block: "center" });
     }, 60);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  const emit = (nh: number, nm: number, na: string) => onChange(`${nh}:${String(nm).padStart(2, "0")} ${na}`);
+  function commitText() {
+    const parsed = parseTimeInput(text);
+    if (parsed === null) { setText(value); return; }   // invalid → revert
+    if (parsed !== value) onChange(parsed);
+    else setText(value);                                // normalize display
+  }
+
+  function openWheel() {
+    setDraft(parseT(value));
+    setOpen(true);
+  }
+
+  // Done always commits the shown wheel selection — even with no change.
+  function done() {
+    const v = `${draft.h}:${pad2(draft.m)} ${draft.ap}`;
+    setText(v);
+    onChange(v);
+    setOpen(false);
+  }
+
   const hours = [1,2,3,4,5,6,7,8,9,10,11,12];
-  const mins  = Array.from({ length: 60 }, (_, i) => i); // 1-minute increments (0–59)
+  const mins  = Array.from({ length: 60 }, (_, i) => i);
   const col: React.CSSProperties = { height: 156, overflowY: "auto", display: "flex", flexDirection: "column", gap: 1, padding: "4px 0", scrollbarWidth: "thin" };
   const btn = (active: boolean): React.CSSProperties => ({
     padding: "5px 0", borderRadius: 6, fontSize: 13, fontWeight: active ? 700 : 400,
@@ -145,41 +212,55 @@ function TimePicker({ value, onChange, placeholder = "Pick a time" }: {
 
   return (
     <div ref={ref} style={{ position: "relative", width: "100%" }}>
-      <div onClick={() => setOpen(o => !o)}
-        style={{ ...INP, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", userSelect: "none" }}>
-        <span style={{ color: value ? "#1e293b" : "#94a3b8" }}>{value || placeholder}</span>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-          {value && (
+      <div style={{ ...INP, display: "flex", alignItems: "center", justifyContent: "space-between", padding: 0, paddingRight: 8 }}>
+        <input
+          value={text}
+          placeholder={placeholder}
+          onChange={e => setText(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === "Enter") { e.preventDefault(); commitText(); setOpen(false); }
+            if (e.key === "Escape") { setText(value); setOpen(false); }
+          }}
+          onBlur={() => { if (!open) commitText(); }}
+          style={{ flex: 1, minWidth: 0, border: "none", outline: "none", background: "transparent", fontSize: 13, fontFamily: "inherit", color: "#1e293b", padding: "7px 11px" }}
+        />
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+          {(text || value) && (
             <button type="button" title="Clear time"
-              onClick={e => { e.stopPropagation(); onChange(""); setOpen(false); }}
+              onClick={() => { setText(""); onChange(""); setOpen(false); }}
               style={{ background: "none", border: "none", cursor: "pointer", padding: 2, display: "flex", color: "#94a3b8" }}>
               <XIcon size={13} />
             </button>
           )}
-          <Clock size={14} color="#94a3b8" />
+          <button type="button" title="Pick from clock" onClick={() => (open ? setOpen(false) : openWheel())}
+            style={{ background: "none", border: "none", cursor: "pointer", padding: 2, display: "flex" }}>
+            <Clock size={14} color={open ? BRAND.navy : "#94a3b8"} />
+          </button>
         </span>
       </div>
       {open && (
         <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 500, background: "#fff", borderRadius: 12, boxShadow: "0 8px 32px rgba(0,0,0,.18)", border: "1.5px solid #e2e8f0", padding: 12, width: 210 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .8, marginBottom: 8, textAlign: "center" }}>Select Time</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: BRAND.navy, marginBottom: 8, textAlign: "center", fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em" }}>
+            {draft.h}:{pad2(draft.m)} {draft.ap}
+          </div>
           <div style={{ display: "flex", gap: 4 }}>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 10, color: "#94a3b8", textAlign: "center", marginBottom: 3 }}>Hour</div>
-              <div ref={hourRef} style={col}>{hours.map(hr => <button key={hr} style={btn(hr === h)} onClick={() => emit(hr, m, ap)}>{hr}</button>)}</div>
+              <div ref={hourRef} style={col}>{hours.map(hr => <button key={hr} type="button" style={btn(hr === draft.h)} onClick={() => setDraft(d => ({ ...d, h: hr }))}>{hr}</button>)}</div>
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 10, color: "#94a3b8", textAlign: "center", marginBottom: 3 }}>Min</div>
-              <div ref={minRef} style={col}>{mins.map(mn => <button key={mn} style={btn(mn === m)} onClick={() => emit(h, mn, ap)}>{String(mn).padStart(2, "0")}</button>)}</div>
+              <div ref={minRef} style={col}>{mins.map(mn => <button key={mn} type="button" style={btn(mn === draft.m)} onClick={() => setDraft(d => ({ ...d, m: mn }))}>{pad2(mn)}</button>)}</div>
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 10, color: "#94a3b8", textAlign: "center", marginBottom: 3 }}>AM/PM</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4, paddingTop: 4 }}>
-                {["AM", "PM"].map(a => <button key={a} style={{ ...btn(a === ap), padding: "8px 0" }} onClick={() => emit(h, m, a)}>{a}</button>)}
+                {["AM", "PM"].map(a => <button key={a} type="button" style={{ ...btn(a === draft.ap), padding: "8px 0" }} onClick={() => setDraft(d => ({ ...d, ap: a }))}>{a}</button>)}
               </div>
             </div>
           </div>
           <div style={{ borderTop: "1px solid #f1f5f9", marginTop: 8, paddingTop: 7, textAlign: "center" }}>
-            <button onClick={() => setOpen(false)} style={{ background: BRAND.navy, color: "#fff", border: "none", borderRadius: 7, padding: "5px 20px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Done</button>
+            <button type="button" onClick={done} style={{ background: BRAND.navy, color: "#fff", border: "none", borderRadius: 7, padding: "5px 20px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Done</button>
           </div>
         </div>
       )}
@@ -331,6 +412,7 @@ type ItemFormState = {
   persona_visibility: Record<string, boolean>;
   feedback_enabled: boolean;
   image_urls: string[];
+  driver_map_urls: string[];
   flight_icon_color: string | null;
   bus_icon_color: string | null;
 };
@@ -341,7 +423,7 @@ const BLANK: ItemFormState = {
   contact_name: "", contact_phone: "", contact_email: "",
   cost: "", cost_paid: false, confirmation_not_required: false, driver_note: "", internal_note: "",
   meal_money: [], persona_visibility: defaultPersonaVisibility("activity", []),
-  feedback_enabled: isActivityType("activity", []), image_urls: [], flight_icon_color: null,
+  feedback_enabled: isActivityType("activity", []), image_urls: [], driver_map_urls: [], flight_icon_color: null,
   bus_icon_color: null,
 };
 
@@ -411,8 +493,11 @@ function storagePathFromUrl(url: string): string | null {
 }
 
 // ── ImageUploader ────────────────────────────────────────────────────────────
-function ImageUploader({ tourId, itemId, urls, onChange }: {
+// `folder` optionally namespaces the storage path (e.g. "driver-maps") so a
+// second uploader on the same item never collides with the main images.
+function ImageUploader({ tourId, itemId, urls, onChange, folder, buttonLabel = "Upload Image" }: {
   tourId: string; itemId: string; urls: string[]; onChange: (urls: string[]) => void;
+  folder?: string; buttonLabel?: string;
 }) {
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -424,7 +509,7 @@ function ImageUploader({ tourId, itemId, urls, onChange }: {
     const added: string[] = [];
     for (const file of Array.from(files)) {
       const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const path = `${tourId}/${itemId}/${Date.now()}-${safe}`;
+      const path = `${tourId}/${itemId}/${folder ? folder + "/" : ""}${Date.now()}-${safe}`;
       const { error } = await supabase.storage.from(STORAGE_BUCKET).upload(path, file, { cacheControl: "3600", upsert: false });
       if (error) {
         console.error("Image upload failed", error.message);
@@ -452,7 +537,7 @@ function ImageUploader({ tourId, itemId, urls, onChange }: {
         onChange={e => handleFiles(e.target.files)} />
       <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading}
         style={{ marginTop: urls.length ? 10 : 0, display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: 8, border: "1.5px dashed #cbd5e1", background: "#fff", cursor: uploading ? "default" : "pointer", fontSize: 12, fontWeight: 600, color: "#475569", fontFamily: "inherit", opacity: uploading ? 0.6 : 1 }}>
-        <ImagePlus size={14} />{uploading ? "Uploading..." : "Upload Image"}
+        <ImagePlus size={14} />{uploading ? "Uploading..." : buttonLabel}
       </button>
     </div>
   );
@@ -691,6 +776,10 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
         </Field>
         <Field label="Images (visible to all roles)">
           <ImageUploader tourId={tourId} itemId={itemId} urls={form.image_urls} onChange={urls => f({ image_urls: urls })} />
+        </Field>
+        <Field label="Bus Driver Maps (host & driver only)">
+          <ImageUploader tourId={tourId} itemId={itemId} urls={form.driver_map_urls} folder="driver-maps" buttonLabel="Upload Map" onChange={urls => f({ driver_map_urls: urls })} />
+          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>Parking / drop-off maps for this stop. Only tour hosts and bus drivers see these.</div>
         </Field>
 
         {form.type === "food" && (
@@ -982,6 +1071,22 @@ function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onRemoveImage, drag
 
           <AgendaImages urls={item.image_urls} fullWidth onRemove={onRemoveImage} />
 
+          {(item.driver_map_urls?.length ?? 0) > 0 && (
+            <div style={{ marginTop: 8 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "#92400e", textTransform: "uppercase", letterSpacing: .5, marginBottom: 4, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                <Bus size={11} /> Driver Maps
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {item.driver_map_urls.map(url => (
+                  <a key={url} href={url} target="_blank" rel="noreferrer" title="Open full size">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={url} alt="Driver map" style={{ width: 96, height: 68, objectFit: "cover", borderRadius: 8, border: "1px solid #fcd34d", display: "block" }} />
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
           {item.agenda_feedback?.length > 0 && (
             <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid #f1f5f9" }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", marginBottom: 5 }}>
@@ -1146,6 +1251,7 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
       persona_visibility: f.persona_visibility,
       feedback_enabled: f.feedback_enabled,
       image_urls: f.image_urls,
+      driver_map_urls: f.driver_map_urls,
       // Flight/bus icon colors only meaningful when the matching method is on.
       flight_icon_color: f.travel_methods.includes("flight") ? (f.flight_icon_color || null) : null,
       bus_icon_color: f.travel_methods.includes("bus") ? (f.bus_icon_color || null) : null,
@@ -1171,6 +1277,7 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
       persona_visibility: item.persona_visibility ?? defaultPersonaVisibility(item.type, item.travel_methods ?? (item.travel_method ? [item.travel_method] : [])),
       feedback_enabled: item.feedback_enabled ?? isActivityType(item.type, item.activity_subtypes ?? item.activity_subtype),
       image_urls: item.image_urls || [],
+      driver_map_urls: item.driver_map_urls || [],
       flight_icon_color: item.flight_icon_color ?? null,
       bus_icon_color: item.bus_icon_color ?? null,
     };

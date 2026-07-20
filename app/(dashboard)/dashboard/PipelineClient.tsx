@@ -120,6 +120,7 @@ export default function PipelineClient({ initialTours, currentHostId, currentHos
         custom_trip_rows: source.custom_trip_rows,
         teachers: source.teachers,
         tour_hosts_list: source.tour_hosts_list,
+        consultants: source.consultants,
         driver_map_urls: source.driver_map_urls,
         banner_image_url: source.banner_image_url,
         banner_focus_x: source.banner_focus_x,
@@ -185,6 +186,7 @@ export default function PipelineClient({ initialTours, currentHostId, currentHos
             persona_visibility: item.persona_visibility,
             feedback_enabled: item.feedback_enabled,
             image_urls: item.image_urls,
+            driver_map_urls: item.driver_map_urls,
             confirmation_not_required: item.confirmation_not_required,
           }));
           await supabase.from("agenda_items").insert(items);
