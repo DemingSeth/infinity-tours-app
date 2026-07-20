@@ -67,7 +67,7 @@ export default function AccountForm({
 
   return (
     <div style={{ maxWidth: 560, margin: "0 auto", display: "flex", flexDirection: "column", gap: 20 }}>
-      <h1 style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.03em", fontSize: 24, fontWeight: 700, color: BRAND.navy, margin: 0 }}>
+      <h1 style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.03em", fontSize: 24, fontWeight: 400, color: BRAND.navy, margin: 0 }}>
         Account
       </h1>
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { STATUSES, BRAND } from "@/lib/helpers";
+import { STATUSES, BRAND, parseISODate, parseAgendaDate, expandDateRange } from "@/lib/helpers";
 import TripCard from "./TripCard";
 
 interface Props {
@@ -12,29 +12,80 @@ interface Props {
   onSelectTour: (id: string) => void;
   onNewTour: () => void;
   onDuplicate: (id: string) => void;
+  onDelete?: (id: string) => void;
+}
+
+// Best-effort departure timestamp for sorting: the start_date column, else the
+// first parseable date in the free-text `dates` field, else none (sorts last).
+function departureMs(tour: any): number | null {
+  const iso = parseISODate(tour.start_date);
+  if (iso) return iso.getTime();
+  if (tour.dates) {
+    // Range-format free text ("March 16-21, 2027") first — its trailing year is
+    // only captured by the range parser; parseAgendaDate would read it as the
+    // CURRENT year and mis-sort the tour by up to a year.
+    const range = expandDateRange(String(tour.dates));
+    if (range.length) return range[0].getTime();
+    const parsed = parseAgendaDate(String(tour.dates));
+    if (parsed) return parsed.getTime();
+  }
+  return null;
 }
 
 export default function PipelineView({
-  tours, currentHostId, currentHostName, duplicatingId, onSelectTour, onNewTour, onDuplicate,
+  tours, currentHostId, currentHostName, duplicatingId, onSelectTour, onNewTour, onDuplicate, onDelete,
 }: Props) {
   const [hostFilter, setHostFilter] = useState<"mine" | "all">("mine");
+  // Sort order: departure date (soonest first, undated last) — the default per
+  // the July 2026 request — or most recently created.
+  const [sortMode, setSortMode] = useState<"departure" | "recent">("departure");
 
   const filtered = hostFilter === "mine"
     ? tours.filter(t => t.tour_host_id === currentHostId)
     : tours;
 
+  const sorted = [...filtered].sort((a, b) => {
+    if (sortMode === "recent") {
+      return new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime();
+    }
+    const am = departureMs(a); const bm = departureMs(b);
+    if (am === null && bm === null) return new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime();
+    if (am === null) return 1;
+    if (bm === null) return -1;
+    return am - bm;
+  });
+
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 10 }}>
         <div>
-          <h2 style={{ fontSize: 26, fontWeight: 700, color: BRAND.navy, fontFamily: "'Fjalla One', Georgia, sans-serif", margin: 0, letterSpacing: -0.5 }}>
+          <h2 style={{ fontSize: 26, fontWeight: 400, color: BRAND.navy, fontFamily: "'Fjalla One', Georgia, sans-serif", margin: 0, letterSpacing: -0.5 }}>
             Tour Pipeline
           </h2>
           <p style={{ color: "#64748b", fontSize: 13, marginTop: 4, marginBottom: 0 }}>
             {filtered.length} tour{filtered.length !== 1 ? "s" : ""} · logged in as <strong>{currentHostName}</strong>
           </p>
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 1, background: "#f1f5f9", borderRadius: 8, padding: 3 }}>
+            {([{ value: "departure", label: "By Departure" }, { value: "recent", label: "Recently Added" }] as const).map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => setSortMode(opt.value)}
+                title={opt.value === "departure" ? "Order tours by departure date (soonest first)" : "Order tours by when they were created"}
+                style={{
+                  padding: "5px 14px", borderRadius: 6, border: "none", cursor: "pointer",
+                  fontSize: 12, fontWeight: 600, fontFamily: "inherit",
+                  background: sortMode === opt.value ? "#fff" : "transparent",
+                  color: sortMode === opt.value ? BRAND.navy : "#94a3b8",
+                  boxShadow: sortMode === opt.value ? "0 1px 3px rgba(0,0,0,.08)" : "none",
+                  transition: "all .12s",
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
           <div style={{ display: "flex", gap: 1, background: "#f1f5f9", borderRadius: 8, padding: 3 }}>
             {([{ value: "mine", label: "My Tours" }, { value: "all", label: "All Tours" }] as const).map(opt => (
               <button
@@ -69,7 +120,7 @@ export default function PipelineView({
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, alignItems: "start" }}>
         {STATUSES.map(st => {
-          const col = filtered.filter(t => t.status === st.id);
+          const col = sorted.filter(t => t.status === st.id);
           return (
             <div key={st.id}>
               <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10 }}>
@@ -86,6 +137,7 @@ export default function PipelineView({
                     isDuplicating={duplicatingId === t.id}
                     onClick={() => onSelectTour(t.id)}
                     onDuplicate={() => onDuplicate(t.id)}
+                    onDelete={onDelete ? () => onDelete(t.id) : undefined}
                   />
                 ))}
                 {col.length === 0 && (

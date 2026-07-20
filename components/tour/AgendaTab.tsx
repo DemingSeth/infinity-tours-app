@@ -7,7 +7,8 @@ import TypeDot from "@/components/shared/TypeDot";
 import {
   BRAND, ROLES, AGENDA_TYPES, TRAVEL_SUBTYPES, SUBTYPES_BY_TYPE,
   isDayInPast, initialCollapsedDays, parseAgendaDate, formatAgendaDate, suggestNextDate,
-  toDateInput, fmt$, buildTripInfo, sortAgendaItemsByTime,
+  toDateInput, fmt$, buildTripInfo, orderAgendaItems, timeInsertIndex,
+  orderedActivitySubtypes, expandStateName,
   activePersonaKeys, personaLabel, personaColors, getPersona, PERSONAS, defaultPersonaVisibility, isActivityType, generateAccessCode,
   MEAL_MONEY_TYPES, mealMoneyHasAmount, mealMoneyLabel,
 } from "@/lib/helpers";
@@ -20,7 +21,7 @@ import {
 import AgendaImages from "@/components/shared/AgendaImages";
 import ItemConfirmationControl, { ConfirmationFileChips, type ConfirmationPatch } from "@/components/tour/itemConfirmation";
 import ItineraryHeaderTile from "@/components/tour/ItineraryHeaderTile";
-import { MapPin, Phone, Bus, Lock, Clock, ImagePlus, Printer, Check } from "lucide-react";
+import { MapPin, Phone, Bus, Lock, Clock, ImagePlus, Printer, Check, GripVertical, X as XIcon } from "lucide-react";
 import type {
   TourRow, AgendaDayWithItems, AgendaItemWithFeedback,
   AgendaItemType, TravelMethod, MealMoneyType, Role,
@@ -98,6 +99,8 @@ function Btn({ children, onClick, variant, small, style, disabled }: {
 }
 
 // ── TimePicker ─────────────────────────────────────────────────────────────────
+// `value` may be cleared back to blank with the inline ✕ (for "we don't know the
+// time yet / the time changed" — July 2026 request).
 function TimePicker({ value, onChange, placeholder = "Pick a time" }: {
   value: string; onChange: (v: string) => void; placeholder?: string;
 }) {
@@ -145,7 +148,16 @@ function TimePicker({ value, onChange, placeholder = "Pick a time" }: {
       <div onClick={() => setOpen(o => !o)}
         style={{ ...INP, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", userSelect: "none" }}>
         <span style={{ color: value ? "#1e293b" : "#94a3b8" }}>{value || placeholder}</span>
-        <Clock size={14} color="#94a3b8" />
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+          {value && (
+            <button type="button" title="Clear time"
+              onClick={e => { e.stopPropagation(); onChange(""); setOpen(false); }}
+              style={{ background: "none", border: "none", cursor: "pointer", padding: 2, display: "flex", color: "#94a3b8" }}>
+              <XIcon size={13} />
+            </button>
+          )}
+          <Clock size={14} color="#94a3b8" />
+        </span>
       </div>
       {open && (
         <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 500, background: "#fff", borderRadius: 12, boxShadow: "0 8px 32px rgba(0,0,0,.18)", border: "1.5px solid #e2e8f0", padding: 12, width: 210 }}>
@@ -188,7 +200,7 @@ function Modal({ title, onClose, children, wide }: {
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "40px 16px", overflowY: "auto" }}>
       <div style={{ background: "#fff", borderRadius: 16, padding: 24, width: "100%", maxWidth: wide ? 680 : 420, boxShadow: "0 20px 60px rgba(0,0,0,.2)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <span style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 16, fontWeight: 700, color: BRAND.navy }}>{title}</span>
+          <span style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 16, fontWeight: 400, color: BRAND.navy }}>{title}</span>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 4 }}><I n="x" s={16} /></button>
         </div>
         {children}
@@ -309,7 +321,7 @@ function AccessLinkManager({ tour, onTourChange, open, setOpen, isOwner }: {
 type MealMoneyForm = { type: MealMoneyType; amount: string };
 
 type ItemFormState = {
-  time: string; type: AgendaItemType; activity_subtypes: string[]; title: string; detail: string;
+  time: string; end_time: string; type: AgendaItemType; activity_subtypes: string[]; title: string; detail: string;
   public_note: string; address: string; map_link: string; website: string;
   travel_methods: string[]; contact_name: string; contact_phone: string;
   contact_email: string; cost: string; cost_paid: boolean;
@@ -320,15 +332,17 @@ type ItemFormState = {
   feedback_enabled: boolean;
   image_urls: string[];
   flight_icon_color: string | null;
+  bus_icon_color: string | null;
 };
 
 const BLANK: ItemFormState = {
-  time: "", type: "activity", activity_subtypes: [], title: "", detail: "", public_note: "",
+  time: "", end_time: "", type: "activity", activity_subtypes: [], title: "", detail: "", public_note: "",
   address: "", map_link: "", website: "", travel_methods: [],
   contact_name: "", contact_phone: "", contact_email: "",
   cost: "", cost_paid: false, confirmation_not_required: false, driver_note: "", internal_note: "",
   meal_money: [], persona_visibility: defaultPersonaVisibility("activity", []),
   feedback_enabled: isActivityType("activity", []), image_urls: [], flight_icon_color: null,
+  bus_icon_color: null,
 };
 
 // Toggle a value in/out of a string array (used for multi-select sub-types).
@@ -361,16 +375,18 @@ function mealLegacyType(entries: MealMoneyForm[]): "group" | "stipend" | "disney
 
 const TYPE_COLORS = AGENDA_TYPE_COLORS;
 
-// Flight icon color choices (item 7). A neutral white plus four colors that read
-// well on the navy chip the colored flight plane renders against. Stored as the
-// hex value on agenda_items.flight_icon_color; null = default rendering.
-const FLIGHT_ICON_COLORS: { value: string; label: string }[] = [
+// Flight/bus icon color choices. A neutral white plus four colors that read
+// well on the navy chip the colored icon renders against. Stored as the hex
+// value on agenda_items.flight_icon_color / bus_icon_color; null = default.
+const ICON_COLOR_CHOICES: { value: string; label: string }[] = [
   { value: "#FFFFFF", label: "White" },
   { value: "#FBBF24", label: "Gold" },
   { value: "#34D399", label: "Green" },
   { value: "#38BDF8", label: "Sky" },
   { value: "#FB7185", label: "Rose" },
 ];
+const FLIGHT_ICON_COLORS = ICON_COLOR_CHOICES;
+const BUS_ICON_COLORS = ICON_COLOR_CHOICES;
 
 const UNDO_WINDOW_MS = 5000;
 
@@ -410,7 +426,11 @@ function ImageUploader({ tourId, itemId, urls, onChange }: {
       const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
       const path = `${tourId}/${itemId}/${Date.now()}-${safe}`;
       const { error } = await supabase.storage.from(STORAGE_BUCKET).upload(path, file, { cacheControl: "3600", upsert: false });
-      if (error) { console.error("Image upload failed", error.message); continue; }
+      if (error) {
+        console.error("Image upload failed", error.message);
+        if (typeof window !== "undefined") window.alert(`Could not upload ${file.name}: ${error.message}`);
+        continue;
+      }
       const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
       if (data?.publicUrl) added.push(data.publicUrl);
     }
@@ -438,13 +458,16 @@ function ImageUploader({ tourId, itemId, urls, onChange }: {
   );
 }
 
-function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, itemId, activePersonas, personaLabels, confirmationControl, moveDayOptions, moveTargetDayId, onMoveTargetChange }: {
+function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, itemId, activePersonas, personaLabels, destination, confirmationControl, moveDayOptions, moveTargetDayId, onMoveTargetChange }: {
   form: ItemFormState;
   setForm: React.Dispatch<React.SetStateAction<ItemFormState>>;
   onSave: () => void; onCancel: () => void; isEdit?: boolean; saving?: boolean;
   tourId: string; itemId: string;
   activePersonas: string[];
   personaLabels: Record<string, string>;
+  // Tour destination — drives city-aware Activity Type suggestions (e.g. NYC →
+  // Broadway / Museum first).
+  destination?: string | null;
   // When provided (edit modal), confirmation upload/status is managed by this
   // control — which writes the same agenda_items record as the Confirmations
   // page — and the inline "No confirmation required" checkbox is hidden.
@@ -472,7 +495,7 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
 
   return (
     <div style={{ padding: 16, background: "#f8fafc", borderTop: "1.5px solid #e2e8f0" }} onClick={e => e.stopPropagation()}>
-      <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 13, fontWeight: 700, color: BRAND.navy, marginBottom: 12 }}>
+      <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 13, fontWeight: 400, color: BRAND.navy, marginBottom: 12 }}>
         {isEdit ? "Edit Item" : "New Itinerary Item"}
       </div>
 
@@ -501,28 +524,47 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
       </div>
 
       {/* Activity / instructions / general sub-types — multi-select (toggle on/off,
-          down to zero). Shown when the top-level type carries sub-types. */}
-      {SUBTYPES_BY_TYPE[form.type] && (
-        <div style={{ marginBottom: 14 }}>
-          <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>
-            {form.type === "activity" ? "Activity Types" : "Sub-type"}
-          </label>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-            {SUBTYPES_BY_TYPE[form.type].map(st => {
-              const bg = TYPE_COLORS[form.type] || "#6b7280";
-              const active = form.activity_subtypes.includes(st.value);
-              const SubIcon = getSubtypeIcon(form.type, st.value);
-              return (
-                <button key={st.value} type="button"
-                  onClick={() => f({ activity_subtypes: toggleInArray(form.activity_subtypes, st.value) })}
-                  style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 20, border: `2px solid ${active ? bg : "#e2e8f0"}`, background: active ? bg + "18" : "#fff", cursor: "pointer", fontSize: 12, fontWeight: active ? 700 : 400, color: active ? bg : "#64748b", fontFamily: "inherit" }}>
-                  {SubIcon && <SubIcon size={15} strokeWidth={2} />}{st.label}
-                </button>
-              );
-            })}
+          down to zero). Shown when the top-level type carries sub-types. For
+          Activities, city-matched sub-types (from the tour destination) are
+          surfaced first with a "Suggested" hint. */}
+      {SUBTYPES_BY_TYPE[form.type] && (() => {
+        const isActivity = form.type === "activity";
+        const { options, suggested } = isActivity
+          ? orderedActivitySubtypes(destination)
+          : { options: [...SUBTYPES_BY_TYPE[form.type]], suggested: [] as string[] };
+        return (
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>
+              {isActivity ? "Activity Types" : "Sub-type"}
+              {isActivity && suggested.length > 0 && destination && (
+                <span style={{ marginLeft: 8, textTransform: "none", letterSpacing: 0, fontWeight: 600, color: BRAND.blue }}>
+                  ★ Suggested for {expandStateName(destination)} shown first
+                </span>
+              )}
+            </label>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {options.map(st => {
+                const bg = TYPE_COLORS[form.type] || "#6b7280";
+                const active = form.activity_subtypes.includes(st.value);
+                const SubIcon = getSubtypeIcon(form.type, st.value);
+                const isSuggested = suggested.includes(st.value);
+                return (
+                  <button key={st.value} type="button"
+                    onClick={() => f({ activity_subtypes: toggleInArray(form.activity_subtypes, st.value) })}
+                    style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 20, border: `2px solid ${active ? bg : isSuggested ? bg + "66" : "#e2e8f0"}`, background: active ? bg + "18" : "#fff", cursor: "pointer", fontSize: 12, fontWeight: active ? 700 : 400, color: active ? bg : "#64748b", fontFamily: "inherit" }}>
+                    {SubIcon && <SubIcon size={15} strokeWidth={2} />}{st.label}{isSuggested && !active && <span style={{ color: bg, fontSize: 10 }}>★</span>}
+                  </button>
+                );
+              })}
+            </div>
+            {isActivity && form.activity_subtypes.includes("other") && (
+              <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 6 }}>
+                &ldquo;Other&rdquo; uses the item title as its label — type anything in the Title field below.
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Travel methods — multi-select (toggle on/off, down to zero). Always
           available on every item type, so a method can be added to any item and
@@ -569,6 +611,29 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
         );
       })()}
 
+      {/* Bus icon color — same five choices as flights (July 2026 request), only
+          when a bus method is selected. Swatches preview the navy-chip render. */}
+      {form.travel_methods.includes("bus") && (() => {
+        const BusIcon = getSubtypeIcon("travel", "bus");
+        return (
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>Bus Icon Color</label>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {BUS_ICON_COLORS.map(c => {
+                const selected = (form.bus_icon_color || "").toUpperCase() === c.value.toUpperCase();
+                return (
+                  <button key={c.value} type="button" title={c.label}
+                    onClick={() => f({ bus_icon_color: c.value })}
+                    style={{ width: 34, height: 34, borderRadius: 9, background: BRAND.navy, border: `2px solid ${selected ? BRAND.blue : "transparent"}`, boxShadow: selected ? `0 0 0 2px ${BRAND.blue}33` : "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
+                    {BusIcon && <BusIcon size={17} strokeWidth={2} color={c.value} />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Per-persona visibility for this item */}
       <div style={{ marginBottom: 14 }}>
         <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>Visible To</label>
@@ -600,8 +665,11 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
       </div>
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 12 }}>
-        <Field label="Time" third>
+        <Field label="Start Time" third>
           <TimePicker value={form.time} onChange={v => f({ time: v })} />
+        </Field>
+        <Field label="End Time (Optional)" third>
+          <TimePicker value={form.end_time} onChange={v => f({ end_time: v })} placeholder="Add end time" />
         </Field>
         <Field label="Title">
           <Inp value={form.title} onChange={e => f({ title: e.target.value })} placeholder="Museum, flight, restaurant..." autoFocus={!isEdit} />
@@ -619,7 +687,7 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
           <Inp value={form.map_link} onChange={e => f({ map_link: e.target.value })} placeholder="https://maps.app.goo.gl/..." />
         </Field>
         <Field label="Internal Note (Tour Host Only)">
-          <Inp value={form.internal_note} onChange={e => f({ internal_note: e.target.value })} placeholder="Booking refs, reminders..." />
+          <Tex value={form.internal_note} onChange={e => f({ internal_note: e.target.value })} placeholder="Booking refs, reminders..." style={{ minHeight: 84 }} />
         </Field>
         <Field label="Images (visible to all roles)">
           <ImageUploader tourId={tourId} itemId={itemId} urls={form.image_urls} onChange={urls => f({ image_urls: urls })} />
@@ -785,10 +853,19 @@ function ActionButton({ title, onClick, active, danger, children }: {
   );
 }
 
-function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onRemoveImage }: {
+function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onRemoveImage, dragProps, isDragOver }: {
   item: AgendaItemWithFeedback;
   onEdit: () => void; onRemove: () => void; onToggleCostPaid: () => void;
   onRemoveImage: (url: string) => void;
+  // Drag-to-reorder (within a day): handlers + handle. Optional so read-only
+  // contexts can omit them.
+  dragProps?: {
+    onDragStart: (e: React.DragEvent) => void;
+    onDragEnd: () => void;
+    onDragOver: (e: React.DragEvent) => void;
+    onDrop: (e: React.DragEvent) => void;
+  };
+  isDragOver?: boolean;
 }) {
   // Authoritative multi-select arrays drive the leading icon (the legacy
   // singular columns are dormant rollback insurance and not read here).
@@ -796,12 +873,29 @@ function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onRemoveImage }: {
   const activitySubtypes = item.activity_subtypes ?? [];
 
   return (
-    <div style={{ padding: "14px 16px", borderBottom: "1px solid #f8fafc", background: "#fff" }} onClick={e => e.stopPropagation()}>
+    <div
+      style={{ padding: "14px 16px", borderBottom: "1px solid #f8fafc", background: "#fff", borderTop: isDragOver ? `2px solid ${BRAND.blue}` : "2px solid transparent" }}
+      onClick={e => e.stopPropagation()}
+      onDragOver={dragProps?.onDragOver}
+      onDrop={dragProps?.onDrop}
+    >
       <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-        <div style={{ width: 56, fontSize: 11, fontWeight: 700, color: "#94a3b8", flexShrink: 0, paddingTop: 6, textAlign: "right" }}>
-          {item.time || "-"}
+        {dragProps && (
+          <div
+            draggable
+            onDragStart={dragProps.onDragStart}
+            onDragEnd={dragProps.onDragEnd}
+            title="Drag to reorder within this day"
+            style={{ cursor: "grab", color: "#cbd5e1", paddingTop: 6, flexShrink: 0, display: "flex" }}
+          >
+            <GripVertical size={15} />
+          </div>
+        )}
+        <div style={{ width: 56, fontSize: 11, fontWeight: 700, color: "#94a3b8", flexShrink: 0, paddingTop: 6, textAlign: "right", lineHeight: 1.4 }}>
+          {item.time || (item.end_time ? "" : "-")}
+          {item.end_time && <div style={{ fontWeight: 600 }}>– {item.end_time}</div>}
         </div>
-        <TypeDot type={item.type} travelMethod={travelMethods[0] ?? null} subtype={activitySubtypes[0] ?? null} size={32} flightColor={item.flight_icon_color} />
+        <TypeDot type={item.type} travelMethod={travelMethods[0] ?? null} subtype={activitySubtypes[0] ?? null} size={32} flightColor={item.flight_icon_color} busColor={item.bus_icon_color} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", marginBottom: 3 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: BRAND.navy }}>{item.title}</span>
@@ -812,7 +906,7 @@ function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onRemoveImage }: {
             <ConfirmationFileChips urls={item.confirmation_urls ?? []} />
           </div>
           {item.address && <div style={{ fontSize: 12, color: "#64748b", marginBottom: 3, display: "flex", alignItems: "center", gap: 4 }}><MapPin size={12} style={{ flexShrink: 0 }} />{item.address}</div>}
-          {item.detail && <div style={{ fontSize: 12, color: "#475569", marginBottom: 3 }}>{item.detail}</div>}
+          {item.detail && <div style={{ fontSize: 12, color: "#475569", marginBottom: 3, whiteSpace: "pre-wrap", lineHeight: 1.5 }}>{item.detail}</div>}
           {item.public_note && (
             <div style={{ fontSize: 12, background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 7, padding: "5px 10px", marginBottom: 5, color: "#0c4a6e", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
               {item.public_note}
@@ -835,6 +929,8 @@ function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onRemoveImage }: {
                   ? { background: "#dcfce7", color: "#15803d" }
                   : mm.type === "hotel_breakfast"
                   ? { background: "#e0f2fe", color: "#0369a1" }
+                  : mm.type === "delivered"
+                  ? { background: "#ffe4e6", color: "#9f1239" }
                   : { background: "#f0fdf4", color: "#166534" };
                 const label = mm.type === "stipend"
                   ? `Meal Stipend${amt != null ? ` - $${amt} on Till Card` : ""}`
@@ -844,6 +940,8 @@ function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onRemoveImage }: {
                   ? `Cash${amt != null ? ` - $${amt}` : ""}`
                   : mm.type === "hotel_breakfast"
                   ? "Hotel Breakfast"
+                  : mm.type === "delivered"
+                  ? "Delivered Meal"
                   : "Group Meal";
                 return (
                   <span key={`${mm.type}-${i}`} style={{ fontSize: 11, borderRadius: 6, padding: "2px 9px", fontWeight: 700, ...style }}>{label}</span>
@@ -872,8 +970,15 @@ function ItemRow({ item, onEdit, onRemove, onToggleCostPaid, onRemoveImage }: {
               </span>
             )}
             {item.driver_note && <span style={{ fontSize: 10, background: "#fef3c7", color: "#92400e", borderRadius: 5, padding: "1px 7px", display: "inline-flex", alignItems: "center", gap: 4 }}><Bus size={11} style={{ flexShrink: 0 }} /><strong style={{ fontWeight: 700 }}>Bus Driver Note:</strong> {item.driver_note}</span>}
-            {item.internal_note && <span style={{ fontSize: 10, background: "#f3e8ff", color: "#6b21a8", borderRadius: 5, padding: "1px 7px", display: "inline-flex", alignItems: "center", gap: 4 }}><Lock size={11} style={{ flexShrink: 0 }} />{item.internal_note}</span>}
           </div>
+
+          {/* Internal note — full text, own block (no truncation), host-only view. */}
+          {item.internal_note && (
+            <div style={{ fontSize: 12, background: "#f3e8ff", color: "#6b21a8", borderRadius: 7, padding: "6px 10px", marginTop: 6, display: "flex", alignItems: "flex-start", gap: 6, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
+              <Lock size={12} style={{ flexShrink: 0, marginTop: 2 }} />
+              <span><strong style={{ fontWeight: 700 }}>Internal:</strong> {item.internal_note}</span>
+            </div>
+          )}
 
           <AgendaImages urls={item.image_urls} fullWidth onRemove={onRemoveImage} />
 
@@ -948,6 +1053,10 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
   const toggleDayCollapse = (id: string) =>
     setCollapsedDays(c => ({ ...c, [id]: !(c[id] ?? false) }));
   const [saving, setSaving] = useState(false);
+  // Drag-to-reorder within a day: the item being dragged + the row index the
+  // pointer is currently over (drop target indicator).
+  const [dragCtx, setDragCtx] = useState<{ dayId: string; itemId: string } | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<{ dayId: string; index: number } | null>(null);
   const [previewPersona, setPreviewPersona] = useState<string | null>(null);
   const [linksOpen, setLinksOpen] = useState(false);
   const [printMenuOpen, setPrintMenuOpen] = useState(false);
@@ -1006,7 +1115,7 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
   function formToInsert(f: ItemFormState, dayId: string, sortOrder: number) {
     return {
       day_id: dayId, tour_id: tour.id, sort_order: sortOrder,
-      time: f.time || null, type: f.type, title: f.title,
+      time: f.time || null, end_time: f.end_time || null, type: f.type, title: f.title,
       detail: f.detail || null, public_note: f.public_note || null,
       address: f.address || null, map_link: f.map_link || null,
       website: f.website || null,
@@ -1037,14 +1146,15 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
       persona_visibility: f.persona_visibility,
       feedback_enabled: f.feedback_enabled,
       image_urls: f.image_urls,
-      // Flight icon color only meaningful when the item carries a flight method.
+      // Flight/bus icon colors only meaningful when the matching method is on.
       flight_icon_color: f.travel_methods.includes("flight") ? (f.flight_icon_color || null) : null,
+      bus_icon_color: f.travel_methods.includes("bus") ? (f.bus_icon_color || null) : null,
     };
   }
 
   function itemToForm(item: AgendaItemWithFeedback): ItemFormState {
     return {
-      time: item.time || "", type: item.type, title: item.title,
+      time: item.time || "", end_time: item.end_time || "", type: item.type, title: item.title,
       // Prefer the authoritative arrays; fall back to the legacy singular only to
       // hydrate the editor for rows not yet migrated (prevents data loss on save).
       activity_subtypes: item.activity_subtypes ?? (item.activity_subtype ? [item.activity_subtype] : []),
@@ -1062,6 +1172,7 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
       feedback_enabled: item.feedback_enabled ?? isActivityType(item.type, item.activity_subtypes ?? item.activity_subtype),
       image_urls: item.image_urls || [],
       flight_icon_color: item.flight_icon_color ?? null,
+      bus_icon_color: item.bus_icon_color ?? null,
     };
   }
 
@@ -1182,18 +1293,39 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
   }
 
   // ── item mutations ────────────────────────────────────────────────────────────
+  // Renumber a day's items to a contiguous 1..N in the given order, update local
+  // state, and persist only the rows whose sort_order changed. The display order
+  // is sort_order-driven (manual drag wins; time changes re-slot on save).
+  function applyItemOrder(dayId: string, ordered: AgendaItemWithFeedback[]) {
+    const renumbered = ordered.map((it, i) => ({ ...it, sort_order: i + 1 }));
+    const changed = renumbered.filter((it, i) => ordered[i].sort_order !== i + 1);
+    onDaysChange(days.map(d => d.id === dayId ? { ...d, agenda_items: renumbered } : d));
+    if (changed.length) {
+      const supabase = createClient();
+      changed.forEach(it => {
+        supabase.from("agenda_items").update({ sort_order: it.sort_order }).eq("id", it.id)
+          .then(({ error }) => { if (error) console.error("[agenda_items.sort_order] persist failed", error.message); });
+      });
+    }
+    return renumbered;
+  }
+
   async function saveItem(dayId: string) {
     if (!itemForm.title.trim()) return;
     setSaving(true);
     const day = days.find(d => d.id === dayId);
     const supabase = createClient();
+    // Slot the new item by its time among the day's current display order
+    // (untimed items go to the end). The whole day is renumbered after insert.
+    const ordered = orderAgendaItems(day?.agenda_items ?? []);
+    const insertIdx = timeInsertIndex(ordered, itemForm.time || null);
     // Insert with the pre-generated id so uploaded images already live under
     // agenda-images/[tourId]/[itemId]/ match the saved row.
     // Inspect the response — never optimistically "succeed". A bad/unknown column
     // or an RLS denial returns an error (or no row) that must surface, otherwise
     // the form looks saved while nothing persists.
     const { data, error } = await supabase.from("agenda_items")
-      .insert({ id: addingItemId, ...formToInsert(itemForm, dayId, (day?.agenda_items.length ?? 0) + 1) })
+      .insert({ id: addingItemId, ...formToInsert(itemForm, dayId, insertIdx + 1) })
       .select().single();
     setSaving(false);
     if (error || !data) {
@@ -1203,7 +1335,9 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
       }
       return; // keep the form open so the host can retry; nothing was persisted
     }
-    onDaysChange(days.map(d => d.id === dayId ? { ...d, agenda_items: [...d.agenda_items, { ...data, agenda_feedback: [] }] } : d));
+    const newItem = { ...data, agenda_feedback: [] } as AgendaItemWithFeedback;
+    const nextOrdered = [...ordered.slice(0, insertIdx), newItem, ...ordered.slice(insertIdx)];
+    applyItemOrder(dayId, nextOrdered);
     setItemForm(BLANK);
     setAddingItem(null);
     setAddingItemId("");
@@ -1232,15 +1366,40 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
       }
       return; // keep the edit modal open; local state stays at the last-saved truth
     }
+    const origItem = days.find(d => d.id === editCtx.dayId)?.agenda_items.find(i => i.id === editCtx.itemId);
+    const timeChanged = (origItem?.time ?? "") !== (editForm.time ?? "");
     if (targetDayId) {
-      // Move locally: drop from the current day, append to the destination day
-      // (the per-day list re-sorts by time on render, so order is handled).
-      const moving = days.find(d => d.id === editCtx.dayId)?.agenda_items.find(i => i.id === editCtx.itemId);
+      // Move locally: drop from the current day, slot into the destination day
+      // by time (display order is sort_order-driven, so we renumber there).
+      const moving = origItem;
+      const dest = days.find(d => d.id === targetDayId);
+      const destOrdered = orderAgendaItems(dest?.agenda_items ?? []);
+      const idx = timeInsertIndex(destOrdered, editForm.time || null);
+      const movedItem = moving ? { ...moving, ...patch, day_id: targetDayId } as AgendaItemWithFeedback : null;
+      const destRenumbered = movedItem
+        ? [...destOrdered.slice(0, idx), movedItem, ...destOrdered.slice(idx)].map((it, i) => ({ ...it, sort_order: i + 1 }))
+        : destOrdered;
       onDaysChange(days.map(d => {
         if (d.id === editCtx.dayId) return { ...d, agenda_items: d.agenda_items.filter(i => i.id !== editCtx.itemId) };
-        if (d.id === targetDayId && moving) return { ...d, agenda_items: [...d.agenda_items, { ...moving, ...patch, day_id: targetDayId }] };
+        if (d.id === targetDayId) return { ...d, agenda_items: destRenumbered };
         return d;
       }));
+      // Persist the destination-day renumber (only rows whose position changed).
+      destRenumbered.forEach(it => {
+        const prev = it.id === editCtx.itemId ? null : destOrdered.find(o => o.id === it.id);
+        if (!prev || prev.sort_order !== it.sort_order) {
+          supabase.from("agenda_items").update({ sort_order: it.sort_order }).eq("id", it.id)
+            .then(({ error: e }) => { if (e) console.error("[agenda_items.sort_order] persist failed", e.message); });
+        }
+      });
+    } else if (timeChanged) {
+      // Time changed: re-slot the item within its day by the new time (manual
+      // drag order for the other items is preserved).
+      const dayItems = orderAgendaItems((days.find(d => d.id === editCtx.dayId)?.agenda_items ?? []));
+      const others = dayItems.filter(i => i.id !== editCtx.itemId);
+      const idx = timeInsertIndex(others, editForm.time || null);
+      const updated = { ...dayItems.find(i => i.id === editCtx.itemId)!, ...patch } as AgendaItemWithFeedback;
+      applyItemOrder(editCtx.dayId, [...others.slice(0, idx), updated, ...others.slice(idx)]);
     } else {
       onDaysChange(days.map(d => d.id === editCtx.dayId ? {
         ...d, agenda_items: d.agenda_items.map(i => i.id === editCtx.itemId ? { ...i, ...patch } : i),
@@ -1275,6 +1434,22 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
   // edit modal, and the Confirmations page all stay in sync.
   function patchConfirmation(dayId: string, itemId: string, patch: ConfirmationPatch) {
     onDaysChange(days.map(d => d.id === dayId ? { ...d, agenda_items: d.agenda_items.map(i => i.id === itemId ? { ...i, ...patch } : i) } : d));
+  }
+
+  // Drop the dragged item at `targetIndex` within its day's display order.
+  // Cross-day drags are ignored (the edit modal's "Move to day" covers those).
+  function handleItemDrop(dayId: string, targetIndex: number) {
+    const ctx = dragCtx;
+    setDragCtx(null);
+    setDragOverIdx(null);
+    if (!ctx || ctx.dayId !== dayId) return;
+    const ordered = orderAgendaItems(days.find(d => d.id === dayId)?.agenda_items ?? []);
+    const fromIdx = ordered.findIndex(i => i.id === ctx.itemId);
+    if (fromIdx === -1) return;
+    const without = ordered.filter(i => i.id !== ctx.itemId);
+    const insertAt = Math.max(0, Math.min(targetIndex > fromIdx ? targetIndex - 1 : targetIndex, without.length));
+    if (insertAt === fromIdx) return;
+    applyItemOrder(dayId, [...without.slice(0, insertAt), ordered[fromIdx], ...without.slice(insertAt)]);
   }
 
   // Bulk-apply persona visibility to a day (dayId) or the whole tour (null).
@@ -1365,7 +1540,7 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
       {/* Preview role buttons — primary action, prominent at the top */}
       {days.length > 0 && (
         <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 12, padding: 16, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: BRAND.navy, fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", marginBottom: 2 }}>Preview the Itinerary</div>
+          <div style={{ fontSize: 15, fontWeight: 400, color: BRAND.navy, fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", marginBottom: 2 }}>Preview the Itinerary</div>
           <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 12 }}>See exactly what each role sees on the shared view, then share the link.</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {/* One preview per active participant persona (Tour Host = the editor). */}
@@ -1445,7 +1620,7 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: BRAND.navy, fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em" }}>
+          <span style={{ fontSize: 13, fontWeight: 400, color: BRAND.navy, fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em" }}>
             {days.length} day{days.length !== 1 ? "s" : ""} planned
           </span>
           {pastDays.length > 0 && (
@@ -1496,7 +1671,7 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <Image src="/infinity-mark-light.png" alt="" width={0} height={0} sizes="60px" style={{ height: 36, width: "auto" }} />
                   <div style={{ width: 1, height: 20, background: "rgba(255,255,255,.2)" }} />
-                  <span style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", color: "#fff", fontWeight: 700, fontSize: 15 }}>Day {idx + 1}</span>
+                  <span style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", color: "#fff", fontWeight: 400, fontSize: 15 }}>Day {idx + 1}</span>
                   {editingDayId === day.id ? (
                     <div style={{ display: "flex", alignItems: "center", gap: 5 }} onClick={e => e.stopPropagation()}>
                       <input
@@ -1582,7 +1757,7 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
                   {day.agenda_items.length === 0 && addingItem !== day.id && (
                     <div style={{ color: "#cbd5e1", fontSize: 12, padding: "14px 16px", textAlign: "center" }}>No items yet</div>
                   )}
-                  {sortAgendaItemsByTime(day.agenda_items).map(item => (
+                  {orderAgendaItems(day.agenda_items).map((item, itemIdx) => (
                     <ItemRow
                       key={item.id}
                       item={item}
@@ -1590,8 +1765,32 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
                       onRemove={() => removeItem(day.id, item.id)}
                       onToggleCostPaid={() => toggleCostPaid(day.id, item)}
                       onRemoveImage={url => removeItemImage(day.id, item, url)}
+                      isDragOver={dragOverIdx?.dayId === day.id && dragOverIdx.index === itemIdx}
+                      dragProps={{
+                        onDragStart: e => {
+                          e.dataTransfer.effectAllowed = "move";
+                          try { e.dataTransfer.setData("text/plain", item.id); } catch {}
+                          setDragCtx({ dayId: day.id, itemId: item.id });
+                        },
+                        onDragEnd: () => { setDragCtx(null); setDragOverIdx(null); },
+                        onDragOver: e => {
+                          if (!dragCtx || dragCtx.dayId !== day.id) return;
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = "move";
+                          setDragOverIdx(cur => (cur?.dayId === day.id && cur.index === itemIdx) ? cur : { dayId: day.id, index: itemIdx });
+                        },
+                        onDrop: e => { e.preventDefault(); handleItemDrop(day.id, itemIdx); },
+                      }}
                     />
                   ))}
+                  {/* Drop zone below the last item — lets a drag land at the end. */}
+                  {dragCtx?.dayId === day.id && (
+                    <div
+                      onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOverIdx(cur => (cur?.dayId === day.id && cur.index === day.agenda_items.length) ? cur : { dayId: day.id, index: day.agenda_items.length }); }}
+                      onDrop={e => { e.preventDefault(); handleItemDrop(day.id, day.agenda_items.length); }}
+                      style={{ height: 26, borderTop: dragOverIdx?.dayId === day.id && dragOverIdx.index === day.agenda_items.length ? `2px solid ${BRAND.blue}` : "2px solid transparent" }}
+                    />
+                  )}
                   {addingItem === day.id && (
                     <ItemForm
                       form={itemForm} setForm={setItemForm}
@@ -1601,6 +1800,7 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
                       tourId={tour.id} itemId={addingItemId}
                       activePersonas={activePersonaKeys(tour.active_personas)}
                       personaLabels={tour.persona_labels || {}}
+                      destination={tour.destination}
                     />
                   )}
                 </div>
@@ -1665,6 +1865,7 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
               tourId={tour.id} itemId={editCtx.itemId}
               activePersonas={activePersonaKeys(tour.active_personas)}
               personaLabels={tour.persona_labels || {}}
+              destination={tour.destination}
               moveDayOptions={days.map((d, i) => ({ value: d.id, label: d.date ? `Day ${i + 1}, ${d.date}` : `Day ${i + 1}` }))}
               moveTargetDayId={moveTargetDayId}
               onMoveTargetChange={setMoveTargetDayId}
@@ -1720,7 +1921,7 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
               </span>
               <button
                 onClick={undoDeleteDay}
-                style={{ background: "none", border: "none", color: BRAND.blue, fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.04em", textTransform: "uppercase", fontSize: 13, fontWeight: 700, cursor: "pointer", padding: "2px 4px" }}
+                style={{ background: "none", border: "none", color: BRAND.blue, fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.04em", textTransform: "uppercase", fontSize: 13, fontWeight: 400, cursor: "pointer", padding: "2px 4px" }}
               >
                 Undo
               </button>

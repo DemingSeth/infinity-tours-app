@@ -3,7 +3,7 @@
 import { BRAND, getAgendaType } from "@/lib/helpers";
 import { getItemIcon, getAgendaTypeColor } from "@/components/shared/agendaIcons";
 
-export default function TypeDot({ type, travelMethod, subtype, size = 28, flightColor }: {
+export default function TypeDot({ type, travelMethod, subtype, size = 28, flightColor, busColor }: {
   type: string;
   travelMethod?: string | null;
   subtype?: string | null;
@@ -11,15 +11,19 @@ export default function TypeDot({ type, travelMethod, subtype, size = 28, flight
   // Host-chosen flight icon color (hex). Applied only to the flight plane; null /
   // undefined keeps the default rendering.
   flightColor?: string | null;
+  // Host-chosen bus icon color (hex). Applied only to the bus icon; null /
+  // undefined keeps the default rendering.
+  busColor?: string | null;
 }) {
   const t = getAgendaType(type);
   const Icon = getItemIcon(type, travelMethod, subtype);
   const typeColor = getAgendaTypeColor(type);
-  // A colored flight renders the plane in the chosen color on a navy chip so even
-  // light/neutral colors stay legible; everything else keeps the tinted style.
+  // A colored flight/bus renders the icon in the chosen color on a navy chip so
+  // even light/neutral colors stay legible; everything else keeps the tinted style.
   const isColoredFlight = type === "travel" && travelMethod === "flight" && !!flightColor;
-  const color = isColoredFlight ? flightColor! : typeColor;
-  const background = isColoredFlight ? BRAND.navy : typeColor + "1a";
+  const isColoredBus = type === "travel" && travelMethod === "bus" && !!busColor;
+  const color = isColoredFlight ? flightColor! : isColoredBus ? busColor! : typeColor;
+  const background = isColoredFlight || isColoredBus ? BRAND.navy : typeColor + "1a";
   return (
     <div
       title={t.label}

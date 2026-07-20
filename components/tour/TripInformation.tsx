@@ -1,22 +1,36 @@
 "use client";
 
 import { Fragment, useEffect, useRef, useState } from "react";
-import { ChevronDown, ChevronRight, Pencil, Paperclip, Upload, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Pencil, Paperclip, Upload, X, Link as LinkIcon, Plus, ImagePlus, Map } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { BRAND, formatFullDate, showTripSection } from "@/lib/helpers";
-import type { TripInfo } from "@/lib/types";
+import type { TripInfo, Role } from "@/lib/types";
 
 // Tour-level confirmations reuse the existing public storage bucket.
 const STORAGE_BUCKET = "agenda-images";
 
 type ConfItem = { id?: string; type: string; label: string | null; file_url: string };
 
+type PersonForm = { name: string; contact: string };
+type CustomRowForm = { id: string; label: string; value: string; url: string };
+
 type TripForm = {
-  teacherName: string; teacherEmail: string; tourHostName: string; tourHostPhone: string;
+  // Multiple teachers ({ name, contact: email }) and tour hosts ({ name, contact: phone }).
+  teachers: PersonForm[];
+  hosts: PersonForm[];
+  // Tour consultant (travel planner) — separate from the traveling tour host.
+  consultantName: string;
   busCapacity: string;
   // Free-text override for the Participants row; blank = use the roster counts.
-  // Per-persona counts themselves are roster-driven and not editable here.
   participantsOverride: string;
+  // Free-text overrides for the Flight / Hotel / Bus rows. Blank = derive from
+  // the itinerary items (legacy behavior). Multi-line text supports tours with
+  // several flights / hotels / buses.
+  flightOverride: string;
+  hotelOverride: string;
+  busOverride: string;
+  // Host-named extra rows (text or link).
+  customRows: CustomRowForm[];
 };
 
 const confBoxStyle: React.CSSProperties = {
@@ -43,10 +57,21 @@ const inputStyle: React.CSSProperties = {
   width: "100%", padding: "6px 8px", fontSize: 13, border: "1px solid #cbd5e1",
   borderRadius: 6, fontFamily: "inherit", boxSizing: "border-box",
 };
+const textareaStyle: React.CSSProperties = {
+  ...inputStyle, minHeight: 56, resize: "vertical",
+};
 const linkBtnStyle: React.CSSProperties = {
   ...linkStyle, background: "none", border: "none", padding: 0, marginTop: 4,
   cursor: "pointer", fontSize: 12, fontFamily: "inherit",
 };
+const smallAddBtn: React.CSSProperties = {
+  display: "inline-flex", alignItems: "center", gap: 4, background: "#f1f5f9",
+  border: "1px solid #e2e8f0", borderRadius: 6, padding: "4px 10px", fontSize: 11,
+  fontWeight: 600, color: "#475569", cursor: "pointer", fontFamily: "inherit", alignSelf: "flex-start",
+};
+
+// Ensure http(s) prefix so hrefs never resolve relative to the app.
+const externalHref = (url: string) => (/^https?:\/\//i.test(url) ? url : `https://${url}`);
 
 interface TripInformationProps {
   info: TripInfo;
@@ -55,9 +80,11 @@ interface TripInformationProps {
   /** Tour id. When provided, confirmations are read live (authenticated contexts: host + preview). The public
    *  view omits it and relies on info.confirmations from the shared-tour payload. */
   tourId?: string;
-  /** Persists tour-record fields (contact_name, contact_email, traveling_tour_host, bus_capacity). */
+  /** The viewing role for role-gated rows (the bus-driver map shows for "driver"). */
+  viewerRole?: Role;
+  /** Persists tour-record fields. */
   onSaveTour?: (patch: Record<string, any>) => void | Promise<void>;
-  /** Persists the tour host phone to the logged-in user's tour_hosts record. */
+  /** Persists the tour host phone to the logged-in user's tour_hosts record (legacy sync). */
   onSaveHostPhone?: (phone: string | null) => void | Promise<void>;
   /** Opens the flight itinerary item's edit modal. Null when no flight item exists. */
   onEditFlight?: (() => void) | null;
@@ -70,22 +97,58 @@ interface TripInformationProps {
   print?: boolean;
 }
 
-export default function TripInformation({ info, isHost = false, tourId, onSaveTour, onSaveHostPhone, onEditFlight, onEditHotel, onEditBus, print = false }: TripInformationProps) {
+// Editable list of people (teachers: name+email, hosts: name+phone).
+function PersonListEditor({ people, onChange, namePlaceholder, contactPlaceholder, addLabel }: {
+  people: PersonForm[];
+  onChange: (next: PersonForm[]) => void;
+  namePlaceholder: string;
+  contactPlaceholder: string;
+  addLabel: string;
+}) {
+  const rows = people.length ? people : [{ name: "", contact: "" }];
+  const set = (i: number, patch: Partial<PersonForm>) =>
+    onChange(rows.map((p, idx) => (idx === i ? { ...p, ...patch } : p)));
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      {rows.map((p, i) => (
+        <div key={i} style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          <input style={{ ...inputStyle, flex: 1 }} value={p.name} placeholder={namePlaceholder}
+            onChange={e => set(i, { name: e.target.value })} />
+          <input style={{ ...inputStyle, flex: 1 }} value={p.contact} placeholder={contactPlaceholder}
+            onChange={e => set(i, { contact: e.target.value })} />
+          <button type="button" title="Remove" onClick={() => onChange(rows.filter((_, idx) => idx !== i))}
+            style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 2, display: "flex", flexShrink: 0 }}>
+            <X size={13} />
+          </button>
+        </div>
+      ))}
+      <button type="button" style={smallAddBtn} onClick={() => onChange([...rows, { name: "", contact: "" }])}>
+        <Plus size={11} /> {addLabel}
+      </button>
+    </div>
+  );
+}
+
+export default function TripInformation({ info, isHost = false, tourId, viewerRole, onSaveTour, onSaveHostPhone, onEditFlight, onEditHotel, onEditBus, print = false }: TripInformationProps) {
   const [open, setOpen] = useState(true); // expanded by default
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<TripForm>({
-    teacherName: "", teacherEmail: "", tourHostName: "", tourHostPhone: "", busCapacity: "", participantsOverride: "",
+    teachers: [], hosts: [], consultantName: "", busCapacity: "", participantsOverride: "",
+    flightOverride: "", hotelOverride: "", busOverride: "", customRows: [],
   });
 
   function startEdit() {
     setForm({
-      teacherName: info.teacherName ?? "",
-      teacherEmail: info.teacherEmail ?? "",
-      tourHostName: info.tourHostName ?? "",
-      tourHostPhone: info.tourHostPhone ?? "",
+      teachers: (info.teachers ?? []).map(t => ({ name: t.name ?? "", contact: t.contact ?? "" })),
+      hosts: (info.tourHosts ?? []).map(h => ({ name: h.name ?? "", contact: h.contact ?? "" })),
+      consultantName: info.consultantName ?? "",
       busCapacity: info.busCapacity != null ? String(info.busCapacity) : "",
       participantsOverride: info.participantsOverride ?? "",
+      flightOverride: info.overrides?.flight ?? "",
+      hotelOverride: info.overrides?.hotel ?? "",
+      busOverride: info.overrides?.bus ?? "",
+      customRows: (info.customRows ?? []).map(r => ({ id: r.id, label: r.label ?? "", value: r.value ?? "", url: r.url ?? "" })),
     });
     setOpen(true);
     setEditing(true);
@@ -94,18 +157,37 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
   async function save() {
     setSaving(true);
     try {
-      // Persona counts are roster-driven and not edited here, so we never write
-      // participant_counts. (Any override already stored stays applied by
-      // buildTripInfo.) Only the free-text Participants override is host-editable.
+      const teachers = form.teachers
+        .map(t => ({ name: t.name.trim(), contact: t.contact.trim() || null }))
+        .filter(t => t.name || t.contact);
+      const hosts = form.hosts
+        .map(h => ({ name: h.name.trim(), contact: h.contact.trim() || null }))
+        .filter(h => h.name || h.contact);
+      const customRows = form.customRows
+        .map(r => ({ id: r.id, label: r.label.trim(), value: r.value.trim() || null, url: r.url.trim() || null }))
+        .filter(r => r.label || r.value || r.url);
       await Promise.all([
         onSaveTour?.({
-          contact_name: form.teacherName.trim() || null,
-          contact_email: form.teacherEmail.trim() || null,
-          traveling_tour_host: form.tourHostName.trim() || null,
+          teachers,
+          tour_hosts_list: hosts,
+          // Legacy single-field sync so older views / the quote module keep working.
+          contact_name: teachers[0]?.name || null,
+          contact_email: teachers[0]?.contact || null,
+          traveling_tour_host: hosts[0]?.name || null,
+          planning_tour_host: form.consultantName.trim() || null,
           bus_capacity: Number(form.busCapacity) || 0,
           participants_display_override: form.participantsOverride.trim() || null,
+          trip_info_overrides: {
+            flight: form.flightOverride.trim() || null,
+            hotel: form.hotelOverride.trim() || null,
+            bus: form.busOverride.trim() || null,
+          },
+          custom_trip_rows: customRows,
         }),
-        onSaveHostPhone?.(form.tourHostPhone.trim() || null),
+        // NOTE: the logged-in user's tour_hosts profile phone is deliberately NOT
+        // written here anymore. Host phones now live per-tour in tour_hosts_list;
+        // writing hosts[0].contact to the editor's global profile would corrupt
+        // their contact info on every other tour (e.g. saving a co-host first).
       ]);
       setEditing(false);
     } finally {
@@ -114,11 +196,10 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
   }
 
   // ── Confirmations (inline per Flight / Hotel / Bus row) ─────────────────────
-  // Seed from the read-only payload (public view), then — in authenticated
-  // contexts where a tourId is supplied — refresh with live rows that carry ids
-  // so the host can remove them.
   const [confs, setConfs] = useState<ConfItem[]>(info.confirmations ?? []);
   const [busyType, setBusyType] = useState<string | null>(null);
+  const [linkEntryType, setLinkEntryType] = useState<string | null>(null);
+  const [linkEntryVal, setLinkEntryVal] = useState("");
   const fileInputs = useRef<Record<string, HTMLInputElement | null>>({});
 
   useEffect(() => {
@@ -136,6 +217,24 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
 
   const confByType = (t: string) => confs.find(c => c.type === t) ?? null;
 
+  async function saveConfRow(type: string, label: string, fileUrl: string) {
+    if (!tourId) return;
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data: row, error } = await supabase
+      .from("tour_confirmations")
+      .insert({ tour_id: tourId, type, label, file_url: fileUrl, uploaded_by: user?.id ?? null })
+      .select().single();
+    if (error) {
+      console.error("Confirmation insert failed", error.message);
+      if (typeof window !== "undefined") window.alert(`Could not save confirmation: ${error.message}`);
+    } else if (row) {
+      // One confirmation per type/tour: drop any prior row of this type.
+      await supabase.from("tour_confirmations").delete().eq("tour_id", tourId).eq("type", type).neq("id", (row as any).id);
+      setConfs(prev => [row as ConfItem, ...prev.filter(r => r.type !== type)]);
+    }
+  }
+
   async function uploadConf(type: string, label: string, file: File | undefined) {
     if (!file || !tourId) return;
     setBusyType(type);
@@ -145,29 +244,67 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
     const { error: upErr } = await supabase.storage.from(STORAGE_BUCKET).upload(path, file, { cacheControl: "3600", upsert: false });
     if (upErr) {
       console.error("Confirmation upload failed", upErr.message);
+      if (typeof window !== "undefined") window.alert(`Upload failed: ${upErr.message}. Very large files (over ~50MB) cannot be uploaded — try a smaller PDF or image.`);
     } else {
       const { data: pub } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data: row, error } = await supabase
-        .from("tour_confirmations")
-        .insert({ tour_id: tourId, type, label, file_url: pub.publicUrl, uploaded_by: user?.id ?? null })
-        .select().single();
-      if (error) {
-        console.error("Confirmation insert failed", error.message);
-      } else if (row) {
-        // One confirmation per type/tour: drop any prior row of this type.
-        await supabase.from("tour_confirmations").delete().eq("tour_id", tourId).eq("type", type).neq("id", (row as any).id);
-        setConfs(prev => [row as ConfItem, ...prev.filter(r => r.type !== type)]);
-      }
+      await saveConfRow(type, label, pub.publicUrl);
     }
     setBusyType(null);
     const el = fileInputs.current[type]; if (el) el.value = "";
+  }
+
+  async function addConfLink(type: string, label: string) {
+    const url = linkEntryVal.trim();
+    if (!url) return;
+    setBusyType(type);
+    await saveConfRow(type, label, externalHref(url));
+    setBusyType(null);
+    setLinkEntryType(null);
+    setLinkEntryVal("");
   }
 
   async function removeConf(id: string) {
     const supabase = createClient();
     await supabase.from("tour_confirmations").delete().eq("id", id);
     setConfs(prev => prev.filter(r => r.id !== id));
+  }
+
+  // ── Driver map images (hosts + bus drivers only) ─────────────────────────────
+  const [mapUrls, setMapUrls] = useState<string[]>(info.driverMapUrls ?? []);
+  const [mapBusy, setMapBusy] = useState(false);
+  const mapInput = useRef<HTMLInputElement>(null);
+  useEffect(() => { setMapUrls(info.driverMapUrls ?? []); }, [info.driverMapUrls]);
+
+  async function uploadDriverMap(files: FileList | null) {
+    if (!files || files.length === 0 || !tourId) return;
+    setMapBusy(true);
+    const supabase = createClient();
+    const added: string[] = [];
+    for (const file of Array.from(files)) {
+      const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `${tourId}/driver-maps/${Date.now()}-${safe}`;
+      const { error } = await supabase.storage.from(STORAGE_BUCKET).upload(path, file, { cacheControl: "3600", upsert: false });
+      if (error) {
+        console.error("Driver map upload failed", error.message);
+        if (typeof window !== "undefined") window.alert(`Upload failed: ${error.message}`);
+        continue;
+      }
+      const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+      if (data?.publicUrl) added.push(data.publicUrl);
+    }
+    if (added.length) {
+      const next = [...mapUrls, ...added];
+      setMapUrls(next);
+      await onSaveTour?.({ driver_map_urls: next });
+    }
+    setMapBusy(false);
+    if (mapInput.current) mapInput.current.value = "";
+  }
+
+  async function removeDriverMap(url: string) {
+    const next = mapUrls.filter(u => u !== url);
+    setMapUrls(next);
+    await onSaveTour?.({ driver_map_urls: next });
   }
 
   // Read-only "Edit X Item →" link (host view only, when the item exists).
@@ -181,26 +318,28 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
   const link = (href: string, text: string) =>
     print ? <span>{text}</span> : <a href={href} style={linkStyle}>{text}</a>;
 
-  // Inline confirmation attachment area for a transport row.
+  // Inline confirmation attachment area for a transport row. Accepts uploaded
+  // files AND external links (e.g. Google Drive).
   function renderConf(type: string, label: string) {
     // Confirmation attachments are file links — nothing to click on paper.
     if (print) return null;
     const c = confByType(type);
+    const isExternal = !!c && !c.file_url.includes(`/${STORAGE_BUCKET}/`);
     if (!isHost) {
-      // Participant view: a single view link, only when a file exists.
+      // Participant view: a single view link, only when a file/link exists.
       if (!c) return null;
       return (
         <a href={c.file_url} target="_blank" rel="noreferrer"
           style={{ marginTop: 6, display: "inline-flex", alignItems: "center", gap: 6, color: "#0369a1", fontWeight: 600, fontSize: 12, textDecoration: "none" }}>
-          <Paperclip size={13} /> View {label}
+          {isExternal ? <LinkIcon size={13} /> : <Paperclip size={13} />} View {label}
         </a>
       );
     }
     return (
       <div style={confBoxStyle}>
-        <Paperclip size={14} color={c ? "#16a34a" : "#94a3b8"} style={{ flexShrink: 0 }} />
+        {isExternal ? <LinkIcon size={14} color="#16a34a" style={{ flexShrink: 0 }} /> : <Paperclip size={14} color={c ? "#16a34a" : "#94a3b8"} style={{ flexShrink: 0 }} />}
         <span style={{ flex: 1, minWidth: 0, color: c ? "#1e293b" : "#94a3b8" }}>
-          {c ? label : "No confirmation uploaded"}
+          {c ? (isExternal ? `${label} (link)` : label) : "No confirmation attached"}
         </span>
         {c ? (
           <>
@@ -210,6 +349,17 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
               <X size={12} /> Remove
             </button>
           </>
+        ) : linkEntryType === type ? (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flex: 2 }}>
+            <input autoFocus value={linkEntryVal} placeholder="Paste a link (e.g. Google Drive)"
+              onChange={e => setLinkEntryVal(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") addConfLink(type, label); if (e.key === "Escape") { setLinkEntryType(null); setLinkEntryVal(""); } }}
+              style={{ ...inputStyle, fontSize: 11, padding: "4px 6px", flex: 1 }} />
+            <button type="button" onClick={() => addConfLink(type, label)} disabled={busyType === type}
+              style={{ ...confBtnStyle, background: BRAND.blue, border: "none", color: "#fff" }}>Save</button>
+            <button type="button" onClick={() => { setLinkEntryType(null); setLinkEntryVal(""); }}
+              style={{ ...confBtnStyle, background: "#fff", border: "1px solid #e2e8f0", color: "#64748b" }}>Cancel</button>
+          </span>
         ) : (
           <>
             <input ref={el => { fileInputs.current[type] = el; }} type="file" accept="image/*,.pdf" style={{ display: "none" }}
@@ -218,55 +368,86 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
               style={{ ...confBtnStyle, background: "#f1f5f9", border: "1px solid #e2e8f0", color: "#475569" }}>
               <Upload size={12} /> {busyType === type ? "Uploading…" : "Upload"}
             </button>
+            <button type="button" title="Attach a link instead of a file (e.g. Google Drive)"
+              onClick={() => { setLinkEntryType(type); setLinkEntryVal(""); }}
+              style={{ ...confBtnStyle, background: "#f1f5f9", border: "1px solid #e2e8f0", color: "#475569" }}>
+              <LinkIcon size={12} /> Link
+            </button>
           </>
         )}
       </div>
     );
   }
 
+  const teachers = info.teachers ?? [];
+  const hosts = info.tourHosts ?? [];
+  const flightOverride = (info.overrides?.flight ?? "").trim();
+  const hotelOverride = (info.overrides?.hotel ?? "").trim();
+  const busOverride = (info.overrides?.bus ?? "").trim();
+  // The driver map row renders for hosts and bus drivers only (never in print).
+  const showDriverMap = !print && (isHost || viewerRole === "driver") && (isHost || mapUrls.length > 0);
+
+  const overrideHint = (
+    <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>
+      Type anything here (multiple flights, hotels, buses, drivers…). Leave blank to use the itinerary item.
+    </div>
+  );
+
   const rows: { label: string; content: React.ReactNode; id?: string }[] = [
     {
-      label: "Teacher Name",
+      label: teachers.length > 1 ? "Teachers" : "Teacher Name",
       content: editing ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <input style={inputStyle} value={form.teacherName} placeholder="Teacher name"
-            onChange={e => setForm(f => ({ ...f, teacherName: e.target.value }))} />
-          <input style={inputStyle} value={form.teacherEmail} placeholder="Teacher email"
-            onChange={e => setForm(f => ({ ...f, teacherEmail: e.target.value }))} />
+          <PersonListEditor people={form.teachers} onChange={t => setForm(f => ({ ...f, teachers: t }))}
+            namePlaceholder="Teacher name" contactPlaceholder="Teacher email" addLabel="Add teacher" />
+        </div>
+      ) : teachers.length ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          {teachers.map((t, i) => (
+            <div key={i}>
+              {t.name || "—"}
+              {t.contact && <> · {link(`mailto:${t.contact}`, t.contact)}</>}
+            </div>
+          ))}
         </div>
       ) : (
-        <>
-          <div>{dash(info.teacherName)}</div>
-          {info.teacherEmail && link(`mailto:${info.teacherEmail}`, info.teacherEmail)}
-        </>
+        <div>—</div>
       ),
     },
     {
-      label: "Infinity Tours + Events",
+      label: hosts.length > 1 ? "Tour Hosts" : "Infinity Tours + Events",
       content: editing ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <input style={inputStyle} value={form.tourHostName} placeholder="Tour host name"
-            onChange={e => setForm(f => ({ ...f, tourHostName: e.target.value }))} />
-          <input style={inputStyle} type="tel" value={form.tourHostPhone} placeholder="Tour host phone"
-            onChange={e => setForm(f => ({ ...f, tourHostPhone: e.target.value }))} />
+          <PersonListEditor people={form.hosts} onChange={h => setForm(f => ({ ...f, hosts: h }))}
+            namePlaceholder="Tour host name" contactPlaceholder="Tour host phone" addLabel="Add tour host" />
           <div style={{ color: "#64748b", fontSize: 12 }}>
             Infinity Hotline {HOTLINE_DISPLAY}
           </div>
         </div>
       ) : (
         <>
-          <div>
-            {dash(info.tourHostName)}
-            {info.tourHostPhone && (
-              <> · {link(telHref(info.tourHostPhone), info.tourHostPhone)}</>
-            )}
-          </div>
+          {hosts.length ? hosts.map((h, i) => (
+            <div key={i}>
+              {h.name || "—"}
+              {h.contact && <> · {link(telHref(h.contact), h.contact)}</>}
+            </div>
+          )) : <div>—</div>}
           <div style={{ color: "#64748b" }}>
             Infinity Hotline {link(`tel:${HOTLINE_TEL}`, HOTLINE_DISPLAY)}
           </div>
         </>
       ),
     },
+    // Tour consultant (travel planner) — separate from the traveling tour host.
+    ...(editing || info.consultantName ? [{
+      label: "Tour Consultant",
+      content: editing ? (
+        <input style={inputStyle} value={form.consultantName} placeholder="Consultant (travel planner) name"
+          onChange={e => setForm(f => ({ ...f, consultantName: e.target.value }))} />
+      ) : (
+        <div>{dash(info.consultantName)}</div>
+      ),
+    }] : []),
     {
       label: "Participants",
       content: editing ? (
@@ -275,16 +456,12 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
           <input style={inputStyle} value={form.participantsOverride} placeholder="e.g. 42 travelers (final count pending)"
             onChange={e => setForm(f => ({ ...f, participantsOverride: e.target.value }))} />
           <div style={{ fontSize: 11, color: "#94a3b8" }}>Overrides the roster breakdown below. Leave blank to use the roster counts.</div>
-          {/* Persona counts come from the roster (read-only here) — shown so the
-              host can see what the breakdown will be. Edit headcounts in the Roster. */}
           <div style={{ fontSize: 12, color: "#475569", background: "#fafbff", border: "1px solid #eef2f7", borderRadius: 6, padding: "6px 8px" }}>
             <span style={{ fontWeight: 700 }}>From roster: </span>
             {info.participants.map(p => `${p.count} ${p.label}`).join(", ") || "—"}
           </div>
         </div>
       ) : info.participantsOverride && info.participantsOverride.trim() ? (
-        // Host override: render the custom text verbatim; suppress the total line
-        // so a possibly-contradictory computed count is never shown alongside it.
         <div style={{ whiteSpace: "pre-wrap" }}>{info.participantsOverride}</div>
       ) : (
         <>
@@ -301,27 +478,25 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
       id: "flight",
       label: "Flight",
       content: editing ? (
-        <>
-          {onEditFlight ? (
-            <div>
-              <div>{dash(info.flightName)}</div>
-              {info.flightAddress && <div style={{ color: "#64748b" }}>{info.flightAddress}</div>}
-              <button type="button" onClick={onEditFlight} style={linkBtnStyle}>Edit Flight Item →</button>
-            </div>
-          ) : (
-            <div style={{ color: "#94a3b8" }}>Add a flight travel item to populate this field.</div>
-          )}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <textarea style={textareaStyle} value={form.flightOverride}
+            placeholder={"e.g.\nDelta 1642 · SLC → JFK · 8:05 AM\nDelta 2210 · JFK → SLC · 6:40 PM"}
+            onChange={e => setForm(f => ({ ...f, flightOverride: e.target.value }))} />
+          {overrideHint}
+          {onEditFlight && <button type="button" onClick={onEditFlight} style={linkBtnStyle}>Edit Flight Item →</button>}
           {renderConf("flight", "Flight Confirmation")}
-        </>
+        </div>
       ) : (
         <>
-          {info.hasFlight ? (
+          {flightOverride ? (
+            <div style={{ whiteSpace: "pre-wrap" }}>{flightOverride}</div>
+          ) : info.hasFlight ? (
             <>
               <div>{dash(info.flightName)}</div>
               {info.flightAddress && <div style={{ color: "#64748b" }}>{info.flightAddress}</div>}
             </>
           ) : (
-            <div style={{ color: "#94a3b8" }}>{isHost ? "Add a flight travel item to populate this field." : "—"}</div>
+            <div style={{ color: "#94a3b8" }}>{isHost ? "Add a flight travel item, or click Edit to type flight info here." : "—"}</div>
           )}
           {editLink(onEditFlight, "Edit Flight Item →")}
           {renderConf("flight", "Flight Confirmation")}
@@ -331,22 +506,24 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
     {
       label: "Hotel",
       content: editing ? (
-        <>
-          {onEditHotel ? (
-            <div>
-              <div>{dash(info.hotelName)}</div>
-              {info.hotelAddress && <div style={{ color: "#64748b" }}>{info.hotelAddress}</div>}
-              <button type="button" onClick={onEditHotel} style={linkBtnStyle}>Edit Hotel Item →</button>
-            </div>
-          ) : (
-            <div style={{ color: "#94a3b8" }}>Add a Hotel item to your itinerary to populate this field.</div>
-          )}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <textarea style={textareaStyle} value={form.hotelOverride}
+            placeholder={"e.g.\nHoliday Inn Chelsea (nights 1-3)\nMarriott Downtown (nights 4-5)"}
+            onChange={e => setForm(f => ({ ...f, hotelOverride: e.target.value }))} />
+          {overrideHint}
+          {onEditHotel && <button type="button" onClick={onEditHotel} style={linkBtnStyle}>Edit Hotel Item →</button>}
           {renderConf("hotel", "Hotel Confirmation")}
-        </>
+        </div>
       ) : (
         <>
-          <div>{dash(info.hotelName)}</div>
-          {info.hotelAddress && <div style={{ color: "#64748b" }}>{info.hotelAddress}</div>}
+          {hotelOverride ? (
+            <div style={{ whiteSpace: "pre-wrap" }}>{hotelOverride}</div>
+          ) : (
+            <>
+              <div>{dash(info.hotelName)}</div>
+              {info.hotelAddress && <div style={{ color: "#64748b" }}>{info.hotelAddress}</div>}
+            </>
+          )}
           {editLink(onEditHotel, "Edit Hotel Item →")}
           {renderConf("hotel", "Hotel Confirmation")}
         </>
@@ -357,29 +534,32 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
       label: "Bus",
       content: editing ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <textarea style={textareaStyle} value={form.busOverride}
+            placeholder={"e.g.\nHoliday Motor Coach · 2 buses\nDriver: Ray · (801) 555-0114"}
+            onChange={e => setForm(f => ({ ...f, busOverride: e.target.value }))} />
+          {overrideHint}
           <input type="number" min={0} style={inputStyle} value={form.busCapacity} placeholder="Bus capacity"
             onChange={e => setForm(f => ({ ...f, busCapacity: e.target.value }))} />
-          {onEditBus ? (
-            <div>
-              <div>{dash(info.busCompany)}</div>
-              <button type="button" onClick={onEditBus} style={linkBtnStyle}>Edit Bus Item →</button>
-            </div>
-          ) : (
-            <div style={{ color: "#94a3b8" }}>Add a bus travel item to populate this field.</div>
-          )}
+          {onEditBus && <button type="button" onClick={onEditBus} style={linkBtnStyle}>Edit Bus Item →</button>}
           {renderConf("bus", "Bus Confirmation")}
         </div>
       ) : (
         <>
-          {/* Company now comes from the tour record (Overview → Bus Company). */}
-          <div>{dash(info.busCompany)}</div>
-          {/* Existing dispatch contact, derived from the bus item — unchanged. */}
-          {(info.busContactName || info.busContactPhone) && (
-            <div style={{ color: "#64748b" }}>
-              {info.busContactName}
-              {info.busContactName && info.busContactPhone ? " · " : null}
-              {info.busContactPhone && link(telHref(info.busContactPhone), info.busContactPhone)}
-            </div>
+          {busOverride ? (
+            <div style={{ whiteSpace: "pre-wrap" }}>{busOverride}</div>
+          ) : (
+            <>
+              {/* Company comes from the tour record (Overview → Bus Company). */}
+              <div>{dash(info.busCompany)}</div>
+              {(info.busContactName || info.busContactPhone) && (
+                <div style={{ color: "#64748b" }}>
+                  {info.busContactName}
+                  {info.busContactName && info.busContactPhone ? " · " : null}
+                  {info.busContactPhone && link(telHref(info.busContactPhone), info.busContactPhone)}
+                </div>
+              )}
+              {info.busCapacity ? <div style={{ color: "#64748b" }}>{info.busCapacity} passengers</div> : null}
+            </>
           )}
           {/* Bus driver contact — host-facing only, never shown to participants. */}
           {isHost && (info.busDriverName || info.busDriverPhone) && (
@@ -390,17 +570,104 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
               {info.busDriverPhone && link(telHref(info.busDriverPhone), info.busDriverPhone)}
             </div>
           )}
-          {info.busCapacity ? <div style={{ color: "#64748b" }}>{info.busCapacity} passengers</div> : null}
           {editLink(onEditBus, "Edit Bus Item →")}
           {renderConf("bus", "Bus Confirmation")}
         </>
       ),
     },
+    // Bus-driver map images — hosts + bus drivers only.
+    ...(showDriverMap ? [{
+      label: "Driver Map",
+      content: (
+        <div>
+          {mapUrls.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: isHost ? 8 : 0 }}>
+              {mapUrls.map(url => (
+                <span key={url} style={{ position: "relative", display: "inline-block" }}>
+                  <a href={url} target="_blank" rel="noreferrer" title="Open full size">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={url} alt="Driver map" style={{ width: 120, height: 84, objectFit: "cover", borderRadius: 8, border: "1px solid #e2e8f0", display: "block" }} />
+                  </a>
+                  {isHost && (
+                    <button type="button" title="Remove map" onClick={() => removeDriverMap(url)}
+                      style={{ position: "absolute", top: -6, right: -6, background: "#fff", border: "1px solid #e2e8f0", borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#b91c1c", padding: 0 }}>
+                      <X size={11} strokeWidth={3} />
+                    </button>
+                  )}
+                </span>
+              ))}
+            </div>
+          )}
+          {isHost ? (
+            <>
+              <input ref={mapInput} type="file" accept="image/*" multiple style={{ display: "none" }}
+                onChange={e => uploadDriverMap(e.target.files)} />
+              <button type="button" onClick={() => mapInput.current?.click()} disabled={mapBusy}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: "1.5px dashed #cbd5e1", background: "#fff", cursor: mapBusy ? "default" : "pointer", fontSize: 12, fontWeight: 600, color: "#475569", fontFamily: "inherit", opacity: mapBusy ? 0.6 : 1 }}>
+                <ImagePlus size={13} />{mapBusy ? "Uploading…" : "Upload Map Image"}
+              </button>
+              <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
+                <Map size={11} /> Visible only to you and bus drivers.
+              </div>
+            </>
+          ) : mapUrls.length === 0 ? <div>—</div> : null}
+        </div>
+      ),
+    }] : []),
+    // Host-named custom rows (extra info or links) — rendered for everyone.
+    ...(!editing ? (info.customRows ?? []).map(r => ({
+      label: r.label || "Info",
+      content: (
+        <div>
+          {r.url ? (
+            print ? (
+              <span>{r.value || r.label || r.url}</span>
+            ) : (
+              <a href={externalHref(r.url)} target="_blank" rel="noreferrer" style={{ ...linkStyle, display: "inline-flex", alignItems: "center", gap: 5 }}>
+                <LinkIcon size={12} />{r.value || r.label || r.url}
+              </a>
+            )
+          ) : (
+            <div style={{ whiteSpace: "pre-wrap" }}>{dash(r.value)}</div>
+          )}
+        </div>
+      ),
+    })) : []),
+    // Custom-rows editor (edit mode only).
+    ...(editing ? [{
+      label: "Additional Rows",
+      content: (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {form.customRows.map((r, i) => (
+            <div key={r.id} style={{ display: "flex", flexDirection: "column", gap: 4, background: "#fafbff", border: "1px solid #eef2f7", borderRadius: 8, padding: 8 }}>
+              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <input style={{ ...inputStyle, flex: 1 }} value={r.label} placeholder="Row name (e.g. Packing List)"
+                  onChange={e => setForm(f => ({ ...f, customRows: f.customRows.map((x, idx) => idx === i ? { ...x, label: e.target.value } : x) }))} />
+                <button type="button" title="Remove row"
+                  onClick={() => setForm(f => ({ ...f, customRows: f.customRows.filter((_, idx) => idx !== i) }))}
+                  style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 2, display: "flex", flexShrink: 0 }}>
+                  <X size={13} />
+                </button>
+              </div>
+              <input style={inputStyle} value={r.value} placeholder="Text to show (optional)"
+                onChange={e => setForm(f => ({ ...f, customRows: f.customRows.map((x, idx) => idx === i ? { ...x, value: e.target.value } : x) }))} />
+              <input style={inputStyle} value={r.url} placeholder="Link URL (optional — makes the row a link)"
+                onChange={e => setForm(f => ({ ...f, customRows: f.customRows.map((x, idx) => idx === i ? { ...x, url: e.target.value } : x) }))} />
+            </div>
+          ))}
+          <button type="button" style={smallAddBtn}
+            onClick={() => setForm(f => ({ ...f, customRows: [...f.customRows, { id: crypto.randomUUID(), label: "", value: "", url: "" }] }))}>
+            <Plus size={11} /> Add row
+          </button>
+        </div>
+      ),
+    }] : []),
   ];
 
   // Data-driven section visibility — defers to the shared showTripSection() rule
   // so the live view and the server-side PDF renderer can never diverge.
   const visibleRows = rows.filter(r => {
+    if (editing) return true;
     if (r.id === "flight" || r.id === "bus") return showTripSection(r.id, info, { isHost });
     return true;
   });
@@ -418,7 +685,7 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
           }}
         >
           {open ? <ChevronDown size={18} color="#ffffff" /> : <ChevronRight size={18} color="#ffffff" />}
-          <span style={{ fontSize: 16, fontWeight: 700, color: "#ffffff", fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.03em" }}>
+          <span style={{ fontSize: 16, fontWeight: 400, color: "#ffffff", fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.03em" }}>
             Trip Information
           </span>
         </button>
@@ -442,7 +709,7 @@ export default function TripInformation({ info, isHost = false, tourId, onSaveTo
         <>
           <div style={{ display: "grid", gridTemplateColumns: "minmax(110px, 32%) 1fr", borderTop: "1px solid #f1f5f9" }}>
             {visibleRows.map((r, i) => (
-              <Fragment key={r.label}>
+              <Fragment key={`${r.label}-${i}`}>
                 <div style={{
                   padding: "10px 16px", fontSize: 11.5, fontWeight: 700, color: "#64748b",
                   textTransform: "uppercase", letterSpacing: 0.4,

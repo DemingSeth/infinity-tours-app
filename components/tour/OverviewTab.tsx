@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 import { BRAND, calcRoster, calcRooms } from "@/lib/helpers";
-import type { TourMemberRow } from "@/lib/types";
+import type { TourMemberRow, TourNoteRow } from "@/lib/types";
 
 // ─── Shared micro-components ──────────────────────────────────────────────────
 
@@ -31,6 +33,142 @@ const Field = ({ label, children, half, third }: { label?: string; children: Rea
     {children}
   </div>
 );
+
+// ─── Timestamped notes log ────────────────────────────────────────────────────
+// Multiple dated notes per tour, each minimizable (July 2026 request). Collapsed
+// entries show the date + a first-line preview; click to expand. The legacy
+// free-text Notes field on the Trip Details card is unchanged.
+
+function noteDateLabel(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) +
+    " · " + d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+}
+
+function NotesLog({ tourId, isOwner }: { tourId: string; isOwner: boolean }) {
+  const [notes, setNotes] = useState<TourNoteRow[]>([]);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [draft, setDraft] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const { data } = await createClient()
+        .from("tour_notes").select("*").eq("tour_id", tourId)
+        .order("created_at", { ascending: false });
+      if (active && data) setNotes(data as TourNoteRow[]);
+    })();
+    return () => { active = false; };
+  }, [tourId]);
+
+  async function addNote() {
+    const text = draft.trim();
+    if (!text || saving) return;
+    setSaving(true);
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data, error } = await supabase
+      .from("tour_notes")
+      .insert({ tour_id: tourId, text, created_by: user?.id ?? null })
+      .select().single();
+    setSaving(false);
+    if (error || !data) {
+      console.error("[tour_notes.insert] failed", error?.message);
+      if (typeof window !== "undefined") window.alert(`Could not save note: ${error?.message ?? "permission denied"}`);
+      return;
+    }
+    setNotes(prev => [data as TourNoteRow, ...prev]);
+    setExpanded(prev => ({ ...prev, [(data as TourNoteRow).id]: true }));
+    setDraft("");
+    setAdding(false);
+  }
+
+  async function deleteNote(id: string) {
+    const { error } = await createClient().from("tour_notes").delete().eq("id", id);
+    if (error) {
+      console.error("[tour_notes.delete] failed", error.message);
+      return;
+    }
+    setNotes(prev => prev.filter(n => n.id !== id));
+  }
+
+  return (
+    <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 14, padding: 20 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <span style={{ fontSize: 14, fontWeight: 400, color: BRAND.navy, fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.03em" }}>
+          Notes Log
+        </span>
+        {isOwner && !adding && (
+          <button onClick={() => setAdding(true)}
+            style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "transparent", color: BRAND.navy, border: `1.5px solid ${BRAND.navy}`, borderRadius: 8, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+            <Plus size={12} /> Add Note
+          </button>
+        )}
+      </div>
+
+      {adding && (
+        <div style={{ marginBottom: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+          <textarea autoFocus value={draft} onChange={e => setDraft(e.target.value)}
+            placeholder="What happened / what to remember (a timestamp is added automatically)…"
+            style={{ ...inp, resize: "vertical", minHeight: 80 }} />
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+            <button onClick={() => { setAdding(false); setDraft(""); }}
+              style={{ background: "#f1f5f9", color: "#64748b", border: "1.5px solid #e2e8f0", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+              Cancel
+            </button>
+            <button onClick={addNote} disabled={saving || !draft.trim()}
+              style={{ background: BRAND.navy, color: "#fff", border: "none", borderRadius: 8, padding: "6px 16px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: saving || !draft.trim() ? 0.6 : 1 }}>
+              {saving ? "Saving…" : "Save Note"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {notes.length === 0 && !adding && (
+        <div style={{ fontSize: 12, color: "#94a3b8" }}>
+          No dated notes yet. Notes added here keep their timestamp so you can track when each one was entered.
+        </div>
+      )}
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {notes.map(n => {
+          const isOpen = !!expanded[n.id];
+          const firstLine = (n.text.split("\n")[0] || "").slice(0, 80);
+          return (
+            <div key={n.id} style={{ border: "1px solid #eef2f7", borderRadius: 9, overflow: "hidden" }}>
+              <div
+                onClick={() => setExpanded(prev => ({ ...prev, [n.id]: !isOpen }))}
+                style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#fafbff", cursor: "pointer" }}
+              >
+                {isOpen ? <ChevronDown size={14} color="#94a3b8" style={{ flexShrink: 0 }} /> : <ChevronRight size={14} color="#94a3b8" style={{ flexShrink: 0 }} />}
+                <span style={{ fontSize: 11, fontWeight: 700, color: BRAND.blue, flexShrink: 0 }}>{noteDateLabel(n.created_at)}</span>
+                {!isOpen && (
+                  <span style={{ fontSize: 12, color: "#64748b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1 }}>
+                    {firstLine}
+                  </span>
+                )}
+                {isOwner && (
+                  <button title="Delete note" onClick={e => { e.stopPropagation(); deleteNote(n.id); }}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "#cbd5e1", padding: 2, display: "flex", marginLeft: "auto", flexShrink: 0 }}>
+                    <Trash2 size={13} />
+                  </button>
+                )}
+              </div>
+              {isOpen && (
+                <div style={{ padding: "10px 14px", fontSize: 13, color: "#1e293b", whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
+                  {n.text}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -97,6 +235,9 @@ export default function OverviewTab({ tour, members, isOwner, onChange }: Props)
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* Timestamped, minimizable notes log */}
+      <NotesLog tourId={tour.id} isOwner={isOwner} />
+
       {/* Stat cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 10 }}>
         {stats.map(s => (
@@ -111,7 +252,7 @@ export default function OverviewTab({ tour, members, isOwner, onChange }: Props)
       {/* Trip details card */}
       <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 14, padding: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: BRAND.navy, fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.03em" }}>Trip Details</span>
+          <span style={{ fontSize: 14, fontWeight: 400, color: BRAND.navy, fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.03em" }}>Trip Details</span>
           {isOwner && !editing && (
             <button onClick={startEdit} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "transparent", color: BRAND.navy, border: `1.5px solid ${BRAND.navy}`, borderRadius: 8, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
               <I n="edit" s={12} />Edit

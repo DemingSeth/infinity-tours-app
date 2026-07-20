@@ -132,7 +132,7 @@ export default function ResetPasswordPage() {
           </div>
 
           <div style={{ padding: "28px 32px 32px" }}>
-            <h2 style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", fontSize: 22, fontWeight: 700, color: BRAND.navy, margin: "0 0 24px" }}>
+            <h2 style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", fontSize: 22, fontWeight: 400, color: BRAND.navy, margin: "0 0 24px" }}>
               Set a new password
             </h2>
 

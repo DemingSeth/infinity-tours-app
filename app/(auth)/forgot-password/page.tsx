@@ -56,7 +56,7 @@ export default function ForgotPasswordPage() {
           </div>
 
           <div style={{ padding: "28px 32px 32px" }}>
-            <h2 style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", fontSize: 22, fontWeight: 700, color: BRAND.navy, margin: "0 0 8px" }}>
+            <h2 style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", fontSize: 22, fontWeight: 400, color: BRAND.navy, margin: "0 0 8px" }}>
               Reset your password
             </h2>
             <p style={{ fontSize: 13, color: "#64748b", margin: "0 0 24px", lineHeight: 1.5 }}>

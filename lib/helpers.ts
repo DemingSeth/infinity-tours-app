@@ -68,7 +68,44 @@ export const ACTIVITY_SUBTYPES = [
   { value: "clinic",         label: "Clinic" },
   { value: "concert",        label: "Concert" },
   { value: "broadway",       label: "Broadway" },
+  { value: "play_show",      label: "Play / Show" },
+  { value: "museum",         label: "Museum" },
+  { value: "other",          label: "Other" },
 ] as const;
+
+// City-aware activity suggestions: when the tour destination matches a keyword,
+// these sub-types are surfaced first in the Activity Types picker (with a
+// "Suggested for <destination>" hint). Purely an ordering aid — every sub-type
+// stays selectable on every tour.
+const CITY_ACTIVITY_SUGGESTIONS: { match: RegExp; subtypes: string[] }[] = [
+  { match: /new york|nyc|manhattan/i,            subtypes: ["broadway", "play_show", "museum", "concert"] },
+  { match: /orlando|disney world|kissimmee/i,    subtypes: ["disney", "theme_park", "medieval_times"] },
+  { match: /anaheim|los angeles|california/i,    subtypes: ["disney", "theme_park", "beach"] },
+  { match: /washington|d\.?c\.?$/i,              subtypes: ["museum"] },
+  { match: /chicago/i,                           subtypes: ["museum", "play_show", "concert"] },
+  { match: /san diego|florida|hawaii|miami/i,    subtypes: ["beach", "theme_park"] },
+  { match: /nashville|branson/i,                 subtypes: ["concert", "play_show"] },
+];
+
+// Suggested activity sub-types for a destination (empty when no match).
+export function suggestedActivitySubtypes(destination: string | null | undefined): string[] {
+  if (!destination) return [];
+  const hit = CITY_ACTIVITY_SUGGESTIONS.find(c => c.match.test(destination));
+  return hit ? hit.subtypes : [];
+}
+
+// Activity sub-type options ordered for a destination: suggested first (in
+// suggestion order), then the rest in canonical order.
+export function orderedActivitySubtypes(destination: string | null | undefined) {
+  const suggested = suggestedActivitySubtypes(destination);
+  if (suggested.length === 0) return { options: [...ACTIVITY_SUBTYPES], suggested: [] as string[] };
+  const bySuggestion = [...ACTIVITY_SUBTYPES].sort((a, b) => {
+    const ai = suggested.indexOf(a.value); const bi = suggested.indexOf(b.value);
+    const ar = ai === -1 ? suggested.length : ai; const br = bi === -1 ? suggested.length : bi;
+    return ar - br;
+  });
+  return { options: bySuggestion, suggested };
+}
 
 // Instructions sub-types (wake-up / lights-out). Also stored in `activity_subtype`.
 export const INSTRUCTION_SUBTYPES = [
@@ -106,6 +143,7 @@ export function isActivityType(type: string | null | undefined, activitySubtypes
 export const MEAL_MONEY_TYPES = [
   { value: "group",           label: "Group Meal",                hasAmount: false },
   { value: "hotel_breakfast", label: "Hotel Breakfast",           hasAmount: false },
+  { value: "delivered",       label: "Delivered Meal",            hasAmount: false },
   { value: "stipend",         label: "Meal Stipend (Till Card)",  hasAmount: true  },
   { value: "disney_dining",   label: "Disney Dining Dollars",     hasAmount: true  },
   { value: "cash",            label: "Cash",                      hasAmount: true  },
@@ -151,9 +189,11 @@ export const ROLES = {
   student:     { label: "Student / Chaperone", color: "#065f46",  bg: "#ecfdf5", rank: 1 },
 } as const;
 
+// Payment information (cost / paid status) is visible ONLY to the tour host
+// (coordinator) view — off by default for every other role (July 2026 request).
 export const DEFAULT_VISIBILITY = {
   coordinator: { address: true, mapLink: true, contactName: true, contactPhone: true, contactEmail: true, cost: true, costPaid: true, driverNote: true, detail: true, internalNote: true },
-  teacher:     { address: true, mapLink: true, contactName: true, contactPhone: true, contactEmail: true, cost: true, costPaid: false, driverNote: false, detail: true, internalNote: false },
+  teacher:     { address: true, mapLink: true, contactName: true, contactPhone: true, contactEmail: true, cost: false, costPaid: false, driverNote: false, detail: true, internalNote: false },
   driver:      { address: true, mapLink: true, contactName: false, contactPhone: false, contactEmail: false, cost: false, costPaid: false, driverNote: true, detail: false, internalNote: false },
   student:     { address: true, mapLink: true, contactName: false, contactPhone: false, contactEmail: false, cost: false, costPaid: false, driverNote: false, detail: true, internalNote: false },
 } as const;
@@ -376,11 +416,39 @@ export function buildTripInfo({ tour, members, days, hostName, hostPhone, confir
       return { key: k, label: personaLabel(k, labels), count };
     });
 
+  // Multi-teacher / multi-host lists. When the new arrays are empty, backfill a
+  // single entry from the legacy fields so existing tours look unchanged.
+  const rawTeachers = (tour?.teachers as { name?: string; contact?: string | null }[] | null) || [];
+  const teachers = rawTeachers.filter(t => (t?.name ?? "").trim() || (t?.contact ?? "").trim());
+  const teacherList = teachers.length
+    ? teachers.map(t => ({ name: (t.name ?? "").trim(), contact: (t.contact ?? "").trim() || null }))
+    : (tour?.contact_name || tour?.contact_email
+        ? [{ name: tour?.contact_name ?? "", contact: tour?.contact_email ?? null }]
+        : []);
+  const rawHosts = (tour?.tour_hosts_list as { name?: string; contact?: string | null }[] | null) || [];
+  const hostEntries = rawHosts.filter(h => (h?.name ?? "").trim() || (h?.contact ?? "").trim());
+  const hostList = hostEntries.length
+    ? hostEntries.map(h => ({ name: (h.name ?? "").trim(), contact: (h.contact ?? "").trim() || null }))
+    : (tour?.traveling_tour_host || hostName
+        ? [{ name: (tour?.traveling_tour_host || hostName) as string, contact: hostPhone ?? null }]
+        : []);
+
+  const infoOverrides = (tour?.trip_info_overrides as { flight?: string | null; hotel?: string | null; bus?: string | null } | null) || {};
+  const customRows = ((tour?.custom_trip_rows as { id?: string; label?: string; value?: string | null; url?: string | null }[] | null) || [])
+    .filter(r => (r?.label ?? "").trim() || (r?.value ?? "").trim() || (r?.url ?? "").trim())
+    .map((r, i) => ({ id: r.id || `row-${i}`, label: (r.label ?? "").trim(), value: (r.value ?? "").trim() || null, url: (r.url ?? "").trim() || null }));
+
   return {
     teacherName: tour?.contact_name || null,
     teacherEmail: tour?.contact_email || null,
     tourHostName: tour?.traveling_tour_host || hostName || null,
     tourHostPhone: hostPhone || null,
+    teachers: teacherList,
+    tourHosts: hostList,
+    consultantName: (tour?.planning_tour_host ?? "").trim() || null,
+    overrides: infoOverrides,
+    customRows,
+    driverMapUrls: (tour?.driver_map_urls as string[] | null) || [],
     participants,
     totalParticipants: participants.reduce((s, p) => s + p.count, 0),
     participantsOverride: tour?.participants_display_override ?? null,
@@ -411,10 +479,13 @@ export function buildTripInfo({ tour, members, days, hostName, hostPhone, confir
 // (to show the "add a … item" guidance).
 export function showTripSection(
   section: "flight" | "bus",
-  info: Pick<TripInfo, "hasFlight" | "hasBus">,
+  info: Pick<TripInfo, "hasFlight" | "hasBus"> & Partial<Pick<TripInfo, "overrides">>,
   opts?: { isHost?: boolean },
 ): boolean {
   if (opts?.isHost) return true;
+  // A host-entered free-text override makes the row meaningful even when no
+  // matching itinerary item exists (e.g. multi-flight tours typed by hand).
+  if ((info.overrides?.[section] ?? "").trim()) return true;
   return section === "flight" ? info.hasFlight : info.hasBus;
 }
 
@@ -437,6 +508,51 @@ export function timeToMinutes(time: string | null | undefined): number | null {
   else if (h > 23) return null;                    // 24-hour out of range
   if (h > 23) return null;
   return h * 60 + min;
+}
+
+// Display a start/end time pair as a single string: "9:00 AM – 11:30 AM",
+// falling back to just the start when no end time is set.
+export function formatTimeRange(time: string | null | undefined, endTime: string | null | undefined): string {
+  const start = (time ?? "").trim();
+  const end = (endTime ?? "").trim();
+  if (!start) return end ? `– ${end}` : "";
+  return end ? `${start} – ${end}` : start;
+}
+
+// AUTHORITATIVE display order for a day's items: manual sort_order (drag &
+// drop), with untracked rows falling back to time order. sort_order was
+// normalized to the historical time-sorted order in the 2026-07-20 migration,
+// so this is visually identical for existing tours until a host drags.
+export function orderAgendaItems<T extends { time?: string | null; sort_order?: number | null }>(items: T[]): T[] {
+  return [...items].sort((a, b) => {
+    const ao = a.sort_order ?? 0;
+    const bo = b.sort_order ?? 0;
+    if (ao !== bo) return ao - bo;
+    const am = timeToMinutes(a.time); const bm = timeToMinutes(b.time);
+    if (am !== bm) {
+      if (am === null) return 1;
+      if (bm === null) return -1;
+      return am - bm;
+    }
+    return 0;
+  });
+}
+
+// Where a (possibly re-timed) item should slot into a day, by time: after the
+// last item whose time is <= the new time; untimed items go to the end. Returns
+// the target index within `others` (the day's items WITHOUT the moving item,
+// already in display order).
+export function timeInsertIndex<T extends { time?: string | null }>(others: T[], newTime: string | null | undefined): number {
+  const mins = timeToMinutes(newTime ?? null);
+  if (mins === null) return others.length;
+  let idx = 0;
+  for (let i = 0; i < others.length; i++) {
+    const m = timeToMinutes(others[i].time);
+    if (m !== null && m <= mins) idx = i + 1;
+    // Untimed items are skipped (they neither advance nor stop the scan), so a
+    // timed item still lands after the last earlier-or-equal timed item.
+  }
+  return idx;
 }
 
 // Order a day's agenda items chronologically by their time. Timed items come

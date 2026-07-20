@@ -56,7 +56,7 @@ export default function ItineraryHeaderTile({
             <BrandLockup height={64} variant="light" />
           )}
           <div style={{ minWidth: 0 }}>
-            <h1 style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", color: "#fff", fontSize: 22, fontWeight: 700, lineHeight: 1.12, margin: "0 0 4px", overflowWrap: "break-word", textShadow }}>
+            <h1 style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", color: "#fff", fontSize: 22, fontWeight: 400, lineHeight: 1.12, margin: "0 0 4px", overflowWrap: "break-word", textShadow }}>
               {tourName}
             </h1>
             {(tourDestination || tourDates) && (

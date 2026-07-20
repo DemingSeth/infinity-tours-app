@@ -4,7 +4,7 @@ import {
   Plane, Bus, TrainFront, CarTaxiFront, TramFront, Sailboat, Ship, Fuel,
   RollerCoaster, Music, Drama, Hotel, MapPin, Smile,
   Sun, Moon, Star, Umbrella, Sparkles, ClipboardList,
-  Meh, Frown, type LucideIcon,
+  Meh, Frown, Ticket, Landmark, type LucideIcon,
 } from "lucide-react";
 
 // Icons accept the same prop subset Lucide does, so custom SVGs and Lucide
@@ -171,6 +171,9 @@ export const ACTIVITY_SUBTYPE_ICONS: Record<string, AgendaIcon> = {
   clinic: TrebleClef,
   concert: Music,
   broadway: Drama,
+  play_show: Ticket,
+  museum: Landmark,
+  other: Sparkles,
 };
 
 // Instructions sub-types (stored in the item's activity_subtype field).

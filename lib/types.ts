@@ -75,6 +75,12 @@ export interface Database {
         Update: Partial<Omit<PostTripReviewRow, "id">>;
         Relationships: [];
       };
+      tour_notes: {
+        Row: TourNoteRow;
+        Insert: Omit<TourNoteRow, "id" | "created_at" | "updated_at">;
+        Update: Partial<Omit<TourNoteRow, "id" | "created_at">>;
+        Relationships: [];
+      };
     };
   };
 }
@@ -108,6 +114,30 @@ export interface AccessCodes {
   driver: string;
   student: string;
   chaperone?: string;
+}
+
+// A named person reference used by the multi-teacher / multi-host Trip
+// Information rows. `contact` holds an email (teachers) or phone (hosts).
+export interface PersonRef {
+  name: string;
+  contact?: string | null;
+}
+
+// Host-named extra Trip Information row: plain text, or a link when `url` is set.
+export interface CustomTripRow {
+  id: string;
+  label: string;
+  value?: string | null;
+  url?: string | null;
+}
+
+// Free-text overrides for the derived Flight / Hotel / Bus Trip Information
+// rows. Non-empty text replaces the itinerary-derived summary (supports tours
+// with multiple flights, hotels, or buses).
+export interface TripInfoOverrides {
+  flight?: string | null;
+  hotel?: string | null;
+  bus?: string | null;
 }
 
 export interface TourRow {
@@ -160,6 +190,18 @@ export interface TourRow {
   // Free-text override for the Participants row in Trip Information. When non-empty
   // it replaces the structured per-persona breakdown + total (host-controlled).
   participants_display_override: string | null;
+  // Free-text overrides for the Flight / Hotel / Bus Trip Information rows.
+  trip_info_overrides: TripInfoOverrides;
+  // Host-named extra Trip Information rows (text or links).
+  custom_trip_rows: CustomTripRow[];
+  // Multiple teachers ({ name, contact: email }). Empty → fall back to the
+  // legacy single contact_name / contact_email pair.
+  teachers: PersonRef[];
+  // Multiple tour hosts ({ name, contact: phone }). Empty → fall back to the
+  // legacy traveling_tour_host + host profile phone.
+  tour_hosts_list: PersonRef[];
+  // Map images for bus drivers (visible to hosts + bus drivers only).
+  driver_map_urls: string[];
   created_at: string;
   updated_at: string;
 }
@@ -181,7 +223,7 @@ export type TravelMethod = "bus" | "flight" | "subway" | "train" | "walking" | "
 // meal is covered — as a group, or included with the hotel stay); stipend /
 // disney_dining / cash each carry their own dollar amount. A meal may hold
 // several entries at once (e.g. Group Meal + Cash).
-export type MealMoneyType = "group" | "hotel_breakfast" | "stipend" | "disney_dining" | "cash";
+export type MealMoneyType = "group" | "hotel_breakfast" | "delivered" | "stipend" | "disney_dining" | "cash";
 export interface MealMoneyEntry {
   type: MealMoneyType;
   amount?: number | null;
@@ -200,6 +242,8 @@ export interface AgendaItemRow {
   tour_id: string;
   sort_order: number;
   time: string | null;
+  // Optional end time ("11:30 AM"); displayed as a range with `time`.
+  end_time: string | null;
   type: AgendaItemType;
   // Multi-select activity sub-types (theme_park, disney, medieval_times, …) and
   // travel methods (bus, walking, …). These arrays are authoritative; an item
@@ -220,6 +264,8 @@ export interface AgendaItemRow {
   travel_method: TravelMethod | null;
   // Optional host-chosen color for the flight icon (hex). Null = default rendering.
   flight_icon_color: string | null;
+  // Optional host-chosen color for the bus icon (hex). Null = default rendering.
+  bus_icon_color: string | null;
   contact_name: string | null;
   contact_phone: string | null;
   contact_email: string | null;
@@ -342,6 +388,16 @@ export interface PostTripReviewRow {
   submitted_at: string;
 }
 
+// A timestamped overview note (multiple per tour, minimizable in the UI).
+export interface TourNoteRow {
+  id: string;
+  tour_id: string;
+  text: string;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // Curated banner image available to tour hosts (managed by admins).
 export interface BannerImageLibraryRow {
   id: string;
@@ -358,6 +414,18 @@ export interface TripInfo {
   teacherEmail: string | null;
   tourHostName: string | null;
   tourHostPhone: string | null;
+  // Multi-teacher / multi-host lists. Always at least one entry when the legacy
+  // single fields carry data (buildTripInfo backfills from them).
+  teachers: PersonRef[];
+  tourHosts: PersonRef[];
+  // Tour consultant (travel planner) — separate from the traveling tour host.
+  consultantName: string | null;
+  // Free-text overrides for Flight / Hotel / Bus rows (non-empty replaces the
+  // derived summary) + host-named custom rows.
+  overrides: TripInfoOverrides;
+  customRows: CustomTripRow[];
+  // Bus-driver map images (rendered only for hosts + bus drivers).
+  driverMapUrls: string[];
   // Per-persona participant counts using the tour's custom labels. `key` is the
   // persona key (e.g. "student") so the host can edit each count inline.
   participants: { key: string; label: string; count: number }[];

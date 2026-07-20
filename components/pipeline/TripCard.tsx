@@ -9,9 +9,11 @@ interface Props {
   isDuplicating: boolean;
   onClick: () => void;
   onDuplicate: () => void;
+  /** Delete this tour (own tours only). Opens a confirm dialog upstream. */
+  onDelete?: () => void;
 }
 
-export default function TripCard({ tour, currentHostId, isDuplicating, onClick, onDuplicate }: Props) {
+export default function TripCard({ tour, currentHostId, isDuplicating, onClick, onDuplicate, onDelete }: Props) {
   const members: any[] = tour.tour_members ?? [];
   const memberCount = members.length;
   const waiverPending = members.filter((m: any) => m.type === "student" && !m.waiver).length;
@@ -25,7 +27,9 @@ export default function TripCard({ tour, currentHostId, isDuplicating, onClick, 
   return (
     <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 12, padding: 14, boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
       <div onClick={onClick} style={{ cursor: "pointer" }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: BRAND.navy, marginBottom: 3, fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.03em", lineHeight: 1.3 }}>
+        {/* Fjalla One ships a single 400 weight — asking for bold forces the
+            browser to fake it, which renders blurry. Keep it at 400. */}
+        <div style={{ fontSize: 14, fontWeight: 400, color: BRAND.navy, marginBottom: 3, fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.03em", lineHeight: 1.3 }}>
           {tour.name}
         </div>
         <div style={{ fontSize: 12, color: "#64748b", marginBottom: 6 }}>{tour.school}</div>
@@ -76,6 +80,15 @@ export default function TripCard({ tour, currentHostId, isDuplicating, onClick, 
         >
           {isDuplicating ? "Copying..." : "⧉ Duplicate"}
         </button>
+        {isOwn && onDelete && (
+          <button
+            onClick={e => { e.stopPropagation(); onDelete(); }}
+            title="Delete this tour (accidental duplicate, cancelled trip…)"
+            style={{ flex: "0 0 auto", background: "#fff", border: "1px solid #fecaca", borderRadius: 6, padding: "4px 8px", fontSize: 11, fontWeight: 600, color: "#b91c1c", cursor: "pointer", fontFamily: "inherit" }}
+          >
+            ✕
+          </button>
+        )}
       </div>
     </div>
   );
