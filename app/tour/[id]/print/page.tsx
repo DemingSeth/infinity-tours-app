@@ -29,6 +29,16 @@ export default async function ItineraryPrintPage({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) notFound();
 
+  // This route sits outside app/(dashboard), so the layout that turns away
+  // deactivated accounts never runs for it. A deactivated account keeps working
+  // auth credentials, so the flag is checked here directly.
+  const { data: viewerHost } = await supabase
+    .from("tour_hosts")
+    .select("is_active")
+    .eq("id", user.id)
+    .single();
+  if (!viewerHost?.is_active) notFound();
+
   const [{ data: tour }, { data: days }, { data: members }, { data: confirmations }] = await Promise.all([
     supabase.from("tours").select("*, tour_hosts(id, name, phone, email)").eq("id", id).single(),
     supabase.from("agenda_days").select("*, agenda_items(*)").eq("tour_id", id).order("sort_order"),

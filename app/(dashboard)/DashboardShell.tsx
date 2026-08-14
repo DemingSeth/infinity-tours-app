@@ -5,7 +5,7 @@ import type { User } from "@supabase/supabase-js";
 import type { TourHostRow } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import BrandLockup from "@/components/shared/BrandLockup";
-import { KanbanSquare, LayoutGrid, FileText } from "lucide-react";
+import { KanbanSquare, LayoutGrid, FileText, Users } from "lucide-react";
 import { BRAND } from "@/lib/helpers";
 import { isAdmin } from "@/lib/roles";
 
@@ -30,12 +30,17 @@ export default function DashboardShell({ children, user, tourHost }: Props) {
   const initials = tourHost?.initials ||
     (tourHost?.name || user.email || "TH").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
 
-  // Quote Builder link only for admins (role already arrives via tourHost.role).
+  // Quote Builder and Team Access are admin-only (role already arrives via
+  // tourHost.role). isAdmin() rather than an inline role comparison, so a
+  // super_admin keeps both links. Each route enforces admin server-side as well;
+  // hiding the links just keeps the nav honest about what a host can open.
+  const admin = isAdmin(tourHost?.role);
   const navLinks = [
     ...BASE_NAV_LINKS,
-    ...(SHOW_QUOTE_BUILDER_NAV && isAdmin(tourHost?.role)
+    ...(SHOW_QUOTE_BUILDER_NAV && admin
       ? [{ href: "/quote-builder", label: "Quote Builder", Icon: FileText }]
       : []),
+    ...(admin ? [{ href: "/admin/users", label: "Team Access", Icon: Users }] : []),
   ];
 
   async function handleSignOut() {

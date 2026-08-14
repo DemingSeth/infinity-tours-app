@@ -16,12 +16,17 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (!user) return new Response("Unauthorized", { status: 401 });
 
   // Quote Builder is admin-only: logged-in non-admins are forbidden (403).
+  // is_active is checked here as well as in the role: a Route Handler does not
+  // run app/(dashboard)/layout.tsx, so the deactivation gate in that layout
+  // never sees this request and it has to enforce the flag itself.
   const { data: viewerHost } = await supabase
     .from("tour_hosts")
-    .select("role")
+    .select("role, is_active")
     .eq("id", user.id)
     .single();
-  if (!isAdmin(viewerHost?.role)) return new Response("Forbidden", { status: 403 });
+  if (!viewerHost?.is_active || !isAdmin(viewerHost.role)) {
+    return new Response("Forbidden", { status: 403 });
+  }
 
   // RLS scopes what this user may read.
   const { data: quote, error } = await supabase

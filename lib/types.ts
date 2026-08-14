@@ -87,7 +87,9 @@ export interface Database {
 
 // ─── Row types ────────────────────────────────────────────────────────────────
 
-export type HostRole = "host" | "admin";
+// Mirrors the tour_hosts.role check constraint. Gate admin ACCESS through the
+// helpers in lib/roles.ts rather than comparing these strings inline.
+export type HostRole = "host" | "admin" | "super_admin";
 
 export interface TourHostRow {
   id: string;
@@ -97,7 +99,27 @@ export interface TourHostRow {
   initials: string | null;
   company: string | null;
   role: HostRole;
+  // Deactivated accounts keep their credentials but are refused by the
+  // dashboard layout, and are filtered out of list_personnel().
+  is_active: boolean;
   created_at: string;
+}
+
+// Shape returned by the admin_list_users() RPC: the tour_hosts row joined to the
+// auth.users columns an admin needs to see. Read-only; role and active changes
+// go through admin_set_host_role / admin_set_host_active.
+export interface AdminUserRow {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  initials: string | null;
+  role: HostRole;
+  is_active: boolean;
+  created_at: string;
+  last_sign_in_at: string | null;
+  invited_at: string | null;
+  confirmed: boolean;
 }
 
 export type TourStatus = "bid" | "committed" | "in-progress" | "closed";
