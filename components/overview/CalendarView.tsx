@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, ExternalLink, CalendarDays } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, ExternalLink, CalendarDays } from "lucide-react";
 import {
   BRAND, STATUSES, getStatus, buildHostColorMap, initialsFrom, hostNameOf,
   parseISODate, startOfDay, sameDay, tourDateLabel, MONTH_NAMES, WEEKDAY_LABELS,
@@ -43,6 +43,16 @@ export default function CalendarView({ tours, onOpenTour }: {
   const [cursor, setCursor] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
   const [mode, setMode] = useState<Mode>("status");
   const [popover, setPopover] = useState<Popover>(null);
+  // Starts collapsed on every visit; deliberately not persisted.
+  const [collapsed, setCollapsed] = useState(true);
+
+  // Collapsing hides the grid, so drop any popover anchored to it.
+  const toggleCollapsed = () => {
+    setCollapsed(c => {
+      if (!c) setPopover(null);
+      return !c;
+    });
+  };
 
   const hostColorMap = useMemo(
     () => buildHostColorMap(tours.map(t => t.tour_host_id)),
@@ -102,6 +112,16 @@ export default function CalendarView({ tours, onOpenTour }: {
           Calendar
         </span>
 
+        <button
+          type="button"
+          onClick={toggleCollapsed}
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? "Expand calendar" : "Collapse calendar"}
+          style={{ ...navBtn, width: 26, height: 26, color: "#64748b" }}
+        >
+          {collapsed ? <ChevronDown size={15} /> : <ChevronUp size={15} />}
+        </button>
+
         <div style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: 10 }}>
           <button onClick={goPrev} aria-label="Previous month" style={navBtn}><ChevronLeft size={16} /></button>
           <span style={{ fontSize: 13.5, fontWeight: 700, color: BRAND.navy, minWidth: 132, textAlign: "center" }}>
@@ -131,153 +151,157 @@ export default function CalendarView({ tours, onOpenTour }: {
         </div>
       </div>
 
-      {/* Legend */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, padding: "9px 18px", borderBottom: "1px solid #f1f5f9", background: "#fbfcfe" }}>
-        {mode === "status"
-          ? STATUSES.map(s => <LegendDot key={s.id} color={s.dot} label={s.label} />)
-          : (() => {
-              const seen = new Map<string, string>();
-              for (const s of scheduled) {
-                const name = hostNameOf(s.tour);
-                if (!seen.has(s.tour.tour_host_id)) seen.set(s.tour.tour_host_id, name);
-              }
-              const entries = Array.from(seen.entries());
-              return entries.length
-                ? entries.map(([id, name]) => <LegendDot key={id} color={hostColorMap[id] ?? "#94a3b8"} label={name} />)
-                : <span style={{ fontSize: 11, color: "#94a3b8" }}>No scheduled tours</span>;
-            })()}
-      </div>
+      {!collapsed && (
+        <>
+        {/* Legend */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, padding: "9px 18px", borderBottom: "1px solid #f1f5f9", background: "#fbfcfe" }}>
+          {mode === "status"
+            ? STATUSES.map(s => <LegendDot key={s.id} color={s.dot} label={s.label} />)
+            : (() => {
+                const seen = new Map<string, string>();
+                for (const s of scheduled) {
+                  const name = hostNameOf(s.tour);
+                  if (!seen.has(s.tour.tour_host_id)) seen.set(s.tour.tour_host_id, name);
+                }
+                const entries = Array.from(seen.entries());
+                return entries.length
+                  ? entries.map(([id, name]) => <LegendDot key={id} color={hostColorMap[id] ?? "#94a3b8"} label={name} />)
+                  : <span style={{ fontSize: 11, color: "#94a3b8" }}>No scheduled tours</span>;
+              })()}
+        </div>
 
-      {/* Weekday header */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", borderBottom: "1px solid #eef2f7" }}>
-        {WEEKDAY_LABELS.map(d => (
-          <div key={d} style={{ padding: "6px 8px", fontSize: 10.5, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6, textAlign: "left" }}>
-            {d}
-          </div>
-        ))}
-      </div>
+        {/* Weekday header */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", borderBottom: "1px solid #eef2f7" }}>
+          {WEEKDAY_LABELS.map(d => (
+            <div key={d} style={{ padding: "6px 8px", fontSize: 10.5, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6, textAlign: "left" }}>
+              {d}
+            </div>
+          ))}
+        </div>
 
-      {/* Week rows */}
-      <div>
-        {weeks.map((days, wi) => {
-          const weekStart = days[0];
-          const weekEnd = days[6];
+        {/* Week rows */}
+        <div>
+          {weeks.map((days, wi) => {
+            const weekStart = days[0];
+            const weekEnd = days[6];
 
-          const overlapping = scheduled
-            .filter(s => s.start <= weekEnd && s.end >= weekStart)
-            .sort((a, b) =>
-              a.start.getTime() - b.start.getTime() ||
-              (b.end.getTime() - b.start.getTime()) - (a.end.getTime() - a.start.getTime()) ||
-              a.tour.name.localeCompare(b.tour.name),
-            );
+            const overlapping = scheduled
+              .filter(s => s.start <= weekEnd && s.end >= weekStart)
+              .sort((a, b) =>
+                a.start.getTime() - b.start.getTime() ||
+                (b.end.getTime() - b.start.getTime()) - (a.end.getTime() - a.start.getTime()) ||
+                a.tour.name.localeCompare(b.tour.name),
+              );
 
-          // Greedy lane assignment within the week.
-          const laneEnds: number[] = [];
-          const spans = overlapping.map(s => {
-            const startCol = clamp(diffDays(s.start, weekStart), 0, 6);
-            const endCol = clamp(diffDays(s.end, weekStart), 0, 6);
-            let lane = laneEnds.findIndex(end => end < startCol);
-            if (lane === -1) { lane = laneEnds.length; laneEnds.push(endCol); }
-            else laneEnds[lane] = endCol;
-            return { s, startCol, endCol, lane };
-          });
+            // Greedy lane assignment within the week.
+            const laneEnds: number[] = [];
+            const spans = overlapping.map(s => {
+              const startCol = clamp(diffDays(s.start, weekStart), 0, 6);
+              const endCol = clamp(diffDays(s.end, weekStart), 0, 6);
+              let lane = laneEnds.findIndex(end => end < startCol);
+              if (lane === -1) { lane = laneEnds.length; laneEnds.push(endCol); }
+              else laneEnds[lane] = endCol;
+              return { s, startCol, endCol, lane };
+            });
 
-          const placed = spans.filter(p => p.lane < MAX_LANES);
+            const placed = spans.filter(p => p.lane < MAX_LANES);
 
-          // Hidden-tour count per day column (accurate per-day overflow).
-          const overflowByCol = Array.from({ length: 7 }, (_, c) => {
-            const total = spans.filter(p => p.startCol <= c && c <= p.endCol).length;
-            const shown = placed.filter(p => p.startCol <= c && c <= p.endCol).length;
-            return total - shown;
-          });
+            // Hidden-tour count per day column (accurate per-day overflow).
+            const overflowByCol = Array.from({ length: 7 }, (_, c) => {
+              const total = spans.filter(p => p.startCol <= c && c <= p.endCol).length;
+              const shown = placed.filter(p => p.startCol <= c && c <= p.endCol).length;
+              return total - shown;
+            });
 
-          return (
-            <div key={wi} style={{ position: "relative", height: WEEK_H, borderBottom: wi === weeks.length - 1 ? "none" : "1px solid #eef2f7" }}>
-              {/* Day cells (background + date numbers) */}
-              <div style={{ position: "absolute", inset: 0, display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}>
-                {days.map((day, di) => {
-                  const inMonth = day.getMonth() === month;
-                  const isToday = sameDay(day, today);
+            return (
+              <div key={wi} style={{ position: "relative", height: WEEK_H, borderBottom: wi === weeks.length - 1 ? "none" : "1px solid #eef2f7" }}>
+                {/* Day cells (background + date numbers) */}
+                <div style={{ position: "absolute", inset: 0, display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}>
+                  {days.map((day, di) => {
+                    const inMonth = day.getMonth() === month;
+                    const isToday = sameDay(day, today);
+                    return (
+                      <div key={di} style={{ borderLeft: di === 0 ? "none" : "1px solid #f3f6fa", background: inMonth ? "#fff" : "#fbfcfe", padding: 5 }}>
+                        <span style={{
+                          display: "inline-flex", alignItems: "center", justifyContent: "center",
+                          minWidth: 18, height: 18, borderRadius: "50%", fontSize: 11,
+                          fontWeight: isToday ? 700 : 500,
+                          color: isToday ? "#fff" : inMonth ? "#475569" : "#cbd5e1",
+                          background: isToday ? BRAND.blue : "transparent",
+                        }}>
+                          {day.getDate()}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Tour bars */}
+                {placed.map(({ s, startCol, endCol, lane }) => {
+                  const continuesLeft = s.start < weekStart;
+                  const continuesRight = s.end > weekEnd;
+                  const single = sameDay(s.start, s.end);
+                  const color = colorFor(s.tour);
                   return (
-                    <div key={di} style={{ borderLeft: di === 0 ? "none" : "1px solid #f3f6fa", background: inMonth ? "#fff" : "#fbfcfe", padding: 5 }}>
-                      <span style={{
-                        display: "inline-flex", alignItems: "center", justifyContent: "center",
-                        minWidth: 18, height: 18, borderRadius: "50%", fontSize: 11,
-                        fontWeight: isToday ? 700 : 500,
-                        color: isToday ? "#fff" : inMonth ? "#475569" : "#cbd5e1",
-                        background: isToday ? BRAND.blue : "transparent",
-                      }}>
-                        {day.getDate()}
-                      </span>
-                    </div>
+                    <button
+                      key={s.tour.id}
+                      onClick={(e) => setPopover({ kind: "tour", tour: s.tour, anchor: { x: e.clientX, y: e.clientY } })}
+                      title={s.tour.name}
+                      style={{
+                        position: "absolute",
+                        left: `calc(${(startCol / 7) * 100}% + 4px)`,
+                        width: `calc(${((endCol - startCol + 1) / 7) * 100}% - 8px)`,
+                        top: HEADER_H + lane * (LANE_H + LANE_GAP),
+                        height: LANE_H,
+                        background: single ? "#fff" : color,
+                        border: single ? `1.5px solid ${color}` : "none",
+                        color: single ? color : "#fff",
+                        borderTopLeftRadius: continuesLeft ? 0 : 5,
+                        borderBottomLeftRadius: continuesLeft ? 0 : 5,
+                        borderTopRightRadius: continuesRight ? 0 : 5,
+                        borderBottomRightRadius: continuesRight ? 0 : 5,
+                        fontSize: 10.5, fontWeight: 600, fontFamily: "inherit",
+                        padding: "0 6px", display: "flex", alignItems: "center", gap: 4,
+                        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                        cursor: "pointer", textAlign: "left", lineHeight: `${LANE_H}px`,
+                      }}
+                    >
+                      {single && <span style={{ width: 5, height: 5, borderRadius: "50%", background: color, flexShrink: 0 }} />}
+                      <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{s.tour.name}</span>
+                    </button>
                   );
                 })}
-              </div>
 
-              {/* Tour bars */}
-              {placed.map(({ s, startCol, endCol, lane }) => {
-                const continuesLeft = s.start < weekStart;
-                const continuesRight = s.end > weekEnd;
-                const single = sameDay(s.start, s.end);
-                const color = colorFor(s.tour);
-                return (
+                {/* "+N more" per day */}
+                {overflowByCol.map((n, c) => n > 0 ? (
                   <button
-                    key={s.tour.id}
-                    onClick={(e) => setPopover({ kind: "tour", tour: s.tour, anchor: { x: e.clientX, y: e.clientY } })}
-                    title={s.tour.name}
+                    key={`more-${c}`}
+                    onClick={(e) => setPopover({ kind: "day", date: days[c], tours: toursOnDay(days[c]), anchor: { x: e.clientX, y: e.clientY } })}
                     style={{
                       position: "absolute",
-                      left: `calc(${(startCol / 7) * 100}% + 4px)`,
-                      width: `calc(${((endCol - startCol + 1) / 7) * 100}% - 8px)`,
-                      top: HEADER_H + lane * (LANE_H + LANE_GAP),
-                      height: LANE_H,
-                      background: single ? "#fff" : color,
-                      border: single ? `1.5px solid ${color}` : "none",
-                      color: single ? color : "#fff",
-                      borderTopLeftRadius: continuesLeft ? 0 : 5,
-                      borderBottomLeftRadius: continuesLeft ? 0 : 5,
-                      borderTopRightRadius: continuesRight ? 0 : 5,
-                      borderBottomRightRadius: continuesRight ? 0 : 5,
-                      fontSize: 10.5, fontWeight: 600, fontFamily: "inherit",
-                      padding: "0 6px", display: "flex", alignItems: "center", gap: 4,
-                      whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                      cursor: "pointer", textAlign: "left", lineHeight: `${LANE_H}px`,
+                      left: `calc(${(c / 7) * 100}% + 4px)`,
+                      width: `calc(${(1 / 7) * 100}% - 8px)`,
+                      top: HEADER_H + MAX_LANES * (LANE_H + LANE_GAP),
+                      height: OVERFLOW_H - 2,
+                      background: "transparent", border: "none", cursor: "pointer",
+                      fontSize: 10, fontWeight: 700, color: "#64748b", fontFamily: "inherit",
+                      textAlign: "left", padding: "0 6px",
                     }}
                   >
-                    {single && <span style={{ width: 5, height: 5, borderRadius: "50%", background: color, flexShrink: 0 }} />}
-                    <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{s.tour.name}</span>
+                    +{n} more
                   </button>
-                );
-              })}
-
-              {/* "+N more" per day */}
-              {overflowByCol.map((n, c) => n > 0 ? (
-                <button
-                  key={`more-${c}`}
-                  onClick={(e) => setPopover({ kind: "day", date: days[c], tours: toursOnDay(days[c]), anchor: { x: e.clientX, y: e.clientY } })}
-                  style={{
-                    position: "absolute",
-                    left: `calc(${(c / 7) * 100}% + 4px)`,
-                    width: `calc(${(1 / 7) * 100}% - 8px)`,
-                    top: HEADER_H + MAX_LANES * (LANE_H + LANE_GAP),
-                    height: OVERFLOW_H - 2,
-                    background: "transparent", border: "none", cursor: "pointer",
-                    fontSize: 10, fontWeight: 700, color: "#64748b", fontFamily: "inherit",
-                    textAlign: "left", padding: "0 6px",
-                  }}
-                >
-                  +{n} more
-                </button>
-              ) : null)}
-            </div>
-          );
-        })}
-      </div>
-
-      {unscheduledCount > 0 && (
-        <div style={{ padding: "9px 18px", borderTop: "1px solid #f1f5f9", fontSize: 11, color: "#94a3b8", background: "#fbfcfe" }}>
-          {unscheduledCount} tour{unscheduledCount !== 1 ? "s" : ""} without dates not shown on the calendar.
+                ) : null)}
+              </div>
+            );
+          })}
         </div>
+
+        {unscheduledCount > 0 && (
+          <div style={{ padding: "9px 18px", borderTop: "1px solid #f1f5f9", fontSize: 11, color: "#94a3b8", background: "#fbfcfe" }}>
+            {unscheduledCount} tour{unscheduledCount !== 1 ? "s" : ""} without dates not shown on the calendar.
+          </div>
+        )}
+        </>
       )}
 
       {popover && (

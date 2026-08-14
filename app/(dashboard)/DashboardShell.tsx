@@ -20,7 +20,6 @@ interface Props {
 const SHOW_QUOTE_BUILDER_NAV = true;
 
 const BASE_NAV_LINKS = [
-  { href: "/overview", label: "Overview", Icon: LayoutGrid },
   { href: "/dashboard", label: "Tour Pipeline", Icon: KanbanSquare },
 ];
 
@@ -30,12 +29,13 @@ export default function DashboardShell({ children, user, tourHost }: Props) {
   const initials = tourHost?.initials ||
     (tourHost?.name || user.email || "TH").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
 
-  // Quote Builder and Team Access are admin-only (role already arrives via
-  // tourHost.role). isAdmin() rather than an inline role comparison, so a
-  // super_admin keeps both links. Each route enforces admin server-side as well;
+  // Overview, Quote Builder and Team Access are admin-only (role already arrives
+  // via tourHost.role). isAdmin() rather than an inline role comparison, so a
+  // super_admin keeps every link. Each route enforces admin server-side as well;
   // hiding the links just keeps the nav honest about what a host can open.
   const admin = isAdmin(tourHost?.role);
   const navLinks = [
+    ...(admin ? [{ href: "/overview", label: "Overview", Icon: LayoutGrid }] : []),
     ...BASE_NAV_LINKS,
     ...(SHOW_QUOTE_BUILDER_NAV && admin
       ? [{ href: "/quote-builder", label: "Quote Builder", Icon: FileText }]

@@ -8,7 +8,6 @@ import { createClient } from "@/lib/supabase/client";
 import { Modal, Btn } from "@/components/tour/ui";
 import BannerLibraryManager from "@/components/tour/BannerLibraryManager";
 import StatsRow from "@/components/overview/StatsRow";
-import PipelineSummary from "@/components/overview/PipelineSummary";
 import CalendarView from "@/components/overview/CalendarView";
 import VisibilitySettingsModal from "@/components/overview/VisibilitySettingsModal";
 import type { TourWithHostAndMembers, HostRole } from "@/lib/types";
@@ -57,7 +56,8 @@ function BannerLibraryCard({ currentHostId }: { currentHostId: string }) {
 interface Props {
   tours: TourWithHostAndMembers[];
   currentHostId: string;
-  // Architected for future visibility gating (host vs admin); not enforced yet.
+  // The page already redirects non-admins; kept here so admin-only cards stay
+  // gated as defense in depth.
   viewerRole: HostRole;
 }
 
@@ -90,7 +90,6 @@ export default function OverviewClient({ tours, currentHostId, viewerRole }: Pro
       {isAdmin(viewerRole) && <BannerLibraryCard currentHostId={currentHostId} />}
 
       <StatsRow tours={tours} />
-      <PipelineSummary tours={tours} currentHostId={currentHostId} onOpenTour={openTour} />
       <CalendarView tours={tours} onOpenTour={openTour} />
 
       {showSettings && <VisibilitySettingsModal onClose={() => setShowSettings(false)} />}
