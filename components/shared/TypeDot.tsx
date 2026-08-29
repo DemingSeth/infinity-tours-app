@@ -8,33 +8,27 @@ import { getItemIcon, getAgendaTypeColor } from "@/components/shared/agendaIcons
 // "default rendering".
 const isUsableColor = (c?: string | null) => !!c && c.trim().toUpperCase() !== "#FFFFFF";
 
-export default function TypeDot({ type, travelMethod, subtype, size = 28, flightColor, busColor, meetingColor }: {
+// The item's icon: the type's (or sub-type's) glyph in a color, on a light tint
+// of that same color. `color` is the host's choice for this item — see
+// resolveIconColor() in lib/helpers — and null falls back to the type's own
+// color.
+export default function TypeDot({ type, travelMethod, subtype, size = 28, color }: {
   type: string;
   travelMethod?: string | null;
   subtype?: string | null;
   size?: number;
-  // Host-chosen flight icon color (hex). Applied only to the flight plane; null /
-  // undefined keeps the default rendering.
-  flightColor?: string | null;
-  // Host-chosen bus icon color (hex). Applied only to the bus icon; null /
-  // undefined keeps the default rendering.
-  busColor?: string | null;
-  // Host-chosen meeting point pin color (hex). Null / undefined keeps the default.
-  meetingColor?: string | null;
+  color?: string | null;
 }) {
   const t = getAgendaType(type);
   const Icon = getItemIcon(type, travelMethod, subtype);
   const typeColor = getAgendaTypeColor(type);
-  // A host-chosen color renders exactly like every other item: the icon in that
-  // color on a light tint of the same color (August 2026 request; previously a
-  // navy chip).
-  const isColoredFlight = type === "travel" && travelMethod === "flight" && isUsableColor(flightColor);
-  const isColoredBus = type === "travel" && travelMethod === "bus" && isUsableColor(busColor);
-  const isColoredMeeting = type === "meeting" && isUsableColor(meetingColor);
-  const color = isColoredFlight ? flightColor! : isColoredBus ? busColor! : isColoredMeeting ? meetingColor! : typeColor;
-  const background = color + "1a";
+  const resolved = isUsableColor(color) ? color! : typeColor;
   return (
+    // The color travels as a custom property so globals.css can tint the chip
+    // and lighten the glyph in dark mode (an inline color would win over the
+    // class rule and leave dark colors unreadable on a dark surface).
     <div
+      className="type-dot"
       title={t.label}
       style={{
         width: size,
@@ -44,9 +38,8 @@ export default function TypeDot({ type, travelMethod, subtype, size = 28, flight
         justifyContent: "center",
         flexShrink: 0,
         borderRadius: Math.round(size * 0.28),
-        background,
-        color,
-      }}
+        ["--type-dot-color" as string]: resolved,
+      } as React.CSSProperties}
     >
       <Icon size={Math.round(size * 0.56)} strokeWidth={2} />
     </div>

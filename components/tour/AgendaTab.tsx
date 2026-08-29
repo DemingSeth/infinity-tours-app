@@ -3,12 +3,12 @@
 import { useState, useRef, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
-import TypeDot from "@/components/shared/TypeDot";
+import IconColorButton from "@/components/shared/IconColorPicker";
 import {
   BRAND, ROLES, AGENDA_TYPES, TRAVEL_SUBTYPES, SUBTYPES_BY_TYPE,
   isDayInPast, initialCollapsedDays, parseAgendaDate, formatAgendaDate, suggestNextDate,
   toDateInput, fmt$, buildTripInfo, orderAgendaItems, timeInsertIndex,
-  orderedActivitySubtypes, expandStateName, tripInfoStartsCollapsed, itemMatchesGroup, groupName,
+  orderedActivitySubtypes, expandStateName, tripInfoStartsCollapsed, itemMatchesGroup, groupName, resolveIconColor,
   activePersonaKeys, personaLabel, personaColors, getPersona, defaultPersonaVisibility, isActivityType, generateAccessCode,
   MEAL_MONEY_TYPES, mealMoneyHasAmount, mealMoneyLabel,
 } from "@/lib/helpers";
@@ -16,7 +16,7 @@ import GoogleMapsLink from "@/components/shared/GoogleMapsLink";
 import AgendaRoleView from "@/components/tour/AgendaRoleView";
 import TripInformation from "@/components/tour/TripInformation";
 import {
-  AGENDA_TYPE_COLORS, getAgendaTypeIcon, getSentimentIcon, getSubtypeIcon, type AgendaIcon,
+  AGENDA_TYPE_COLORS, getAgendaTypeIcon, getSentimentIcon, getSubtypeIcon,
 } from "@/components/shared/agendaIcons";
 import AgendaImages from "@/components/shared/AgendaImages";
 import ItemConfirmationControl, { ConfirmationFileChips, type ConfirmationPatch } from "@/components/tour/itemConfirmation";
@@ -428,9 +428,7 @@ type ItemFormState = {
   feedback_enabled: boolean;
   image_urls: string[];
   driver_map_urls: string[];
-  flight_icon_color: string | null;
-  bus_icon_color: string | null;
-  meeting_icon_color: string | null;
+  icon_color: string | null;
   elevate_url: string;
   group_tags: string[];
   custom_type_label: string;
@@ -442,8 +440,8 @@ const BLANK: ItemFormState = {
   contact_name: "", contact_phone: "", contact_email: "",
   cost: "", cost_paid: false, confirmation_not_required: false, driver_note: "", internal_note: "",
   meal_money: [], persona_visibility: defaultPersonaVisibility("activity", []),
-  feedback_enabled: isActivityType("activity", []), image_urls: [], driver_map_urls: [], flight_icon_color: null,
-  bus_icon_color: null, meeting_icon_color: null, elevate_url: "", group_tags: [], custom_type_label: "",
+  feedback_enabled: isActivityType("activity", []), image_urls: [], driver_map_urls: [], icon_color: null,
+  elevate_url: "", group_tags: [], custom_type_label: "",
 };
 
 // Toggle a value in/out of a string array (used for multi-select sub-types).
@@ -479,45 +477,6 @@ const TYPE_COLORS = AGENDA_TYPE_COLORS;
 // Meal-money chips: one yellow that matches the Dining icon (#f59e0b tint),
 // regardless of how the meal is covered.
 export const MEAL_CHIP_STYLE: React.CSSProperties = { background: "var(--amber-bg)", color: "var(--amber-text)" };
-
-// Flight / bus / meeting-point icon color choices. Each renders the icon in the
-// chosen color on a light tint of that color, exactly like every other item
-// icon (August 2026 request). Stored as the hex value on
-// agenda_items.flight_icon_color / bus_icon_color / meeting_icon_color; null =
-// the type's default color.
-const ICON_COLOR_CHOICES: { value: string; label: string }[] = [
-  { value: "#0B1957", label: "Navy" },
-  { value: "#D97706", label: "Gold" },
-  { value: "#059669", label: "Green" },
-  { value: "#0284C7", label: "Sky" },
-  { value: "#E11D48", label: "Rose" },
-];
-
-// Swatch row for an icon color. `Icon` previews the exact rendering.
-function IconColorPicker({ label, Icon, value, onChange, defaultColor }: {
-  label: string; Icon?: AgendaIcon;
-  value: string | null; onChange: (hex: string | null) => void; defaultColor: string;
-}) {
-  const choices = [{ value: "", label: "Default" }, ...ICON_COLOR_CHOICES];
-  return (
-    <div style={{ marginBottom: 14 }}>
-      <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>{label}</label>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        {choices.map(c => {
-          const hex = c.value || defaultColor;
-          const selected = c.value ? (value || "").toUpperCase() === c.value.toUpperCase() : !value;
-          return (
-            <button key={c.label} type="button" title={c.label}
-              onClick={() => onChange(c.value || null)}
-              style={{ width: 34, height: 34, borderRadius: 9, background: hex + "1a", border: `2px solid ${selected ? hex : "transparent"}`, boxShadow: selected ? `0 0 0 2px ${hex}33` : "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0, color: hex }}>
-              {Icon && <Icon size={17} strokeWidth={2} color={hex} />}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 const UNDO_WINDOW_MS = 5000;
 
@@ -744,21 +703,6 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
         </div>
       </div>
 
-      {/* Icon colors: flight / bus (when that method is selected) and the
-          meeting-point pin. Each swatch previews the tinted rendering. */}
-      {form.travel_methods.includes("flight") && (
-        <IconColorPicker label="Flight Icon Color" Icon={getSubtypeIcon("travel", "flight")} value={form.flight_icon_color}
-          onChange={hex => f({ flight_icon_color: hex })} defaultColor={TYPE_COLORS.travel} />
-      )}
-      {form.travel_methods.includes("bus") && (
-        <IconColorPicker label="Bus Icon Color" Icon={getSubtypeIcon("travel", "bus")} value={form.bus_icon_color}
-          onChange={hex => f({ bus_icon_color: hex })} defaultColor={TYPE_COLORS.travel} />
-      )}
-      {form.type === "meeting" && (
-        <IconColorPicker label="Meeting Point Icon Color" Icon={getAgendaTypeIcon("meeting")} value={form.meeting_icon_color}
-          onChange={hex => f({ meeting_icon_color: hex })} defaultColor={TYPE_COLORS.meeting} />
-      )}
-
       {/* Who can see this item: one toggle chip per persona, colored with the
           persona's own color when on. The Tour Host always sees everything. */}
       <div style={{ marginBottom: 14 }}>
@@ -826,7 +770,20 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
           <TimePicker value={form.end_time} onChange={v => f({ end_time: v })} placeholder="Add end time" />
         </Field>
         <Field label="Title">
-          <Inp value={form.title} onChange={e => f({ title: e.target.value })} placeholder="Museum, flight, restaurant..." autoFocus={!isEdit} />
+          {/* The icon doubles as the color picker: click it to color THIS item
+              (any type), rather than a separate color section further down. */}
+          <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+            <IconColorButton
+              type={form.type}
+              travelMethod={form.travel_methods[0] ?? null}
+              subtype={form.activity_subtypes[0] ?? null}
+              value={form.icon_color}
+              onChange={hex => f({ icon_color: hex })}
+              size={34}
+            />
+            <Inp value={form.title} onChange={e => f({ title: e.target.value })} placeholder="Museum, flight, restaurant..." autoFocus={!isEdit} />
+          </div>
+          <div style={{ fontSize: 11, color: "var(--muted-2)", marginTop: 4 }}>Click the icon to change its color.</div>
         </Field>
         <Field label="Address">
           <Inp value={form.address} onChange={e => f({ address: e.target.value })} placeholder="Full street address" />
@@ -1054,11 +1011,13 @@ function InlineNote({ value, onSave, style, prefix }: {
   );
 }
 
-function ItemRow({ item, groups, onEdit, onRemove, onDuplicate, onCopyToDays, onToggleCostPaid, onRemoveImage, onSaveField, dragProps, isDragOver }: {
+function ItemRow({ item, groups, onEdit, onRemove, onDuplicate, onCopyToDays, onToggleCostPaid, onRemoveImage, onSaveField, onSaveIconColor, dragProps, isDragOver }: {
   item: AgendaItemWithFeedback;
   groups: TourGroup[];
   // Inline note edits (detail / public / internal) straight from the row.
   onSaveField: (field: "detail" | "public_note" | "internal_note", value: string) => Promise<boolean>;
+  // Icon color picked from the row itself.
+  onSaveIconColor: (hex: string | null) => void;
   onEdit: () => void; onRemove: () => void; onToggleCostPaid: () => void;
   // Duplicate = open a prefilled New Item form in this day; Copy to days =
   // pick other days to receive a copy (August 2026 request).
@@ -1104,7 +1063,16 @@ function ItemRow({ item, groups, onEdit, onRemove, onDuplicate, onCopyToDays, on
           {item.time || (item.end_time ? "" : <span style={{ color: "var(--muted-3)" }}>-</span>)}
           {item.end_time && <div style={{ fontSize: 12 }}>– {item.end_time}</div>}
         </div>
-        <TypeDot type={item.type} travelMethod={travelMethods[0] ?? null} subtype={activitySubtypes[0] ?? null} size={32} flightColor={item.flight_icon_color} busColor={item.bus_icon_color} meetingColor={item.meeting_icon_color} />
+        {/* The icon is also the color picker: click it to recolor this item
+            right here, no need to open the editor. */}
+        <IconColorButton
+          type={item.type}
+          travelMethod={travelMethods[0] ?? null}
+          subtype={activitySubtypes[0] ?? null}
+          value={resolveIconColor(item)}
+          onChange={hex => onSaveIconColor(hex)}
+          size={32}
+        />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", marginBottom: 3 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{item.title}</span>
@@ -1409,9 +1377,12 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
       image_urls: f.image_urls,
       driver_map_urls: f.driver_map_urls,
       // Flight/bus icon colors only meaningful when the matching method is on.
-      flight_icon_color: f.travel_methods.includes("flight") ? (f.flight_icon_color || null) : null,
-      bus_icon_color: f.travel_methods.includes("bus") ? (f.bus_icon_color || null) : null,
-      meeting_icon_color: f.type === "meeting" ? (f.meeting_icon_color || null) : null,
+      // One color for every item type. The legacy per-type columns are cleared
+      // so resolveIconColor() never falls back to a stale value after an edit.
+      icon_color: f.icon_color || null,
+      flight_icon_color: null,
+      bus_icon_color: null,
+      meeting_icon_color: null,
       elevate_url: f.elevate_url.trim() || null,
       group_tags: f.group_tags,
       custom_type_label: f.type === "activity" && f.activity_subtypes.includes("other") ? (f.custom_type_label.trim() || null) : null,
@@ -1438,13 +1409,25 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
       feedback_enabled: item.feedback_enabled ?? isActivityType(item.type, item.activity_subtypes ?? item.activity_subtype),
       image_urls: item.image_urls || [],
       driver_map_urls: item.driver_map_urls || [],
-      flight_icon_color: item.flight_icon_color ?? null,
-      bus_icon_color: item.bus_icon_color ?? null,
-      meeting_icon_color: item.meeting_icon_color ?? null,
+      icon_color: resolveIconColor(item),
       elevate_url: item.elevate_url || "",
       group_tags: item.group_tags ?? [],
       custom_type_label: item.custom_type_label || "",
     };
+  }
+
+  // Icon color picked straight from the item row. Optimistic, and the legacy
+  // per-type columns are cleared so the new choice is the only source.
+  async function saveIconColor(dayId: string, itemId: string, hex: string | null) {
+    const patch = { icon_color: hex, flight_icon_color: null, bus_icon_color: null, meeting_icon_color: null };
+    const before = daysRef.current;
+    onDaysChange(before.map(d => d.id === dayId ? { ...d, agenda_items: d.agenda_items.map(i => i.id === itemId ? { ...i, ...patch } : i) } : d));
+    const { data, error } = await createClient().from("agenda_items").update(patch).eq("id", itemId).select("id");
+    if (error || !data || data.length === 0) {
+      console.error("[agenda_items.icon_color] save failed", { itemId, error });
+      onDaysChange(before);
+      if (typeof window !== "undefined") window.alert(`Could not change the icon color: ${error?.message ?? "no row updated (permission?)"}`);
+    }
   }
 
   // Inline note edit from the itinerary view (click the note text): writes just
@@ -2245,6 +2228,7 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
                       onToggleCostPaid={() => toggleCostPaid(day.id, item)}
                       onRemoveImage={url => removeItemImage(day.id, item, url)}
                       onSaveField={(field, v) => saveItemField(day.id, item.id, field, v)}
+                      onSaveIconColor={hex => saveIconColor(day.id, item.id, hex)}
                       isDragOver={dragOverIdx?.dayId === day.id && dragOverIdx.index === itemIdx}
                       dragProps={{
                         onDragStart: e => {

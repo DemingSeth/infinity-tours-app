@@ -1,6 +1,6 @@
 "use client";
 
-import { BRAND, orderAgendaItems } from "@/lib/helpers";
+import { BRAND, orderAgendaItems, resolveIconColor } from "@/lib/helpers";
 import TypeDot from "@/components/shared/TypeDot";
 import ItemConfirmationControl from "@/components/tour/itemConfirmation";
 import type { AgendaDayWithItems, AgendaItemWithFeedback } from "@/lib/types";
@@ -94,7 +94,7 @@ function ConfirmationRow({ tourId, item, isOwner, topBorder, onPatch }: {
         {item.time || "-"}
         {item.end_time && <div style={{ fontWeight: 600 }}>– {item.end_time}</div>}
       </div>
-      <TypeDot type={item.type} travelMethod={(item.travel_methods ?? [])[0] ?? null} subtype={(item.activity_subtypes ?? [])[0] ?? null} size={28} flightColor={item.flight_icon_color} busColor={item.bus_icon_color} />
+      <TypeDot type={item.type} travelMethod={(item.travel_methods ?? [])[0] ?? null} subtype={(item.activity_subtypes ?? [])[0] ?? null} size={28} color={resolveIconColor(item)} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ marginBottom: 2 }}>
           <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{item.title}</span>

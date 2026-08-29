@@ -313,11 +313,14 @@ export interface AgendaItemRow {
   map_link: string | null;
   website: string | null;
   travel_method: TravelMethod | null;
-  // Optional host-chosen color for the flight icon (hex). Null = default rendering.
+  // Host-chosen icon color for THIS item, any type (hex). Null = the item
+  // type's own color. Read it through resolveIconColor(), which falls back to
+  // the three legacy per-type columns below for items saved before August 2026.
+  icon_color: string | null;
+  // LEGACY per-type icon colors (dormant: still read as a fallback by
+  // resolveIconColor, cleared whenever an item is saved from the editor).
   flight_icon_color: string | null;
-  // Optional host-chosen color for the bus icon (hex). Null = default rendering.
   bus_icon_color: string | null;
-  // Optional host-chosen color for the meeting point pin (hex). Null = default.
   meeting_icon_color: string | null;
   // "Elevate Your Experience" link (Infinity travel assets / social). Separate
   // from `website`, which stays the venue link.

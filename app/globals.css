@@ -109,6 +109,24 @@ body {
   color: var(--text);
 }
 
+/* Itinerary item icon (TypeDot): the glyph in its color on a light tint of the
+   same color. In dark mode the tint is stronger and the glyph is lightened, so
+   a dark choice such as brand navy stays readable on a dark surface. The base
+   rule is a neutral chip for browsers without color-mix. */
+.type-dot {
+  background: color-mix(in srgb, var(--type-dot-color) 12%, transparent);
+  color: var(--type-dot-color);
+}
+@supports not (background: color-mix(in srgb, red 10%, transparent)) {
+  .type-dot {
+    background: var(--surface-3);
+  }
+}
+[data-theme="dark"] .type-dot {
+  background: color-mix(in srgb, var(--type-dot-color) 26%, transparent);
+  color: color-mix(in srgb, var(--type-dot-color) 55%, white);
+}
+
 /* Swap an element per theme (e.g. the navy vs light brand mark on a card). */
 [data-theme="dark"] .theme-light-only {
   display: none !important;
@@ -142,21 +160,91 @@ body {
    scrolling). Inline styles carry the desktop look; these rules only take over
    at narrow widths. ───────────────────────────────────────────────────────── */
 
-/* The brand lockups scale with the viewport (em-based, see BrandLockup), and
-   the itinerary header tile's padding and gap shrink with it, so on a phone the
-   logo, the wordmark and the space beside them all come down together instead
-   of the logo staying full size with blank space around it. */
+/* The brand lockups scale with the viewport (em-based, see BrandLockup), so on
+   a phone the mark, the wordmark and the space around them all come down
+   together instead of the logo staying full size with blank space beside it. */
 .brand-lockup--nav {
   font-size: clamp(30px, 5vw, 52px) !important;
 }
 .brand-lockup--hero {
-  font-size: clamp(30px, 6.5vw, 64px) !important;
+  font-size: clamp(34px, 7vw, 64px) !important;
 }
+
+/* ── Itinerary header tile ────────────────────────────────────────────────────
+   With a banner photo the tile is about twice the height the text needs, so the
+   photo actually reads (August 2026, Linda). Everything inside sizes against
+   the TILE's own width (container query units), not the viewport, because the
+   same component renders in a 680px shared-itinerary column and in the much
+   wider host view: sizing on the container keeps both looking right on a phone,
+   an iPad and a computer. Each rule declares a viewport-based value first as a
+   fallback for browsers without container queries. The text block sits at the
+   bottom, over the gradient; a tile with no photo stays compact, since a tall
+   empty navy band would add nothing. */
 .hero-tile {
+  container-type: inline-size;
+  /* Pin the width: with an aspect-ratio set below, an auto width would grow to
+     match the ratio instead of filling the column. */
+  width: 100%;
   padding: clamp(12px, 2vw, 20px) clamp(12px, 2.5vw, 24px) !important;
 }
+/* Height comes from the tile's own width (a 3:1 band), floored so a phone
+   still shows a real photo and capped so a wide host-view tile does not become
+   a billboard. Container-query units cannot be used here: on the container
+   element itself they would resolve against the viewport, not the tile. */
+.hero-tile--photo {
+  aspect-ratio: 3 / 1;
+  min-height: 185px;
+  max-height: 320px;
+}
 .hero-tile-body {
-  gap: clamp(8px, 1.6vw, 16px) !important;
+  gap: clamp(10px, 1.8vw, 18px) !important;
+  gap: clamp(10px, 2.4cqw, 20px) !important;
+}
+.brand-lockup--hero {
+  font-size: clamp(30px, 6.5vw, 64px) !important;
+  font-size: clamp(30px, 8cqw, 62px) !important;
+}
+.hero-title {
+  font-size: clamp(17px, 3vw, 26px);
+  font-size: clamp(16px, 3.4cqw, 26px);
+}
+.hero-sub {
+  font-size: clamp(11px, 1.5vw, 14px);
+  font-size: clamp(11px, 1.9cqw, 14px);
+  margin-top: clamp(2px, 0.4vw, 5px);
+}
+.hero-badge {
+  top: clamp(8px, 1.4vw, 14px);
+  right: clamp(8px, 1.4vw, 14px);
+  padding: 3px 10px;
+  font-size: clamp(9px, 1.1vw, 11px);
+}
+/* A tile with no photo is a single short row, so keep the tour name clear of
+   the badge in the corner. */
+.hero-tile--plain .hero-tile-body {
+  padding-right: clamp(72px, 13cqw, 120px);
+}
+/* Narrow tile (phone, or a narrow pane): the lockup moves ABOVE the tour name
+   so neither has to squeeze. */
+@container (max-width: 430px) {
+  .hero-tile-body {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+  .hero-tile--plain .hero-tile-body {
+    padding-right: 0;
+  }
+  .brand-lockup--hero {
+    font-size: 34px !important;
+  }
+}
+/* Print / PDF keeps the compact band so the itinerary is not pushed onto an
+   extra page. */
+.hero-tile--print {
+  aspect-ratio: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
 }
 
 /* Half-screen desktop windows and tablets: tighter nav. */
@@ -212,13 +300,10 @@ body {
   }
 }
 
-/* Phones: smaller title, one column grids. */
+/* Phones: one column grids. (Type sizes come from the clamp() rules above.) */
 @media (max-width: 560px) {
   .hero-tile {
     margin-bottom: 14px !important;
-  }
-  .hero-title {
-    font-size: 18px !important;
   }
   .stats-grid,
   .pipeline-grid {

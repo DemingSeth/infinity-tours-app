@@ -9,7 +9,7 @@ import GeneralFeedback from "@/components/tour/GeneralFeedback";
 import TripInformation from "@/components/tour/TripInformation";
 import ItineraryHeaderTile from "@/components/tour/ItineraryHeaderTile";
 import GoogleMapsLink from "@/components/shared/GoogleMapsLink";
-import { BRAND, ROLES, DEFAULT_VISIBILITY, isItemVisibleTo, personaColors, orderAgendaItems, parseAgendaDate, initialCollapsedDays, tripInfoStartsCollapsed, itemMatchesGroup } from "@/lib/helpers";
+import { BRAND, ROLES, DEFAULT_VISIBILITY, isItemVisibleTo, personaColors, orderAgendaItems, parseAgendaDate, initialCollapsedDays, tripInfoStartsCollapsed, itemMatchesGroup, resolveIconColor } from "@/lib/helpers";
 import type { AgendaDayWithItems, Role, TripInfo, TourGroup } from "@/lib/types";
 
 interface Props {
@@ -240,7 +240,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                         {item.end_time && <span style={{ display: "block", fontSize: print ? 11 : 12 }}>– {item.end_time}</span>}
                       </span>
                     )}
-                    <TypeDot type={item.type} travelMethod={(item.travel_methods ?? [])[0] ?? null} subtype={(item.activity_subtypes ?? [])[0] ?? null} size={24} flightColor={item.flight_icon_color} busColor={item.bus_icon_color} meetingColor={item.meeting_icon_color} />
+                    <TypeDot type={item.type} travelMethod={(item.travel_methods ?? [])[0] ?? null} subtype={(item.activity_subtypes ?? [])[0] ?? null} size={24} color={resolveIconColor(item)} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
                         <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{item.title}</span>

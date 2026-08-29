@@ -122,8 +122,9 @@ function BannerUploader({ tour, isOwner, onTourChange }: {
 
       {/* Saved-state preview (header crop at the saved focal point) */}
       {tour.banner_image_url && !adjusting && (
-        <div style={{ position: "relative", width: "100%", height: 130, borderRadius: 10, overflow: "hidden", border: "1px solid var(--border)", background: "var(--surface-3)", marginBottom: 12 }}>
+        <div style={{ position: "relative", width: "100%", aspectRatio: "3 / 1", borderRadius: 10, overflow: "hidden", border: "1px solid var(--border)", background: "var(--surface-3)", marginBottom: 12 }}>
           <Image src={tour.banner_image_url} alt="Tour banner" fill sizes="(max-width: 720px) 100vw, 680px" style={{ objectFit: "cover", objectPosition: `${focusX}% ${focusY}%` }} />
+          <div style={{ position: "absolute", inset: 0, background: BANNER_OVERLAY_GRADIENT }} />
         </div>
       )}
 
@@ -131,14 +132,14 @@ function BannerUploader({ tour, isOwner, onTourChange }: {
       {tour.banner_image_url && adjusting && (
         <div style={{ marginBottom: 12 }}>
           <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 8 }}>
-            Drag the focal point to the most important part of the photo. The header keeps this point visible when it crops.
+            Drag the focal point to the most important part of the photo. The header keeps this point visible when it crops. Aim a little high: the tour name and logo sit across the bottom of the banner.
           </div>
           <FocalPointPicker imageUrl={tour.banner_image_url} x={draft.x} y={draft.y} onChange={(x, y) => setDraft({ x, y })} />
 
           {/* Live header crop preview */}
           <div style={{ marginTop: 12 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 5 }}>Header preview</div>
-            <div style={{ position: "relative", width: "100%", maxWidth: 360, height: 96, borderRadius: 8, overflow: "hidden", border: "1px solid var(--border)", background: "var(--surface-3)" }}>
+            <div style={{ position: "relative", width: "100%", maxWidth: 420, aspectRatio: "3 / 1", borderRadius: 8, overflow: "hidden", border: "1px solid var(--border)", background: "var(--surface-3)" }}>
               <Image src={tour.banner_image_url} alt="Header preview" fill sizes="360px" style={{ objectFit: "cover", objectPosition: `${draft.x}% ${draft.y}%` }} />
               <div style={{ position: "absolute", inset: 0, background: BANNER_OVERLAY_GRADIENT }} />
             </div>

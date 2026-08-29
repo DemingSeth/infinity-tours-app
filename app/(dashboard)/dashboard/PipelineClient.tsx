@@ -174,6 +174,7 @@ export default function PipelineClient({ initialTours, currentHostId, currentHos
             activity_subtypes: item.activity_subtypes,
             travel_method: item.travel_method,
             activity_subtype: item.activity_subtype,
+            icon_color: item.icon_color,
             flight_icon_color: item.flight_icon_color,
             bus_icon_color: item.bus_icon_color,
             meeting_icon_color: item.meeting_icon_color,

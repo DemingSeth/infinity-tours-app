@@ -20,7 +20,9 @@ export const BRAND = {
 // image. Referenced by every place that renders the banner header tile — tweak
 // here to change it everywhere (editing view, previews, public view, Settings
 // preview).
-export const BANNER_OVERLAY_GRADIENT = "linear-gradient(to bottom, rgba(0,0,0,0.10), rgba(0,0,0,0.45))";
+// The tile is tall enough now that the middle of the photo should stay clear;
+// the scrim deepens only over the bottom band where the lockup and tour name sit.
+export const BANNER_OVERLAY_GRADIENT = "linear-gradient(to bottom, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0.14) 40%, rgba(0,0,0,0.68) 100%)";
 export const BANNER_TEXT_SHADOW = "0 1px 6px rgba(0,0,0,0.75)";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -330,6 +332,27 @@ export function defaultPersonaVisibility(type: string, travelMethods?: string | 
   }
   // flight, hotel, and everything else keep bus_driver hidden.
   return base;
+}
+
+// The icon color to render for an item: the host's per-item choice, else the
+// pre-August-2026 per-type color (flight / bus / meeting point), else null so
+// TypeDot uses the item type's own color. A stored "#FFFFFF" comes from the old
+// navy-chip rendering and is ignored (TypeDot treats it as default too).
+export function resolveIconColor(item: {
+  icon_color?: string | null;
+  travel_methods?: string[] | null;
+  travel_method?: string | null;
+  type?: string | null;
+  flight_icon_color?: string | null;
+  bus_icon_color?: string | null;
+  meeting_icon_color?: string | null;
+}): string | null {
+  if (item.icon_color) return item.icon_color;
+  const methods = item.travel_methods ?? (item.travel_method ? [item.travel_method] : []);
+  if (methods.includes("flight") && item.flight_icon_color) return item.flight_icon_color;
+  if (methods.includes("bus") && item.bus_icon_color) return item.bus_icon_color;
+  if (item.type === "meeting" && item.meeting_icon_color) return item.meeting_icon_color;
+  return null;
 }
 
 // Whether an item is visible to a persona — strictly visibility[persona] === true.
