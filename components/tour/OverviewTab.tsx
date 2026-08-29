@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ChevronDown, ChevronRight, Plus, Trash2, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { BRAND, calcRoster, calcRooms } from "@/lib/helpers";
+import SaveStatusBar from "@/components/shared/SaveStatusBar";
 import type { TourMemberRow, TourNoteRow, NotePriority } from "@/lib/types";
 
 // ─── Shared micro-components ──────────────────────────────────────────────────
@@ -16,20 +17,20 @@ const ICONS: Record<string, string> = {
   edit:   "M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z",
 };
 const I = ({ n, s = 16, c }: { n: string; s?: number; c?: string }) => (
-  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c ?? "currentColor"} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: c }}>
     <path d={ICONS[n] ?? ""} />
   </svg>
 );
 
 const inp: React.CSSProperties = {
-  width: "100%", border: "1.5px solid #e2e8f0", borderRadius: 8,
-  padding: "8px 12px", fontSize: 13, color: "#1e293b", fontFamily: "inherit",
-  background: "#fff", outline: "none", boxSizing: "border-box",
+  width: "100%", border: "1.5px solid var(--border)", borderRadius: 8,
+  padding: "8px 12px", fontSize: 13, color: "var(--text)", fontFamily: "inherit",
+  background: "var(--surface)", outline: "none", boxSizing: "border-box",
 };
 
 const Field = ({ label, children, half, third }: { label?: string; children: React.ReactNode; half?: boolean; third?: boolean }) => (
   <div style={{ display: "flex", flexDirection: "column", gap: 4, flex: third ? "0 0 31%" : half ? "0 0 48%" : "1 1 100%" }}>
-    {label && <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.8 }}>{label}</label>}
+    {label && <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: 0.8 }}>{label}</label>}
     {children}
   </div>
 );
@@ -49,9 +50,9 @@ function noteDateLabel(iso: string): string {
 // Priority tag styling (Low / Medium / High). Medium is the default and reads
 // as neutral; High is red, Low is muted.
 const PRIORITY_META: Record<NotePriority, { label: string; color: string; bg: string; border: string }> = {
-  low:    { label: "Low",    color: "#475569", bg: "#f1f5f9", border: "#e2e8f0" },
-  medium: { label: "Medium", color: "#0369a1", bg: "#e0f2fe", border: "#bae6fd" },
-  high:   { label: "High",   color: "#b91c1c", bg: "#fee2e2", border: "#fecaca" },
+  low:    { label: "Low",    color: "var(--text-2)", bg: "var(--surface-3)", border: "var(--border)" },
+  medium: { label: "Medium", color: "var(--sky-text)", bg: "var(--sky-bg)", border: "var(--sky-border)" },
+  high:   { label: "High",   color: "var(--red-text)", bg: "var(--red-bg)", border: "var(--red-border)" },
 };
 const PRIORITY_ORDER: NotePriority[] = ["low", "medium", "high"];
 
@@ -143,14 +144,14 @@ function NotesLog({ tourId, isOwner }: { tourId: string; isOwner: boolean }) {
   }
 
   return (
-    <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 14, padding: 20 }}>
+    <div style={{ background: "var(--surface)", border: "1.5px solid var(--border-soft)", borderRadius: 14, padding: 20 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-        <span style={{ fontSize: 14, fontWeight: 400, color: BRAND.navy, fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.03em" }}>
+        <span style={{ fontSize: 14, fontWeight: 400, color: "var(--ink)", fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.03em" }}>
           Notes Log
         </span>
         {isOwner && !adding && (
           <button onClick={() => setAdding(true)}
-            style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "transparent", color: BRAND.navy, border: `1.5px solid ${BRAND.navy}`, borderRadius: 8, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+            style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "transparent", color: "var(--ink)", border: `1.5px solid ${"var(--ink)"}`, borderRadius: 8, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
             <Plus size={12} /> Add Note
           </button>
         )}
@@ -163,13 +164,13 @@ function NotesLog({ tourId, isOwner }: { tourId: string; isOwner: boolean }) {
             style={{ ...inp, resize: "vertical", minHeight: 80 }} />
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6 }}>Priority</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: 0.6 }}>Priority</span>
               {PRIORITY_ORDER.map(p => {
                 const m = PRIORITY_META[p];
                 const active = draftPriority === p;
                 return (
                   <button key={p} type="button" onClick={() => setDraftPriority(p)}
-                    style={{ padding: "4px 12px", borderRadius: 999, border: `1.5px solid ${active ? m.color : "#e2e8f0"}`, background: active ? m.bg : "#fff", color: active ? m.color : "#94a3b8", fontSize: 12, fontWeight: active ? 700 : 500, cursor: "pointer", fontFamily: "inherit" }}>
+                    style={{ padding: "4px 12px", borderRadius: 999, border: `1.5px solid ${active ? m.color : "var(--border)"}`, background: active ? m.bg : "var(--surface)", color: active ? m.color : "var(--muted-2)", fontSize: 12, fontWeight: active ? 700 : 500, cursor: "pointer", fontFamily: "inherit" }}>
                     {m.label}
                   </button>
                 );
@@ -178,7 +179,7 @@ function NotesLog({ tourId, isOwner }: { tourId: string; isOwner: boolean }) {
           </div>
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
             <button onClick={() => { setAdding(false); setDraft(""); setDraftPriority("medium"); }}
-              style={{ background: "#f1f5f9", color: "#64748b", border: "1.5px solid #e2e8f0", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+              style={{ background: "var(--surface-3)", color: "var(--muted)", border: "1.5px solid var(--border)", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
               Cancel
             </button>
             <button onClick={addNote} disabled={saving || !draft.trim()}
@@ -190,7 +191,7 @@ function NotesLog({ tourId, isOwner }: { tourId: string; isOwner: boolean }) {
       )}
 
       {notes.length === 0 && !adding && (
-        <div style={{ fontSize: 12, color: "#94a3b8" }}>
+        <div style={{ fontSize: 12, color: "var(--muted-2)" }}>
           No dated notes yet. Notes added here keep their timestamp so you can track when each one was entered.
         </div>
       )}
@@ -201,22 +202,22 @@ function NotesLog({ tourId, isOwner }: { tourId: string; isOwner: boolean }) {
           const firstLine = (n.text.split("\n")[0] || "").slice(0, 80);
           const pr = PRIORITY_META[(n.priority ?? "medium") as NotePriority] ?? PRIORITY_META.medium;
           return (
-            <div key={n.id} style={{ border: "1px solid #eef2f7", borderRadius: 9, overflow: "hidden", borderLeft: `3px solid ${pr.color}` }}>
+            <div key={n.id} style={{ border: "1px solid var(--border-soft)", borderRadius: 9, overflow: "hidden", borderLeft: `3px solid ${pr.color}` }}>
               <div
                 onClick={() => setExpanded(prev => ({ ...prev, [n.id]: !isOpen }))}
-                style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#fafbff", cursor: "pointer" }}
+                style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "var(--surface-2)", cursor: "pointer" }}
               >
-                {isOpen ? <ChevronDown size={14} color="#94a3b8" style={{ flexShrink: 0 }} /> : <ChevronRight size={14} color="#94a3b8" style={{ flexShrink: 0 }} />}
+                {isOpen ? <ChevronDown size={14} style={{ flexShrink: 0, color: "var(--muted-2)" }} /> : <ChevronRight size={14} style={{ flexShrink: 0, color: "var(--muted-2)" }} />}
                 <span style={{ fontSize: 11, fontWeight: 700, color: BRAND.blue, flexShrink: 0 }}>{noteDateLabel(n.created_at)}</span>
                 <span style={{ fontSize: 10, fontWeight: 700, color: pr.color, background: pr.bg, border: `1px solid ${pr.border}`, borderRadius: 999, padding: "1px 8px", flexShrink: 0, textTransform: "uppercase", letterSpacing: 0.4 }}>{pr.label}</span>
                 {!isOpen && (
-                  <span style={{ fontSize: 12, color: "#64748b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1 }}>
+                  <span style={{ fontSize: 12, color: "var(--muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1 }}>
                     {firstLine}
                   </span>
                 )}
                 {isOwner && (
                   <button title="Delete note" onClick={e => { e.stopPropagation(); deleteNote(n.id); }}
-                    style={{ background: "none", border: "none", cursor: "pointer", color: "#cbd5e1", padding: 2, display: "flex", marginLeft: "auto", flexShrink: 0 }}>
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted-3)", padding: 2, display: "flex", marginLeft: "auto", flexShrink: 0 }}>
                     <Trash2 size={13} />
                   </button>
                 )}
@@ -230,7 +231,7 @@ function NotesLog({ tourId, isOwner }: { tourId: string; isOwner: boolean }) {
                         style={{ ...inp, resize: "vertical", minHeight: 80 }} />
                       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                         <button onClick={() => setEditingId(null)}
-                          style={{ background: "#f1f5f9", color: "#64748b", border: "1.5px solid #e2e8f0", borderRadius: 8, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                          style={{ background: "var(--surface-3)", color: "var(--muted)", border: "1.5px solid var(--border)", borderRadius: 8, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
                           Cancel
                         </button>
                         <button onClick={() => saveEdit(n.id)} disabled={editSaving || !editText.trim()}
@@ -240,26 +241,26 @@ function NotesLog({ tourId, isOwner }: { tourId: string; isOwner: boolean }) {
                       </div>
                     </div>
                   ) : (
-                    <div style={{ fontSize: 13, color: "#1e293b", whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
+                    <div style={{ fontSize: 13, color: "var(--text)", whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
                       {n.text}
                       {n.updated_at && n.created_at && new Date(n.updated_at).getTime() - new Date(n.created_at).getTime() > 60000 && (
-                        <div style={{ fontSize: 10.5, color: "#94a3b8", marginTop: 6 }}>Edited {noteDateLabel(n.updated_at)}</div>
+                        <div style={{ fontSize: 10.5, color: "var(--muted-2)", marginTop: 6 }}>Edited {noteDateLabel(n.updated_at)}</div>
                       )}
                     </div>
                   )}
                   {isOwner && editingId !== n.id && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10, paddingTop: 8, borderTop: "1px solid #f1f5f9", flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10, paddingTop: 8, borderTop: "1px solid var(--surface-3)", flexWrap: "wrap" }}>
                       <button type="button" onClick={() => startEdit(n)} title="Edit this note"
-                        style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#fff", color: BRAND.navy, border: `1.5px solid ${BRAND.navy}`, borderRadius: 999, padding: "3px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginRight: 6 }}>
+                        style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "var(--surface)", color: "var(--ink)", border: `1.5px solid ${"var(--ink)"}`, borderRadius: 999, padding: "3px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginRight: 6 }}>
                         <Pencil size={11} /> Edit
                       </button>
-                      <span style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6 }}>Priority</span>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: 0.6 }}>Priority</span>
                       {PRIORITY_ORDER.map(p => {
                         const m = PRIORITY_META[p];
                         const active = (n.priority ?? "medium") === p;
                         return (
                           <button key={p} type="button" onClick={() => changePriority(n.id, p)}
-                            style={{ padding: "3px 10px", borderRadius: 999, border: `1.5px solid ${active ? m.color : "#e2e8f0"}`, background: active ? m.bg : "#fff", color: active ? m.color : "#94a3b8", fontSize: 11, fontWeight: active ? 700 : 500, cursor: "pointer", fontFamily: "inherit" }}>
+                            style={{ padding: "3px 10px", borderRadius: 999, border: `1.5px solid ${active ? m.color : "var(--border)"}`, background: active ? m.bg : "var(--surface)", color: active ? m.color : "var(--muted-2)", fontSize: 11, fontWeight: active ? 700 : 500, cursor: "pointer", fontFamily: "inherit" }}>
                             {m.label}
                           </button>
                         );
@@ -283,9 +284,10 @@ interface Props {
   members: TourMemberRow[];
   isOwner: boolean;
   onChange: (patch: Record<string, any>) => void;
+  saving?: boolean;
 }
 
-export default function OverviewTab({ tour, members, isOwner, onChange }: Props) {
+export default function OverviewTab({ tour, members, isOwner, onChange, saving = false }: Props) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<Record<string, any>>({});
   const f = (patch: Record<string, any>) => setForm(p => ({ ...p, ...patch }));
@@ -332,41 +334,43 @@ export default function OverviewTab({ tour, members, isOwner, onChange }: Props)
   const rooms = calcRooms(members, tour.room_config ?? { boysPerRoom: 4, girlsPerRoom: 4 });
 
   const stats = [
-    { l: "Students",     v: calc.students.length,   icon: "users", col: "#1a4d5c" },
+    { l: "Students",     v: calc.students.length,   icon: "users", col: "var(--ink)" },
     { l: "Chaperones",   v: calc.chaperones.length,  icon: "users", col: "#0d9488" },
-    { l: "Tour Hosts",   v: calc.hosts.length,        icon: "star",  col: "#92400e" },
+    { l: "Tour Hosts",   v: calc.hosts.length,        icon: "star",  col: "var(--amber-text)" },
     { l: "Buses Needed", v: calc.busesNeeded,         icon: "bus",   col: "#6366f1" },
-    { l: "Hotel Rooms",  v: rooms.totalRooms,         icon: "bed",   col: "#0369a1" },
+    { l: "Hotel Rooms",  v: rooms.totalRooms,         icon: "bed",   col: "var(--sky-text)" },
   ];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {isOwner && <SaveStatusBar saving={saving} note="Notes save as you add them; Trip Details save when you press Save." />}
+
       {/* Timestamped, minimizable notes log */}
       <NotesLog tourId={tour.id} isOwner={isOwner} />
 
       {/* Stat cards */}
       <div className="tour-stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 10 }}>
         {stats.map(s => (
-          <div key={s.l} style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 12, padding: "14px 12px", boxShadow: "0 1px 3px rgba(0,0,0,.04)" }}>
+          <div key={s.l} style={{ background: "var(--surface)", border: "1.5px solid var(--border-soft)", borderRadius: 12, padding: "14px 12px", boxShadow: "0 1px 3px rgba(0,0,0,.04)" }}>
             <I n={s.icon} s={16} c={s.col} />
             <div style={{ fontSize: 20, fontWeight: 700, color: s.col, marginTop: 5 }}>{s.v}</div>
-            <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 1 }}>{s.l}</div>
+            <div style={{ fontSize: 10, color: "var(--muted-2)", marginTop: 1 }}>{s.l}</div>
           </div>
         ))}
       </div>
 
       {/* Trip details card */}
-      <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 14, padding: 20 }}>
+      <div style={{ background: "var(--surface)", border: "1.5px solid var(--border-soft)", borderRadius: 14, padding: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <span style={{ fontSize: 14, fontWeight: 400, color: BRAND.navy, fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.03em" }}>Trip Details</span>
+          <span style={{ fontSize: 14, fontWeight: 400, color: "var(--ink)", fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.03em" }}>Trip Details</span>
           {isOwner && !editing && (
-            <button onClick={startEdit} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "transparent", color: BRAND.navy, border: `1.5px solid ${BRAND.navy}`, borderRadius: 8, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+            <button onClick={startEdit} style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "transparent", color: "var(--ink)", border: `1.5px solid ${"var(--ink)"}`, borderRadius: 8, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
               <I n="edit" s={12} />Edit
             </button>
           )}
           {editing && (
             <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={() => setEditing(false)} style={{ background: "#f1f5f9", color: "#64748b", border: "1.5px solid #e2e8f0", borderRadius: 8, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+              <button onClick={() => setEditing(false)} style={{ background: "var(--surface-3)", color: "var(--muted)", border: "1.5px solid var(--border)", borderRadius: 8, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
               <button onClick={save} style={{ background: BRAND.navy, color: "#fff", border: "none", borderRadius: 8, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Save</button>
             </div>
           )}
@@ -393,17 +397,17 @@ export default function OverviewTab({ tour, members, isOwner, onChange }: Props)
               ["Bus Capacity",     `${tour.bus_capacity ?? 55} seats`],
             ].map(([k, v]) => (
               <div key={String(k)}>
-                <div style={{ fontSize: 10, color: "#94a3b8", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6 }}>{k}</div>
-                <div style={{ color: "#1e293b", marginTop: 1 }}>{v ?? "—"}</div>
+                <div style={{ fontSize: 10, color: "var(--muted-2)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6 }}>{k}</div>
+                <div style={{ color: "var(--text)", marginTop: 1 }}>{v ?? "—"}</div>
               </div>
             ))}
             <div style={{ gridColumn: "span 2" }}>
-              <div style={{ fontSize: 10, color: "#94a3b8", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 4 }}>Activities</div>
-              <div style={{ color: "#1e293b" }}>{tour.activities?.join(", ") || "—"}</div>
+              <div style={{ fontSize: 10, color: "var(--muted-2)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 4 }}>Activities</div>
+              <div style={{ color: "var(--text)" }}>{tour.activities?.join(", ") || "—"}</div>
             </div>
             <div style={{ gridColumn: "span 2" }}>
-              <div style={{ fontSize: 10, color: "#94a3b8", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 4 }}>Notes</div>
-              <div style={{ color: "#1e293b", whiteSpace: "pre-wrap" }}>{tour.notes || "—"}</div>
+              <div style={{ fontSize: 10, color: "var(--muted-2)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 4 }}>Notes</div>
+              <div style={{ color: "var(--text)", whiteSpace: "pre-wrap" }}>{tour.notes || "—"}</div>
             </div>
           </div>
         ) : (
@@ -483,7 +487,7 @@ export default function OverviewTab({ tour, members, isOwner, onChange }: Props)
               />
             </Field>
             <div style={{ display: "flex", gap: 8, width: "100%" }}>
-              <button onClick={() => setEditing(false)} style={{ flex: 1, background: "#f1f5f9", color: "#64748b", border: "1.5px solid #e2e8f0", borderRadius: 8, padding: "9px 0", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
+              <button onClick={() => setEditing(false)} style={{ flex: 1, background: "var(--surface-3)", color: "var(--muted)", border: "1.5px solid var(--border)", borderRadius: 8, padding: "9px 0", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Cancel</button>
               <button onClick={save} style={{ flex: 1, background: BRAND.navy, color: "#fff", border: "none", borderRadius: 8, padding: "9px 0", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Save</button>
             </div>
           </div>

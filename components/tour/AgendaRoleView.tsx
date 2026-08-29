@@ -122,7 +122,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
             <div style={{ background: colors.bg, color: colors.color, borderRadius: 6, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>
               Previewing: {label}
             </div>
-            <span style={{ fontSize: 11, color: "#94a3b8" }}>This is what {label.toLowerCase()}s see on the shared view.</span>
+            <span style={{ fontSize: 11, color: "var(--muted-2)" }}>This is what {label.toLowerCase()}s see on the shared view.</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             {/* Print this persona's copy. Reuses the role-aware print page, scoped
@@ -141,7 +141,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
             )}
             <button
               onClick={onClose}
-              style={{ background: "#f1f5f9", border: "none", borderRadius: 7, padding: "5px 12px", fontSize: 11, fontWeight: 600, color: "#64748b", cursor: "pointer", fontFamily: "inherit" }}
+              style={{ background: "var(--surface-3)", border: "none", borderRadius: 7, padding: "5px 12px", fontSize: 11, fontWeight: 600, color: "var(--muted)", cursor: "pointer", fontFamily: "inherit" }}
             >
               Close Preview
             </button>
@@ -177,12 +177,12 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
           apply to everyone always show. Printing honors the selection. */}
       {tourGroups.length > 0 && !print && (
         <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .6, display: "inline-flex", alignItems: "center", gap: 4 }}><Tag size={11} />Group</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: .6, display: "inline-flex", alignItems: "center", gap: 4 }}><Tag size={11} />Group</span>
           {[{ id: null as string | null, name: "Everyone" }, ...tourGroups].map(g => {
             const on = groupFilter === g.id;
             return (
               <button key={g.id ?? "all"} type="button" onClick={() => setGroupFilter(g.id)}
-                style={{ padding: "5px 12px", borderRadius: 20, border: `1.5px solid ${on ? BRAND.blue : "#e2e8f0"}`, background: on ? BRAND.blue + "18" : "#fff", color: on ? BRAND.blue : "#64748b", fontSize: 12, fontWeight: on ? 700 : 500, cursor: "pointer", fontFamily: "inherit" }}>
+                style={{ padding: "5px 12px", borderRadius: 20, border: `1.5px solid ${on ? BRAND.blue : "var(--border)"}`, background: on ? BRAND.blue + "18" : "var(--surface)", color: on ? BRAND.blue : "var(--muted)", fontSize: 12, fontWeight: on ? 700 : 500, cursor: "pointer", fontFamily: "inherit" }}>
                 {g.name}
               </button>
             );
@@ -190,13 +190,13 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
         </div>
       )}
       {tourGroups.length > 0 && print && groupFilter && (
-        <div style={{ fontSize: 12, fontWeight: 700, color: BRAND.navy, marginBottom: 8 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>
           Group: {tourGroups.find(g => g.id === groupFilter)?.name}
         </div>
       )}
 
       {days.length === 0 && (
-        <div style={{ background: "#f8fafc", border: "2px dashed #e2e8f0", borderRadius: 12, padding: "40px 20px", textAlign: "center", color: "#94a3b8", fontSize: 13 }}>
+        <div style={{ background: "var(--surface-2)", border: "2px dashed var(--border)", borderRadius: 12, padding: "40px 20px", textAlign: "center", color: "var(--muted-2)", fontSize: 13 }}>
           No itinerary days have been added yet.
         </div>
       )}
@@ -212,7 +212,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
           if (items.length === 0) return null; // hide days with nothing visible to this persona
           const collapsed = print ? false : !!collapsedDays[day.id];
           return (
-          <div key={day.id} className={print ? "print-day" : undefined} style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: print ? 8 : 12, overflow: "hidden", boxShadow: print ? "none" : "0 1px 4px rgba(0,0,0,.04)" }}>
+          <div key={day.id} className={print ? "print-day" : undefined} style={{ background: "var(--surface)", border: "1.5px solid var(--border-soft)", borderRadius: print ? 8 : 12, overflow: "hidden", boxShadow: print ? "none" : "0 1px 4px rgba(0,0,0,.04)" }}>
             <div
               onClick={print ? undefined : () => toggleDay(day.id)}
               role="button"
@@ -230,12 +230,12 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
             {!collapsed && (
             <div>
               {items.map((item, idx) => (
-                <div key={item.id} className={print ? "print-item" : undefined} style={{ padding: print ? "6px 14px" : "12px 16px", borderTop: idx > 0 ? "1px solid #f1f5f9" : undefined, breakInside: print ? "avoid" : undefined }}>
+                <div key={item.id} className={print ? "print-item" : undefined} style={{ padding: print ? "6px 14px" : "12px 16px", borderTop: idx > 0 ? "1px solid var(--surface-3)" : undefined, breakInside: print ? "avoid" : undefined }}>
                   <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                     {/* Times: bold, navy like the title, one step larger so they
                         pull the eye first (August 2026 request). */}
                     {(item.time || item.end_time) && (
-                      <span style={{ fontSize: print ? 12 : 13, fontWeight: 700, color: BRAND.navy, minWidth: 60, paddingTop: 3, flexShrink: 0, lineHeight: 1.35 }}>
+                      <span style={{ fontSize: print ? 12 : 13, fontWeight: 700, color: "var(--ink)", minWidth: 60, paddingTop: 3, flexShrink: 0, lineHeight: 1.35 }}>
                         {item.time}
                         {item.end_time && <span style={{ display: "block", fontSize: print ? 11 : 12 }}>– {item.end_time}</span>}
                       </span>
@@ -243,7 +243,10 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                     <TypeDot type={item.type} travelMethod={(item.travel_methods ?? [])[0] ?? null} subtype={(item.activity_subtypes ?? [])[0] ?? null} size={24} flightColor={item.flight_icon_color} busColor={item.bus_icon_color} meetingColor={item.meeting_icon_color} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
-                        <span style={{ fontSize: 14, fontWeight: 700, color: BRAND.navy }}>{item.title}</span>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)" }}>{item.title}</span>
+                        {item.custom_type_label?.trim() && (
+                          <span style={{ fontSize: 10, fontWeight: 700, color: "#8b5cf6", background: "#8b5cf618", borderRadius: 4, padding: "1px 6px" }}>{item.custom_type_label}</span>
+                        )}
                         {/* The leading TypeDot icon conveys the item type; no redundant
                             type/sub-type text tags here. */}
                         {/* Meal money — one chip per entry; "group" shows no dollar figure. */}
@@ -251,7 +254,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                           const amt = typeof mm.amount === "number" ? mm.amount : null;
                           // Every meal chip is the Dining yellow (matches the meal
                           // icon); no per-option colors (August 2026 request).
-                          const style = { color: "#92400e", background: "#fef3c7" };
+                          const style = { color: "var(--amber-text)", background: "var(--amber-bg)" };
                           const label = mm.type === "disney_dining"
                             ? `Disney Dining Dollars${amt != null ? ` $${amt}` : ""}`
                             : mm.type === "cash"
@@ -270,17 +273,17 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                       </div>
 
                       {vis.address && item.address?.trim() && (
-                        <div style={{ fontSize: 12, color: "#475569", marginTop: mt(4) }}>{item.address}</div>
+                        <div style={{ fontSize: 12, color: "var(--text-2)", marginTop: mt(4) }}>{item.address}</div>
                       )}
 
                       {/* whiteSpace: pre-wrap keeps line breaks / bullet lists on
                           their own lines — on screen AND in the print/PDF view. */}
                       {vis.detail && item.detail && (
-                        <div style={{ fontSize: 12, color: "#475569", marginTop: mt(3), whiteSpace: "pre-wrap", lineHeight: 1.5 }}>{item.detail}</div>
+                        <div style={{ fontSize: 12, color: "var(--text-2)", marginTop: mt(3), whiteSpace: "pre-wrap", lineHeight: 1.5 }}>{item.detail}</div>
                       )}
 
                       {item.public_note && (
-                        <div style={{ fontSize: 12, color: "#1d4ed8", background: "#eff6ff", borderRadius: 6, padding: "5px 10px", marginTop: mt(6), whiteSpace: "pre-wrap", lineHeight: 1.5 }}>
+                        <div style={{ fontSize: 12, color: "#1d4ed8", background: "var(--sky-bg-soft)", borderRadius: 6, padding: "5px 10px", marginTop: mt(6), whiteSpace: "pre-wrap", lineHeight: 1.5 }}>
                           {item.public_note}
                         </div>
                       )}
@@ -322,7 +325,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                       )}
 
                       {vis.contactName && item.contact_name && (
-                        <div style={{ fontSize: 12, color: "#475569", marginTop: mt(4) }}>
+                        <div style={{ fontSize: 12, color: "var(--text-2)", marginTop: mt(4) }}>
                           {item.contact_name}
                           {vis.contactPhone && item.contact_phone && ` · ${item.contact_phone}`}
                           {vis.contactEmail && item.contact_email && ` · ${item.contact_email}`}
@@ -331,7 +334,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
 
                       {vis.cost && item.cost > 0 && (
                         <div style={{ fontSize: 12, marginTop: 4, display: "flex", alignItems: "center", gap: 6 }}>
-                          <span style={{ fontWeight: 700, color: "#475569" }}>
+                          <span style={{ fontWeight: 700, color: "var(--text-2)" }}>
                             ${item.cost.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                           </span>
                           {vis.costPaid && (
@@ -343,16 +346,16 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                       )}
 
                       {vis.driverNote && item.driver_note && (
-                        <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8, padding: "8px 12px", marginTop: mt(6) }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, fontWeight: 700, color: "#92400e", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 }}>
+                        <div style={{ background: "var(--amber-bg-soft)", border: "1px solid var(--amber-border)", borderRadius: 8, padding: "8px 12px", marginTop: mt(6) }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, fontWeight: 700, color: "var(--amber-text)", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 }}>
                             <Bus size={12} style={{ flexShrink: 0 }} />Bus Driver Note
                           </div>
-                          <div style={{ fontSize: 12, color: "#92400e", whiteSpace: "pre-wrap", lineHeight: 1.5 }}>{item.driver_note}</div>
+                          <div style={{ fontSize: 12, color: "var(--amber-text)", whiteSpace: "pre-wrap", lineHeight: 1.5 }}>{item.driver_note}</div>
                         </div>
                       )}
 
                       {vis.internalNote && item.internal_note && (
-                        <div style={{ fontSize: 12, color: "#5b21b6", background: "#f5f3ff", borderRadius: 6, padding: "5px 10px", marginTop: mt(6), whiteSpace: "pre-wrap", lineHeight: 1.5 }}>
+                        <div style={{ fontSize: 12, color: "var(--purple-text)", background: "var(--purple-bg-soft)", borderRadius: 6, padding: "5px 10px", marginTop: mt(6), whiteSpace: "pre-wrap", lineHeight: 1.5 }}>
                           Note: {item.internal_note}
                         </div>
                       )}
@@ -361,18 +364,18 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                           gate as driver notes). Shown on screen and in print. */}
                       {vis.driverNote && (item.driver_map_urls?.length ?? 0) > 0 && (
                         <div style={{ marginTop: mt(6) }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, fontWeight: 700, color: "#92400e", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 3 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, fontWeight: 700, color: "var(--amber-text)", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 3 }}>
                             <Bus size={12} style={{ flexShrink: 0 }} />Driver Maps
                           </div>
                           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                             {item.driver_map_urls.map(url => (
                               print ? (
                                 // eslint-disable-next-line @next/next/no-img-element
-                                <img key={url} className="agenda-photo" src={url} alt="Driver map" style={{ width: 150, height: 106, objectFit: "cover", borderRadius: 6, border: "1px solid #fcd34d" }} />
+                                <img key={url} className="agenda-photo" src={url} alt="Driver map" style={{ width: 150, height: 106, objectFit: "cover", borderRadius: 6, border: "1px solid var(--amber-border)" }} />
                               ) : (
                                 <a key={url} href={url} target="_blank" rel="noopener noreferrer" title="Open full size">
                                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                                  <img src={url} alt="Driver map" style={{ width: 110, height: 78, objectFit: "cover", borderRadius: 6, border: "1px solid #fcd34d", display: "block" }} />
+                                  <img src={url} alt="Driver map" style={{ width: 110, height: 78, objectFit: "cover", borderRadius: 6, border: "1px solid var(--amber-border)", display: "block" }} />
                                 </a>
                               )
                             ))}
@@ -398,7 +401,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
         <GeneralFeedback variant="card" tourId={tourId} role={role} done={done} onSubmitted={markGeneralDone} preview={!!embedded} />
       )}
 
-      <div style={{ textAlign: "center", marginTop: print ? 10 : 28, paddingBottom: print ? 6 : 20, fontSize: 11, color: "#94a3b8" }}>
+      <div style={{ textAlign: "center", marginTop: print ? 10 : 28, paddingBottom: print ? 6 : 20, fontSize: 11, color: "var(--muted-2)" }}>
         Powered by Infinity Tours + Events
       </div>
     </div>

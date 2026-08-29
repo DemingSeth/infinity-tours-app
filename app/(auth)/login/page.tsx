@@ -53,13 +53,13 @@ function LoginForm() {
 
   const inp: React.CSSProperties = {
     width: "100%",
-    border: "1.5px solid #e2e8f0",
+    border: "1.5px solid var(--border)",
     borderRadius: 8,
     padding: "10px 14px",
     fontSize: 14,
-    color: "#1e293b",
+    color: "var(--text)",
     fontFamily: "inherit",
-    background: "#fff",
+    background: "var(--surface)",
     outline: "none",
     boxSizing: "border-box",
   };
@@ -67,33 +67,33 @@ function LoginForm() {
   return (
     <div style={{ minHeight: "100vh", background: BRAND.navy, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
       <div style={{ width: "100%", maxWidth: 400 }}>
-        <div style={{ background: "#fff", borderRadius: 16, overflow: "hidden", boxShadow: "0 24px 80px rgba(0,0,0,0.3)" }}>
+        <div style={{ background: "var(--surface)", borderRadius: 16, overflow: "hidden", boxShadow: "0 24px 80px rgba(0,0,0,0.3)" }}>
           {/* Brand header: light background, image logo looks natural here. The
               lockup already includes the "INFINITY / TOURS + EVENTS" wordmark, so
               no separate text block is rendered (it would duplicate the wordmark). */}
-          <div style={{ padding: "28px 32px 22px", textAlign: "center", borderBottom: "1px solid #f1f5f9" }}>
+          <div style={{ padding: "28px 32px 22px", textAlign: "center", borderBottom: "1px solid var(--surface-3)" }}>
             <div style={{ display: "flex", justifyContent: "center" }}>
               <InfinityLogoImg height={56} />
             </div>
           </div>
 
           <div style={{ padding: "28px 32px 32px" }}>
-          <h2 style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", fontSize: 22, fontWeight: 400, color: BRAND.navy, margin: "0 0 24px" }}>
+          <h2 style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", fontSize: 22, fontWeight: 400, color: "var(--ink)", margin: "0 0 24px" }}>
             Sign in
           </h2>
 
           <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {notice && (
               <div style={{
-                background: notice.ok ? "#dcfce7" : "#fef3c7",
-                color: notice.ok ? "#15803d" : "#92400e",
+                background: notice.ok ? "var(--green-bg)" : "var(--amber-bg)",
+                color: notice.ok ? "var(--green-text)" : "var(--amber-text)",
                 borderRadius: 8, padding: "10px 14px", fontSize: 13, lineHeight: 1.5,
               }}>
                 {notice.text}
               </div>
             )}
             <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-              <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.8 }}>Email</label>
+              <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: 0.8 }}>Email</label>
               <input
                 style={inp}
                 type="email"
@@ -106,7 +106,7 @@ function LoginForm() {
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-              <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.8 }}>Password</label>
+              <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: 0.8 }}>Password</label>
               <input
                 style={inp}
                 type="password"
@@ -125,7 +125,7 @@ function LoginForm() {
             </div>
 
             {error && (
-              <div style={{ background: "#fee2e2", color: "#b91c1c", borderRadius: 8, padding: "10px 14px", fontSize: 13 }}>
+              <div style={{ background: "var(--red-bg)", color: "var(--red-text)", borderRadius: 8, padding: "10px 14px", fontSize: 13 }}>
                 {error}
               </div>
             )}

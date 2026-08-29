@@ -38,9 +38,9 @@ export default function BannerLibraryPicker({ tourDestination, currentUrl, onSel
   return (
     <Modal title="Choose Banner Image" onClose={onClose} wide>
       {loading ? (
-        <div style={{ padding: "30px 0", textAlign: "center", color: "#94a3b8", fontSize: 13 }}>Loading library…</div>
+        <div style={{ padding: "30px 0", textAlign: "center", color: "var(--muted-2)", fontSize: 13 }}>Loading library…</div>
       ) : images.length === 0 ? (
-        <div style={{ background: "#f8fafc", border: "2px dashed #e2e8f0", borderRadius: 12, padding: "32px 20px", textAlign: "center", color: "#94a3b8", fontSize: 13 }}>
+        <div style={{ background: "var(--surface-2)", border: "2px dashed var(--border)", borderRadius: 12, padding: "32px 20px", textAlign: "center", color: "var(--muted-2)", fontSize: 13 }}>
           No images in the library yet. An admin (Mike or Greta) can add approved images.
         </div>
       ) : (
@@ -54,7 +54,7 @@ export default function BannerLibraryPicker({ tourDestination, currentUrl, onSel
                 onClick={() => setSelected(img.url)}
                 style={{ background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}
               >
-                <div style={{ position: "relative", width: "100%", aspectRatio: "4 / 3", borderRadius: 10, overflow: "hidden", border: `2px solid ${isSel ? BRAND.blue : "#e2e8f0"}`, background: "#f1f5f9" }}>
+                <div style={{ position: "relative", width: "100%", aspectRatio: "4 / 3", borderRadius: 10, overflow: "hidden", border: `2px solid ${isSel ? BRAND.blue : "var(--border)"}`, background: "var(--surface-3)" }}>
                   <Image src={img.url} alt={img.label} fill sizes="200px" style={{ objectFit: "cover" }} />
                   {matches(img) && (
                     <span style={{ position: "absolute", top: 6, left: 6, background: "rgba(46,196,182,.9)", color: "#fff", fontSize: 9, fontWeight: 700, borderRadius: 5, padding: "2px 6px", textTransform: "uppercase", letterSpacing: 0.4 }}>
@@ -67,8 +67,8 @@ export default function BannerLibraryPicker({ tourDestination, currentUrl, onSel
                     </span>
                   )}
                 </div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: BRAND.navy, marginTop: 6, lineHeight: 1.3 }}>{img.label}</div>
-                {img.destination && <div style={{ fontSize: 10.5, color: "#94a3b8", marginTop: 1 }}>{img.destination}</div>}
+                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", marginTop: 6, lineHeight: 1.3 }}>{img.label}</div>
+                {img.destination && <div style={{ fontSize: 10.5, color: "var(--muted-2)", marginTop: 1 }}>{img.destination}</div>}
               </button>
             );
           })}
@@ -84,7 +84,7 @@ export default function BannerLibraryPicker({ tourDestination, currentUrl, onSel
           <button
             type="button"
             onClick={() => { onSelect(null); onClose(); }}
-            style={{ marginLeft: "auto", background: "none", border: "none", color: "#b91c1c", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "underline" }}
+            style={{ marginLeft: "auto", background: "none", border: "none", color: "var(--red-text)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "underline" }}
           >
             Remove Banner
           </button>

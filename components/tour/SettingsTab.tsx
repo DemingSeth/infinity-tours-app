@@ -8,6 +8,7 @@ import { I, Field, Inp, Btn } from "@/components/tour/ui";
 import FocalPointPicker from "@/components/tour/FocalPointPicker";
 import BannerLibraryPicker from "@/components/tour/BannerLibraryPicker";
 import BannerLibraryManager from "@/components/tour/BannerLibraryManager";
+import SaveStatusBar from "@/components/shared/SaveStatusBar";
 import type { TourRow, TourGroup } from "@/lib/types";
 import { Tag, X, Plus } from "lucide-react";
 
@@ -42,13 +43,13 @@ function GroupsConfig({ tour, isOwner, onTourChange }: {
   }
 
   return (
-    <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 14, padding: 20 }}>
-      <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 15, fontWeight: 400, color: BRAND.navy, marginBottom: 6 }}>Groups (multi-group tours)</div>
-      <p style={{ fontSize: 12, color: "#64748b", margin: "0 0 14px", lineHeight: 1.6 }}>
+    <div style={{ background: "var(--surface)", border: "1.5px solid var(--border-soft)", borderRadius: 14, padding: 20 }}>
+      <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 15, fontWeight: 400, color: "var(--ink)", marginBottom: 6 }}>Groups (multi-group tours)</div>
+      <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 14px", lineHeight: 1.6 }}>
         For tours with several departments traveling together (band, choir, drama, orchestra). Add the groups here, then mark any itinerary item with the group it applies to. Items with no group show for everyone. Viewers get a group filter on the shared itinerary, and Share Links can open to one group.
       </p>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
-        {groups.length === 0 && <span style={{ fontSize: 12, color: "#94a3b8" }}>No groups yet. Single-group tours do not need any.</span>}
+        {groups.length === 0 && <span style={{ fontSize: 12, color: "var(--muted-2)" }}>No groups yet. Single-group tours do not need any.</span>}
         {groups.map(g => (
           <span key={g.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: BRAND.blue + "18", color: BRAND.blue, border: `1.5px solid ${BRAND.blue}55`, borderRadius: 20, padding: "5px 6px 5px 12px", fontSize: 12, fontWeight: 700 }}>
             <Tag size={12} />
@@ -56,7 +57,7 @@ function GroupsConfig({ tour, isOwner, onTourChange }: {
               <input autoFocus value={renameVal} onChange={e => setRenameVal(e.target.value)}
                 onBlur={() => commitRename(g.id)}
                 onKeyDown={e => { if (e.key === "Enter") commitRename(g.id); if (e.key === "Escape") setRenaming(null); }}
-                style={{ border: "none", outline: "none", background: "#fff", borderRadius: 6, padding: "1px 6px", fontSize: 12, fontFamily: "inherit", color: "#1e293b", width: 120 }} />
+                style={{ border: "none", outline: "none", background: "var(--surface)", borderRadius: 6, padding: "1px 6px", fontSize: 12, fontFamily: "inherit", color: "var(--text)", width: 120 }} />
             ) : (
               <span onDoubleClick={() => { if (isOwner) { setRenaming(g.id); setRenameVal(g.name); } }} title={isOwner ? "Double-click to rename" : undefined}>{g.name}</span>
             )}
@@ -113,15 +114,15 @@ function BannerUploader({ tour, isOwner, onTourChange }: {
   }
 
   return (
-    <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 14, padding: 20 }}>
-      <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 15, fontWeight: 400, color: BRAND.navy, marginBottom: 6 }}>Banner Image</div>
-      <p style={{ fontSize: 12, color: "#64748b", margin: "0 0 12px", lineHeight: 1.6 }}>
+    <div style={{ background: "var(--surface)", border: "1.5px solid var(--border-soft)", borderRadius: 14, padding: 20 }}>
+      <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 15, fontWeight: 400, color: "var(--ink)", marginBottom: 6 }}>Banner Image</div>
+      <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 12px", lineHeight: 1.6 }}>
         Choose from the approved image library to show behind the itinerary header. Leave empty for the default navy header.
       </p>
 
       {/* Saved-state preview (header crop at the saved focal point) */}
       {tour.banner_image_url && !adjusting && (
-        <div style={{ position: "relative", width: "100%", height: 130, borderRadius: 10, overflow: "hidden", border: "1px solid #e2e8f0", background: "#f1f5f9", marginBottom: 12 }}>
+        <div style={{ position: "relative", width: "100%", height: 130, borderRadius: 10, overflow: "hidden", border: "1px solid var(--border)", background: "var(--surface-3)", marginBottom: 12 }}>
           <Image src={tour.banner_image_url} alt="Tour banner" fill sizes="(max-width: 720px) 100vw, 680px" style={{ objectFit: "cover", objectPosition: `${focusX}% ${focusY}%` }} />
         </div>
       )}
@@ -129,15 +130,15 @@ function BannerUploader({ tour, isOwner, onTourChange }: {
       {/* Focal point picker */}
       {tour.banner_image_url && adjusting && (
         <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 12, color: "#64748b", marginBottom: 8 }}>
+          <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 8 }}>
             Drag the focal point to the most important part of the photo. The header keeps this point visible when it crops.
           </div>
           <FocalPointPicker imageUrl={tour.banner_image_url} x={draft.x} y={draft.y} onChange={(x, y) => setDraft({ x, y })} />
 
           {/* Live header crop preview */}
           <div style={{ marginTop: 12 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 5 }}>Header preview</div>
-            <div style={{ position: "relative", width: "100%", maxWidth: 360, height: 96, borderRadius: 8, overflow: "hidden", border: "1px solid #e2e8f0", background: "#f1f5f9" }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 5 }}>Header preview</div>
+            <div style={{ position: "relative", width: "100%", maxWidth: 360, height: 96, borderRadius: 8, overflow: "hidden", border: "1px solid var(--border)", background: "var(--surface-3)" }}>
               <Image src={tour.banner_image_url} alt="Header preview" fill sizes="360px" style={{ objectFit: "cover", objectPosition: `${draft.x}% ${draft.y}%` }} />
               <div style={{ position: "absolute", inset: 0, background: BANNER_OVERLAY_GRADIENT }} />
             </div>
@@ -149,11 +150,11 @@ function BannerUploader({ tour, isOwner, onTourChange }: {
             <button
               type="button"
               onClick={() => setDraft({ x: 50, y: 50 })}
-              style={{ background: "none", border: "none", color: "#0369a1", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "underline" }}
+              style={{ background: "none", border: "none", color: "var(--sky-text)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "underline" }}
             >
               Reset to Center
             </button>
-            <span style={{ fontSize: 11, color: "#94a3b8" }}>Focus: {draft.x}% / {draft.y}%</span>
+            <span style={{ fontSize: 11, color: "var(--muted-2)" }}>Focus: {draft.x}% / {draft.y}%</span>
           </div>
         </div>
       )}
@@ -229,16 +230,16 @@ function PersonaConfig({ tour, isOwner, onTourChange, onPersonaAdded }: {
   }
 
   return (
-    <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 14, padding: 20 }}>
-      <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 15, fontWeight: 400, color: BRAND.navy, marginBottom: 6 }}>Participant Personas</div>
-      <p style={{ fontSize: 12, color: "#64748b", margin: "0 0 14px", lineHeight: 1.6 }}>
+    <div style={{ background: "var(--surface)", border: "1.5px solid var(--border-soft)", borderRadius: 14, padding: 20 }}>
+      <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 15, fontWeight: 400, color: "var(--ink)", marginBottom: 6 }}>Participant Personas</div>
+      <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 14px", lineHeight: 1.6 }}>
         Choose which participant types are active for this tour. Active personas control the preview buttons, access codes, and labels shown to travelers. Customize any label (e.g. &ldquo;Choir Member&rdquo;).
       </p>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {PERSONAS.map(p => {
           const on = active.includes(p.key);
           return (
-            <div key={p.key} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", background: on ? "#f8fafc" : "#fff", border: "1px solid #eef2f7", borderRadius: 9 }}>
+            <div key={p.key} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 10px", background: on ? "var(--surface-2)" : "var(--surface)", border: "1px solid var(--border-soft)", borderRadius: 9 }}>
               <input
                 type="checkbox"
                 checked={on}
@@ -248,8 +249,8 @@ function PersonaConfig({ tour, isOwner, onTourChange, onPersonaAdded }: {
                 style={{ accentColor: BRAND.navy, width: 16, height: 16, cursor: p.locked || !isOwner ? "default" : "pointer", flexShrink: 0 }}
               />
               <span style={{ width: 10, height: 10, borderRadius: "50%", background: personaColors(p.key).color, flexShrink: 0 }} title={`${p.default} color`} />
-              <div style={{ width: 92, flexShrink: 0, fontSize: 12.5, fontWeight: 700, color: on ? BRAND.navy : "#94a3b8" }}>
-                {p.default}{p.locked && <span style={{ fontSize: 10, fontWeight: 600, color: "#94a3b8" }}> 🔒</span>}
+              <div style={{ width: 92, flexShrink: 0, fontSize: 12.5, fontWeight: 700, color: on ? "var(--ink)" : "var(--muted-2)" }}>
+                {p.default}{p.locked && <span style={{ fontSize: 10, fontWeight: 600, color: "var(--muted-2)" }}> 🔒</span>}
               </div>
               <Inp
                 value={draft[p.key] ?? ""}
@@ -289,9 +290,11 @@ interface Props {
   currentUserId: string;
   onTourChange: (patch: Record<string, any>) => void;
   onPersonaAdded: (key: string) => void;
+  // True while a tour write is in flight (drives the saved indicator).
+  saving?: boolean;
 }
 
-export default function SettingsTab({ tour, isOwner, viewerIsAdmin, currentUserId, onTourChange, onPersonaAdded }: Props) {
+export default function SettingsTab({ tour, isOwner, viewerIsAdmin, currentUserId, onTourChange, onPersonaAdded, saving = false }: Props) {
   // Read-only view of the fixed per-field defaults (lib/helpers DEFAULT_VISIBILITY).
   const vis = Object.fromEntries(VIS_ROLES.map(r => [r, { ...(DEFAULT_VISIBILITY as any)[r] }])) as Record<string, Record<string, boolean>>;
 
@@ -299,11 +302,13 @@ export default function SettingsTab({ tour, isOwner, viewerIsAdmin, currentUserI
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {isOwner && <SaveStatusBar saving={saving} />}
+
       {/* Manage Banner Library — admin only, above the chooser */}
       {viewerIsAdmin && (
-        <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 14, padding: 20 }}>
-          <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 15, fontWeight: 400, color: BRAND.navy, marginBottom: 6 }}>Manage Banner Library</div>
-          <p style={{ fontSize: 12, color: "#64748b", margin: "0 0 12px", lineHeight: 1.6 }}>
+        <div style={{ background: "var(--surface)", border: "1.5px solid var(--border-soft)", borderRadius: 14, padding: 20 }}>
+          <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 15, fontWeight: 400, color: "var(--ink)", marginBottom: 6 }}>Manage Banner Library</div>
+          <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 12px", lineHeight: 1.6 }}>
             Approved images that all tour hosts can choose from. Admin only.
           </p>
           <BannerLibraryManager currentHostId={currentUserId} />
@@ -320,9 +325,9 @@ export default function SettingsTab({ tour, isOwner, viewerIsAdmin, currentUserI
       <GroupsConfig tour={tour} isOwner={isOwner} onTourChange={onTourChange} />
 
       {/* Confirmation links: tour host only by default, optionally the teacher view */}
-      <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 14, padding: 20 }}>
-        <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 15, fontWeight: 400, color: BRAND.navy, marginBottom: 12 }}>Confirmations</div>
-        <p style={{ fontSize: 12, color: "#64748b", margin: "0 0 12px", lineHeight: 1.6 }}>
+      <div style={{ background: "var(--surface)", border: "1.5px solid var(--border-soft)", borderRadius: 14, padding: 20 }}>
+        <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 15, fontWeight: 400, color: "var(--ink)", marginBottom: 12 }}>Confirmations</div>
+        <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 12px", lineHeight: 1.6 }}>
           Flight, hotel and bus confirmation links in Trip Information are shown to the Tour Host only. Students, chaperones and bus drivers never see them.
         </p>
         <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: isOwner ? "pointer" : "default" }}>
@@ -334,8 +339,8 @@ export default function SettingsTab({ tour, isOwner, viewerIsAdmin, currentUserI
             style={{ accentColor: BRAND.navy, width: 16, height: 16, marginTop: 1, cursor: isOwner ? "pointer" : "default", flexShrink: 0 }}
           />
           <span>
-            <span style={{ fontSize: 13, fontWeight: 600, color: "#1e293b" }}>Also show confirmation links on the Teacher view</span>
-            <span style={{ display: "block", fontSize: 12, color: "#64748b", marginTop: 2 }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>Also show confirmation links on the Teacher view</span>
+            <span style={{ display: "block", fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
               Off by default. Turn on when the teacher or director should be able to open the booking confirmations.
             </span>
           </span>
@@ -343,8 +348,8 @@ export default function SettingsTab({ tour, isOwner, viewerIsAdmin, currentUserI
       </div>
 
       {/* Room & Bus Configuration */}
-      <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 14, padding: 20 }}>
-        <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 15, fontWeight: 400, color: BRAND.navy, marginBottom: 12 }}>Room &amp; Bus Configuration</div>
+      <div style={{ background: "var(--surface)", border: "1.5px solid var(--border-soft)", borderRadius: 14, padding: 20 }}>
+        <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 15, fontWeight: 400, color: "var(--ink)", marginBottom: 12 }}>Room &amp; Bus Configuration</div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
           <Field label="Boys per Room" third>
             <Inp type="number" min={1} value={roomConfig.boysPerRoom}
@@ -367,14 +372,14 @@ export default function SettingsTab({ tour, isOwner, viewerIsAdmin, currentUserI
               disabled={!isOwner} />
           </Field>
         </div>
-        <div style={{ marginTop: 12, padding: "10px 14px", background: "#f8fafc", borderRadius: 8, fontSize: 12, color: "#64748b" }}>
+        <div style={{ marginTop: 12, padding: "10px 14px", background: "var(--surface-2)", borderRadius: 8, fontSize: 12, color: "var(--muted)" }}>
           Bus count includes all travelers except drivers. Room count uses student gender data. Changes here update immediately.
         </div>
       </div>
 
       {/* Feedback */}
-      <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 14, padding: 20 }}>
-        <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 15, fontWeight: 400, color: BRAND.navy, marginBottom: 12 }}>Feedback</div>
+      <div style={{ background: "var(--surface)", border: "1.5px solid var(--border-soft)", borderRadius: 14, padding: 20 }}>
+        <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 15, fontWeight: 400, color: "var(--ink)", marginBottom: 12 }}>Feedback</div>
         <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: isOwner ? "pointer" : "default" }}>
           <input
             type="checkbox"
@@ -384,8 +389,8 @@ export default function SettingsTab({ tour, isOwner, viewerIsAdmin, currentUserI
             style={{ accentColor: BRAND.navy, width: 16, height: 16, marginTop: 1, cursor: isOwner ? "pointer" : "default", flexShrink: 0 }}
           />
           <span>
-            <span style={{ fontSize: 13, fontWeight: 600, color: "#1e293b" }}>Collect end-of-tour feedback</span>
-            <span style={{ display: "block", fontSize: 12, color: "#64748b", marginTop: 2 }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>Collect end-of-tour feedback</span>
+            <span style={{ display: "block", fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
               Invites students &amp; guests to rate the overall tour — a card at the bottom of the itinerary, plus a prominent banner on the final day.
             </span>
           </span>
@@ -393,19 +398,19 @@ export default function SettingsTab({ tour, isOwner, viewerIsAdmin, currentUserI
       </div>
 
       {/* Itinerary Visibility Matrix */}
-      <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 14, padding: 20 }}>
-        <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 15, fontWeight: 400, color: BRAND.navy, marginBottom: 6 }}>What Each Role Sees on an Item</div>
-        <p style={{ fontSize: 12, color: "#64748b", margin: "0 0 12px", lineHeight: 1.6 }}>
+      <div style={{ background: "var(--surface)", border: "1.5px solid var(--border-soft)", borderRadius: 14, padding: 20 }}>
+        <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 15, fontWeight: 400, color: "var(--ink)", marginBottom: 6 }}>What Each Role Sees on an Item</div>
+        <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 12px", lineHeight: 1.6 }}>
           Reference only: which details each role sees on an itinerary item. Tour Hosts always see everything. To show or hide a whole item for a role, use the &ldquo;Who sees this item&rdquo; chips on that item; to set a whole day at once, use the eye button on the day header.
         </p>
-        <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: "9px 14px", marginBottom: 14, fontSize: 12, color: "#0c4a6e" }}>
+        <div style={{ background: "var(--sky-bg-soft)", border: "1px solid var(--sky-border)", borderRadius: 8, padding: "9px 14px", marginBottom: 14, fontSize: 12, color: "var(--sky-text)" }}>
           <strong>Always visible to all roles:</strong> Item title, time, type, travel method, Public Notes, meal payment info, Google Maps link, and Website link.
         </div>
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
             <thead>
-              <tr style={{ borderBottom: "2px solid #f1f5f9" }}>
-                <th style={{ textAlign: "left", padding: "8px 12px", fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .6 }}>Field</th>
+              <tr style={{ borderBottom: "2px solid var(--surface-3)" }}>
+                <th style={{ textAlign: "left", padding: "8px 12px", fontSize: 11, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: .6 }}>Field</th>
                 {VIS_ROLES.map(r => (
                   <th key={r} style={{ textAlign: "center", padding: "8px 12px", fontSize: 11, fontWeight: 700, color: ROLES_TYPED[r].color, textTransform: "uppercase", letterSpacing: .6 }}>
                     {ROLES_TYPED[r].label}
@@ -415,8 +420,8 @@ export default function SettingsTab({ tour, isOwner, viewerIsAdmin, currentUserI
             </thead>
             <tbody>
               {VIS_FIELDS.map((f, i) => (
-                <tr key={f.key} style={{ borderBottom: "1px solid #f8fafc", background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
-                  <td style={{ padding: "9px 12px", fontWeight: 500, color: "#1e293b" }}>{f.label}</td>
+                <tr key={f.key} style={{ borderBottom: "1px solid var(--surface-2)", background: i % 2 === 0 ? "var(--surface)" : "var(--surface-2)" }}>
+                  <td style={{ padding: "9px 12px", fontWeight: 500, color: "var(--text)" }}>{f.label}</td>
                   {VIS_ROLES.map(r => (
                     <td key={r} style={{ textAlign: "center", padding: "9px 12px" }}>
                       <input
@@ -434,7 +439,7 @@ export default function SettingsTab({ tour, isOwner, viewerIsAdmin, currentUserI
             </tbody>
           </table>
         </div>
-        <div style={{ marginTop: 12, fontSize: 11, color: "#94a3b8" }}>
+        <div style={{ marginTop: 12, fontSize: 11, color: "var(--muted-2)" }}>
           These per-field rules are the same on every tour for now. Changing them per tour is a planned update.
         </div>
       </div>

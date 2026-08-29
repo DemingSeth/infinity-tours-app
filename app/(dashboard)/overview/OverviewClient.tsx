@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Settings, Image as ImageIcon } from "lucide-react";
-import { BRAND } from "@/lib/helpers";
 import { createClient } from "@/lib/supabase/client";
 import { Modal, Btn } from "@/components/tour/ui";
 import BannerLibraryManager from "@/components/tour/BannerLibraryManager";
@@ -31,14 +30,14 @@ function BannerLibraryCard({ currentHostId }: { currentHostId: string }) {
 
   return (
     <>
-      <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 14, padding: "16px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+      <div style={{ background: "var(--surface)", border: "1.5px solid var(--border-soft)", borderRadius: 14, padding: "16px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 10, background: "#eef2f7", display: "flex", alignItems: "center", justifyContent: "center", color: BRAND.navy, flexShrink: 0 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: "var(--border-soft)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ink)", flexShrink: 0 }}>
             <ImageIcon size={20} />
           </div>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 400, color: BRAND.navy, fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.03em" }}>Banner Library</div>
-            <div style={{ fontSize: 12, color: "#64748b" }}>
+            <div style={{ fontSize: 14, fontWeight: 400, color: "var(--ink)", fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.03em" }}>Banner Library</div>
+            <div style={{ fontSize: 12, color: "var(--muted)" }}>
               {count === null ? "Loading…" : `${count} approved image${count !== 1 ? "s" : ""}`} · Admin
             </div>
           </div>
@@ -72,10 +71,10 @@ export default function OverviewClient({ tours, currentHostId, viewerRole }: Pro
     <div data-viewer-role={viewerRole} style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       <header style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
         <div>
-          <h2 style={{ fontSize: 26, fontWeight: 400, color: BRAND.navy, fontFamily: "'Fjalla One', Georgia, sans-serif", margin: 0, letterSpacing: -0.5 }}>
+          <h2 style={{ fontSize: 26, fontWeight: 400, color: "var(--ink)", fontFamily: "'Fjalla One', Georgia, sans-serif", margin: 0, letterSpacing: -0.5 }}>
             Infinity Tours Dashboard
           </h2>
-          <p style={{ color: "#64748b", fontSize: 13, marginTop: 4, marginBottom: 0 }}>
+          <p style={{ color: "var(--muted)", fontSize: 13, marginTop: 4, marginBottom: 0 }}>
             All tours across Infinity Tours · <strong>{tours.length}</strong> total
           </p>
         </div>
@@ -84,7 +83,7 @@ export default function OverviewClient({ tours, currentHostId, viewerRole }: Pro
             onClick={() => setShowSettings(true)}
             title="Visibility settings"
             aria-label="Visibility settings"
-            style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: 9, border: "1.5px solid #e2e8f0", background: "#fff", color: "#64748b", cursor: "pointer" }}
+            style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: 9, border: "1.5px solid var(--border)", background: "var(--surface)", color: "var(--muted)", cursor: "pointer" }}
           >
             <Settings size={17} />
           </button>

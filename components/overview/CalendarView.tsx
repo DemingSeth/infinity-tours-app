@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, ExternalLink, CalendarDays } from "lucide-react";
+import { ChevronLeft, ChevronRight, ExternalLink, CalendarDays } from "lucide-react";
 import {
   BRAND, STATUSES, getStatus, buildHostColorMap, initialsFrom, hostNameOf,
   parseISODate, startOfDay, sameDay, tourDateLabel, MONTH_NAMES, WEEKDAY_LABELS,
@@ -104,7 +104,7 @@ export default function CalendarView({ tours, onOpenTour }: {
     scheduled.filter(s => s.start <= day && s.end >= day).map(s => s.tour);
 
   return (
-    <section style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 14, overflow: "hidden" }}>
+    <section style={{ background: "var(--surface)", border: "1.5px solid var(--border-soft)", borderRadius: 14, overflow: "hidden" }}>
       {/* Section header: click anywhere on the row to expand or collapse
           (August 2026 request). The month controls and mode toggle stop the
           click from bubbling so they keep working on their own. */}
@@ -114,31 +114,24 @@ export default function CalendarView({ tours, onOpenTour }: {
         aria-expanded={!collapsed}
         onClick={toggleCollapsed}
         onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleCollapsed(); } }}
-        style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 18px", borderBottom: collapsed ? "none" : "1px solid #f1f5f9", flexWrap: "wrap", cursor: "pointer", userSelect: "none" }}
+        style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 18px", borderBottom: collapsed ? "none" : "1px solid var(--surface-3)", flexWrap: "wrap", cursor: "pointer", userSelect: "none" }}
       >
-        <CalendarDays size={18} color="#64748b" />
-        <span style={{ fontSize: 16, fontWeight: 400, color: BRAND.navy, fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.03em" }}>
+        <CalendarDays size={18} style={{ color: "var(--muted)" }} />
+        <span style={{ fontSize: 16, fontWeight: 400, color: "var(--ink)", fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.03em" }}>
           Calendar
-        </span>
-
-        <span
-          aria-hidden
-          style={{ ...navBtn, width: 26, height: 26, color: "#64748b" }}
-        >
-          {collapsed ? <ChevronDown size={15} /> : <ChevronUp size={15} />}
         </span>
 
         <div style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: 10 }} onClick={e => e.stopPropagation()}>
           <button onClick={goPrev} aria-label="Previous month" style={navBtn}><ChevronLeft size={16} /></button>
-          <span style={{ fontSize: 13.5, fontWeight: 700, color: BRAND.navy, minWidth: 132, textAlign: "center" }}>
+          <span style={{ fontSize: 13.5, fontWeight: 700, color: "var(--ink)", minWidth: 132, textAlign: "center" }}>
             {MONTH_NAMES[month]} {cursor.getFullYear()}
           </span>
           <button onClick={goNext} aria-label="Next month" style={navBtn}><ChevronRight size={16} /></button>
-          <button onClick={goToday} style={{ ...navBtn, width: "auto", padding: "0 10px", fontSize: 11, fontWeight: 600, color: "#64748b" }}>Today</button>
+          <button onClick={goToday} style={{ ...navBtn, width: "auto", padding: "0 10px", fontSize: 11, fontWeight: 600, color: "var(--muted)" }}>Today</button>
         </div>
 
         {/* Mode toggle */}
-        <div style={{ marginLeft: "auto", display: "flex", gap: 1, background: "#f1f5f9", borderRadius: 8, padding: 3 }} onClick={e => e.stopPropagation()}>
+        <div style={{ marginLeft: "auto", display: "flex", gap: 1, background: "var(--surface-3)", borderRadius: 8, padding: 3 }} onClick={e => e.stopPropagation()}>
           {([{ value: "status", label: "By Status" }, { value: "host", label: "By Host" }] as const).map(opt => (
             <button
               key={opt.value}
@@ -146,8 +139,8 @@ export default function CalendarView({ tours, onOpenTour }: {
               style={{
                 padding: "5px 12px", borderRadius: 6, border: "none", cursor: "pointer",
                 fontSize: 12, fontWeight: 600, fontFamily: "inherit",
-                background: mode === opt.value ? "#fff" : "transparent",
-                color: mode === opt.value ? BRAND.navy : "#94a3b8",
+                background: mode === opt.value ? "var(--surface)" : "transparent",
+                color: mode === opt.value ? "var(--ink)" : "var(--muted-2)",
                 boxShadow: mode === opt.value ? "0 1px 3px rgba(0,0,0,.08)" : "none",
               }}
             >
@@ -160,7 +153,7 @@ export default function CalendarView({ tours, onOpenTour }: {
       {!collapsed && (
         <>
         {/* Legend */}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, padding: "9px 18px", borderBottom: "1px solid #f1f5f9", background: "#fbfcfe" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, padding: "9px 18px", borderBottom: "1px solid var(--surface-3)", background: "var(--surface-2)" }}>
           {mode === "status"
             ? STATUSES.map(s => <LegendDot key={s.id} color={s.dot} label={s.label} />)
             : (() => {
@@ -172,14 +165,14 @@ export default function CalendarView({ tours, onOpenTour }: {
                 const entries = Array.from(seen.entries());
                 return entries.length
                   ? entries.map(([id, name]) => <LegendDot key={id} color={hostColorMap[id] ?? "#94a3b8"} label={name} />)
-                  : <span style={{ fontSize: 11, color: "#94a3b8" }}>No scheduled tours</span>;
+                  : <span style={{ fontSize: 11, color: "var(--muted-2)" }}>No scheduled tours</span>;
               })()}
         </div>
 
         {/* Weekday header */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", borderBottom: "1px solid #eef2f7" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", borderBottom: "1px solid var(--border-soft)" }}>
           {WEEKDAY_LABELS.map(d => (
-            <div key={d} style={{ padding: "6px 8px", fontSize: 10.5, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6, textAlign: "left" }}>
+            <div key={d} style={{ padding: "6px 8px", fontSize: 10.5, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: 0.6, textAlign: "left" }}>
               {d}
             </div>
           ))}
@@ -220,19 +213,19 @@ export default function CalendarView({ tours, onOpenTour }: {
             });
 
             return (
-              <div key={wi} style={{ position: "relative", height: WEEK_H, borderBottom: wi === weeks.length - 1 ? "none" : "1px solid #eef2f7" }}>
+              <div key={wi} style={{ position: "relative", height: WEEK_H, borderBottom: wi === weeks.length - 1 ? "none" : "1px solid var(--border-soft)" }}>
                 {/* Day cells (background + date numbers) */}
                 <div style={{ position: "absolute", inset: 0, display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}>
                   {days.map((day, di) => {
                     const inMonth = day.getMonth() === month;
                     const isToday = sameDay(day, today);
                     return (
-                      <div key={di} style={{ borderLeft: di === 0 ? "none" : "1px solid #f3f6fa", background: inMonth ? "#fff" : "#fbfcfe", padding: 5 }}>
+                      <div key={di} style={{ borderLeft: di === 0 ? "none" : "1px solid var(--border-soft)", background: inMonth ? "var(--surface)" : "var(--surface-2)", padding: 5 }}>
                         <span style={{
                           display: "inline-flex", alignItems: "center", justifyContent: "center",
                           minWidth: 18, height: 18, borderRadius: "50%", fontSize: 11,
                           fontWeight: isToday ? 700 : 500,
-                          color: isToday ? "#fff" : inMonth ? "#475569" : "#cbd5e1",
+                          color: isToday ? "#fff" : inMonth ? "var(--text-2)" : "var(--muted-3)",
                           background: isToday ? BRAND.blue : "transparent",
                         }}>
                           {day.getDate()}
@@ -259,7 +252,7 @@ export default function CalendarView({ tours, onOpenTour }: {
                         width: `calc(${((endCol - startCol + 1) / 7) * 100}% - 8px)`,
                         top: HEADER_H + lane * (LANE_H + LANE_GAP),
                         height: LANE_H,
-                        background: single ? "#fff" : color,
+                        background: single ? "var(--surface)" : color,
                         border: single ? `1.5px solid ${color}` : "none",
                         color: single ? color : "#fff",
                         borderTopLeftRadius: continuesLeft ? 0 : 5,
@@ -290,7 +283,7 @@ export default function CalendarView({ tours, onOpenTour }: {
                       top: HEADER_H + MAX_LANES * (LANE_H + LANE_GAP),
                       height: OVERFLOW_H - 2,
                       background: "transparent", border: "none", cursor: "pointer",
-                      fontSize: 10, fontWeight: 700, color: "#64748b", fontFamily: "inherit",
+                      fontSize: 10, fontWeight: 700, color: "var(--muted)", fontFamily: "inherit",
                       textAlign: "left", padding: "0 6px",
                     }}
                   >
@@ -303,7 +296,7 @@ export default function CalendarView({ tours, onOpenTour }: {
         </div>
 
         {unscheduledCount > 0 && (
-          <div style={{ padding: "9px 18px", borderTop: "1px solid #f1f5f9", fontSize: 11, color: "#94a3b8", background: "#fbfcfe" }}>
+          <div style={{ padding: "9px 18px", borderTop: "1px solid var(--surface-3)", fontSize: 11, color: "var(--muted-2)", background: "var(--surface-2)" }}>
             {unscheduledCount} tour{unscheduledCount !== 1 ? "s" : ""} without dates not shown on the calendar.
           </div>
         )}
@@ -334,7 +327,7 @@ function PopoverCard({ popover, colorFor, onOpenTour, onClose }: {
       <div
         style={{
           position: "fixed", left: Math.max(12, left), top: Math.max(12, top), width: W, zIndex: 901,
-          background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12,
+          background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12,
           boxShadow: "0 12px 40px rgba(0,0,0,.18)", padding: 14,
         }}
       >
@@ -342,7 +335,7 @@ function PopoverCard({ popover, colorFor, onOpenTour, onClose }: {
           <TourPopoverBody tour={popover.tour} onOpenTour={onOpenTour} />
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: BRAND.navy }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)" }}>
               {popover.date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 260, overflowY: "auto" }}>
@@ -350,12 +343,12 @@ function PopoverCard({ popover, colorFor, onOpenTour, onClose }: {
                 <button
                   key={t.id}
                   onClick={() => onOpenTour(t.id)}
-                  style={{ display: "flex", alignItems: "center", gap: 8, background: "#f8fafc", border: "1px solid #eef2f7", borderRadius: 8, padding: "7px 9px", cursor: "pointer", fontFamily: "inherit", textAlign: "left", width: "100%" }}
+                  style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--surface-2)", border: "1px solid var(--border-soft)", borderRadius: 8, padding: "7px 9px", cursor: "pointer", fontFamily: "inherit", textAlign: "left", width: "100%" }}
                 >
                   <span style={{ width: 8, height: 8, borderRadius: "50%", background: colorFor(t), flexShrink: 0 }} />
                   <span style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ display: "block", fontSize: 12, fontWeight: 700, color: BRAND.navy, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.name}</span>
-                    <span style={{ display: "block", fontSize: 10.5, color: "#94a3b8", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.school}</span>
+                    <span style={{ display: "block", fontSize: 12, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.name}</span>
+                    <span style={{ display: "block", fontSize: 10.5, color: "var(--muted-2)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.school}</span>
                   </span>
                 </button>
               ))}
@@ -372,17 +365,17 @@ function TourPopoverBody({ tour, onOpenTour }: { tour: TourWithHostAndMembers; o
   const initials = tour.tour_hosts?.initials || initialsFrom(hostName === "Unassigned" ? null : hostName);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-      <div style={{ fontSize: 14, fontWeight: 400, color: BRAND.navy, fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.03em", lineHeight: 1.25 }}>
+      <div style={{ fontSize: 14, fontWeight: 400, color: "var(--ink)", fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.03em", lineHeight: 1.25 }}>
         {tour.name}
       </div>
-      <div style={{ fontSize: 12, color: "#64748b" }}>{tour.school}</div>
+      <div style={{ fontSize: 12, color: "var(--muted)" }}>{tour.school}</div>
       <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
         <span style={{ width: 20, height: 20, borderRadius: "50%", background: BRAND.blue, color: "#fff", fontSize: 9, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>
           {initials}
         </span>
-        <span style={{ fontSize: 12, color: "#475569" }}>{hostName}</span>
+        <span style={{ fontSize: 12, color: "var(--text-2)" }}>{hostName}</span>
       </div>
-      <div style={{ fontSize: 12, color: "#475569" }}>{tourDateLabel(tour.dates, tour.start_date, tour.end_date)}</div>
+      <div style={{ fontSize: 12, color: "var(--text-2)" }}>{tourDateLabel(tour.dates, tour.start_date, tour.end_date)}</div>
       <div><StatusPill status={tour.status} /></div>
       <button
         onClick={() => onOpenTour(tour.id)}
@@ -396,7 +389,7 @@ function TourPopoverBody({ tour, onOpenTour }: { tour: TourWithHostAndMembers; o
 
 function LegendDot({ color, label }: { color: string; label: string }) {
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, color: "#64748b" }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, color: "var(--muted)" }}>
       <span style={{ width: 9, height: 9, borderRadius: 3, background: color }} />
       {label}
     </span>
@@ -405,6 +398,6 @@ function LegendDot({ color, label }: { color: string; label: string }) {
 
 const navBtn: React.CSSProperties = {
   display: "inline-flex", alignItems: "center", justifyContent: "center",
-  width: 28, height: 28, borderRadius: 7, border: "1px solid #e2e8f0",
-  background: "#fff", color: "#475569", cursor: "pointer",
+  width: 28, height: 28, borderRadius: 7, border: "1px solid var(--border)",
+  background: "var(--surface)", color: "var(--text-2)", cursor: "pointer",
 };

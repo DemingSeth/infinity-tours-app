@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useRef, useState } from "react";
-import { ChevronDown, ChevronRight, Pencil, Paperclip, Upload, X, Link as LinkIcon, Plus, ImagePlus, Map, ArrowUp, ArrowDown } from "lucide-react";
+import { ChevronDown, ChevronRight, Pencil, Paperclip, Upload, X, Link as LinkIcon, Plus, ImagePlus, Map, ArrowUp, ArrowDown, GripVertical } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { BRAND, formatFullDate, showTripSection, customRowVisibleTo, activePersonaKeys, personaLabel } from "@/lib/helpers";
 import type { TripInfo, Role, PersonnelRow } from "@/lib/types";
@@ -36,11 +36,26 @@ type TripForm = {
   returnOverride: string;
   // Host-named extra rows (text or link).
   customRows: CustomRowForm[];
+  // Row order being edited (row keys). Empty = default order.
+  rowOrder: string[];
 };
+
+// Order rows by a saved key list: listed keys first in that order, then any
+// row the list does not know in its default position (relative to each other).
+function orderRows<T extends { key: string }>(rows: T[], order: string[]): T[] {
+  if (!order.length) return rows;
+  // (Plain object, not Map: this file imports lucide's Map icon.)
+  const byKey: Record<string, T> = {};
+  for (const r of rows) byKey[r.key] = r;
+  const out: T[] = [];
+  for (const k of order) { const r = byKey[k]; if (r) { out.push(r); delete byKey[k]; } }
+  for (const r of rows) if (byKey[r.key]) { out.push(r); delete byKey[r.key]; }
+  return out;
+}
 
 const confBoxStyle: React.CSSProperties = {
   marginTop: 8, display: "flex", alignItems: "center", gap: 8,
-  border: "1px dashed #d8dee9", borderRadius: 8, padding: "7px 10px", background: "#fafbff", fontSize: 12,
+  border: "1px dashed #d8dee9", borderRadius: 8, padding: "7px 10px", background: "var(--surface-2)", fontSize: 12,
 };
 const confBtnStyle: React.CSSProperties = {
   display: "inline-flex", alignItems: "center", gap: 4, borderRadius: 6, padding: "3px 9px",
@@ -54,12 +69,12 @@ const HOTLINE_TEL = "8014778963";
 const INFINITY_BLUE = "#0B1957";
 const INFINITY_BLUE_DEEP = "#5784E6";
 
-const linkStyle: React.CSSProperties = { color: "#0369a1", textDecoration: "none", fontWeight: 600 };
+const linkStyle: React.CSSProperties = { color: "var(--sky-text)", textDecoration: "none", fontWeight: 600 };
 const dash = (v: string | null | undefined) => (v && v.trim() ? v : "—");
 const telHref = (phone: string) => `tel:${phone.replace(/[^\d]/g, "")}`;
 
 const inputStyle: React.CSSProperties = {
-  width: "100%", padding: "6px 8px", fontSize: 13, border: "1px solid #cbd5e1",
+  width: "100%", padding: "6px 8px", fontSize: 13, border: "1px solid var(--border-strong)",
   borderRadius: 6, fontFamily: "inherit", boxSizing: "border-box",
 };
 const textareaStyle: React.CSSProperties = {
@@ -70,9 +85,9 @@ const linkBtnStyle: React.CSSProperties = {
   cursor: "pointer", fontSize: 12, fontFamily: "inherit",
 };
 const smallAddBtn: React.CSSProperties = {
-  display: "inline-flex", alignItems: "center", gap: 4, background: "#f1f5f9",
-  border: "1px solid #e2e8f0", borderRadius: 6, padding: "4px 10px", fontSize: 11,
-  fontWeight: 600, color: "#475569", cursor: "pointer", fontFamily: "inherit", alignSelf: "flex-start",
+  display: "inline-flex", alignItems: "center", gap: 4, background: "var(--surface-3)",
+  border: "1px solid var(--border)", borderRadius: 6, padding: "4px 10px", fontSize: 11,
+  fontWeight: 600, color: "var(--text-2)", cursor: "pointer", fontFamily: "inherit", alignSelf: "flex-start",
 };
 
 // Ensure http(s) prefix so hrefs never resolve relative to the app.
@@ -145,10 +160,10 @@ function PersonListEditor({ people, onChange, namePlaceholder, contactPlaceholde
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       {rows.map((p, i) => (
-        <div key={i} style={{ display: "flex", flexDirection: "column", gap: 5, background: "#fafbff", border: "1px solid #eef2f7", borderRadius: 8, padding: 8 }}>
+        <div key={i} style={{ display: "flex", flexDirection: "column", gap: 5, background: "var(--surface-2)", border: "1px solid var(--border-soft)", borderRadius: 8, padding: 8 }}>
           {hasDropdown && (
             <select value="" onChange={e => pick(i, e.target.value)}
-              style={{ ...inputStyle, fontSize: 12, color: "#475569", cursor: "pointer" }}>
+              style={{ ...inputStyle, fontSize: 12, color: "var(--text-2)", cursor: "pointer" }}>
               <option value="">＋ Select existing…</option>
               {personnel.length > 0 && (
                 <optgroup label="Infinity staff">
@@ -168,7 +183,7 @@ function PersonListEditor({ people, onChange, namePlaceholder, contactPlaceholde
             <input style={{ ...inputStyle, flex: 1 }} value={p.contact} placeholder={contactPlaceholder}
               onChange={e => set(i, { contact: e.target.value })} />
             <button type="button" title="Remove" onClick={() => onChange(rows.filter((_, idx) => idx !== i))}
-              style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 2, display: "flex", flexShrink: 0 }}>
+              style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted-2)", padding: 2, display: "flex", flexShrink: 0 }}>
               <X size={13} />
             </button>
           </div>
@@ -188,8 +203,11 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<TripForm>({
     teachers: [], hosts: [], consultants: [], busCapacity: "", participantsOverride: "",
-    flightOverride: "", hotelOverride: "", busOverride: "", departureOverride: "", returnOverride: "", customRows: [],
+    flightOverride: "", hotelOverride: "", busOverride: "", departureOverride: "", returnOverride: "", customRows: [], rowOrder: [],
   });
+  // Drag-to-reorder rows (edit mode): the key being dragged + the key under it.
+  const [dragKey, setDragKey] = useState<string | null>(null);
+  const [dragOverKey, setDragOverKey] = useState<string | null>(null);
   // Personas that a custom row can be limited to (everyone but the tour host,
   // who always sees every row).
   const rowPersonas = activePersonaKeys(info.activePersonas).filter(k => k !== "tour_host");
@@ -224,6 +242,7 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
       departureOverride: info.overrides?.departure ?? "",
       returnOverride: info.overrides?.return ?? "",
       customRows: (info.customRows ?? []).map(r => ({ id: r.id, label: r.label ?? "", value: r.value ?? "", url: r.url ?? "", visibility: { ...(r.visibility ?? {}) } })),
+      rowOrder: [...(info.rowOrder ?? [])],
     });
     setOpen(true);
     setEditing(true);
@@ -241,7 +260,11 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
       const consultants = form.consultants
         .map(c => ({ name: c.name.trim(), contact: c.contact.trim() || null, id: c.id ?? null }))
         .filter(c => c.name || c.contact);
-      const customRows = form.customRows
+      // Final order = the rows as currently shown; custom rows follow it too.
+      const finalOrder = orderRows(rows, form.rowOrder).map(r => r.key).filter(k => k !== "add_custom");
+      const customRank = (id: string) => { const i = finalOrder.indexOf(`custom:${id}`); return i === -1 ? Number.MAX_SAFE_INTEGER : i; };
+      const customRows = [...form.customRows]
+        .sort((a, b) => customRank(a.id) - customRank(b.id))
         .map(r => {
           // Drop false entries; an empty map means "everyone".
           const visibility = Object.fromEntries(Object.entries(r.visibility ?? {}).filter(([, v]) => v));
@@ -268,6 +291,7 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
             return: form.returnOverride.trim() || null,
           },
           custom_trip_rows: customRows,
+          trip_info_row_order: finalOrder,
         }),
         // NOTE: the logged-in user's tour_hosts profile phone is deliberately NOT
         // written here anymore. Host phones now live per-tour in tour_hosts_list;
@@ -421,22 +445,22 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
       if (!c) return null;
       return (
         <a href={c.file_url} target="_blank" rel="noreferrer"
-          style={{ marginTop: 6, display: "inline-flex", alignItems: "center", gap: 6, color: "#0369a1", fontWeight: 600, fontSize: 12, textDecoration: "none" }}>
+          style={{ marginTop: 6, display: "inline-flex", alignItems: "center", gap: 6, color: "var(--sky-text)", fontWeight: 600, fontSize: 12, textDecoration: "none" }}>
           {isExternal ? <LinkIcon size={13} /> : <Paperclip size={13} />} View {label}
         </a>
       );
     }
     return (
       <div style={confBoxStyle}>
-        {isExternal ? <LinkIcon size={14} color="#16a34a" style={{ flexShrink: 0 }} /> : <Paperclip size={14} color={c ? "#16a34a" : "#94a3b8"} style={{ flexShrink: 0 }} />}
-        <span style={{ flex: 1, minWidth: 0, color: c ? "#1e293b" : "#94a3b8" }}>
+        {isExternal ? <LinkIcon size={14} color="#16a34a" style={{ flexShrink: 0 }} /> : <Paperclip size={14} style={{ flexShrink: 0, color: c ? "#16a34a" : "var(--muted-2)" }} />}
+        <span style={{ flex: 1, minWidth: 0, color: c ? "var(--text)" : "var(--muted-2)" }}>
           {c ? (isExternal ? `${label} (link)` : label) : "No confirmation attached"}
         </span>
         {c ? (
           <>
             <a href={c.file_url} target="_blank" rel="noreferrer" style={{ ...linkStyle, fontSize: 12 }}>View</a>
             <button type="button" title="Remove confirmation" onClick={() => c.id && removeConf(c.id)}
-              style={{ ...confBtnStyle, background: "#fff", border: "1px solid #e2e8f0", color: "#b91c1c" }}>
+              style={{ ...confBtnStyle, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--red-text)" }}>
               <X size={12} /> Remove
             </button>
           </>
@@ -449,19 +473,19 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
             <button type="button" onClick={() => addConfLink(type, label)} disabled={busyType === type}
               style={{ ...confBtnStyle, background: BRAND.blue, border: "none", color: "#fff" }}>Save</button>
             <button type="button" onClick={() => { setLinkEntryType(null); setLinkEntryVal(""); }}
-              style={{ ...confBtnStyle, background: "#fff", border: "1px solid #e2e8f0", color: "#64748b" }}>Cancel</button>
+              style={{ ...confBtnStyle, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--muted)" }}>Cancel</button>
           </span>
         ) : (
           <>
             <input ref={el => { fileInputs.current[type] = el; }} type="file" accept="image/*,.pdf" style={{ display: "none" }}
               onChange={e => uploadConf(type, label, e.target.files?.[0])} />
             <button type="button" onClick={() => fileInputs.current[type]?.click()} disabled={busyType === type}
-              style={{ ...confBtnStyle, background: "#f1f5f9", border: "1px solid #e2e8f0", color: "#475569" }}>
+              style={{ ...confBtnStyle, background: "var(--surface-3)", border: "1px solid var(--border)", color: "var(--text-2)" }}>
               <Upload size={12} /> {busyType === type ? "Uploading…" : "Upload"}
             </button>
             <button type="button" title="Attach a link instead of a file (e.g. Google Drive)"
               onClick={() => { setLinkEntryType(type); setLinkEntryVal(""); }}
-              style={{ ...confBtnStyle, background: "#f1f5f9", border: "1px solid #e2e8f0", color: "#475569" }}>
+              style={{ ...confBtnStyle, background: "var(--surface-3)", border: "1px solid var(--border)", color: "var(--text-2)" }}>
               <LinkIcon size={12} /> Link
             </button>
           </>
@@ -479,13 +503,16 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
   const showDriverMap = !print && (isHost || viewerRole === "driver") && (isHost || mapUrls.length > 0);
 
   const overrideHint = (
-    <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>
+    <div style={{ fontSize: 11, color: "var(--muted-2)", marginTop: 2 }}>
       Type anything here (multiple flights, hotels, buses, drivers…). Leave blank to use the itinerary item.
     </div>
   );
 
-  const rows: { label: string; content: React.ReactNode; id?: string }[] = [
+  // Every row carries a stable key so the host can reorder them (edit mode) and
+  // the saved order (tours.trip_info_row_order) is applied on every view.
+  const rows: { key: string; label: string; content: React.ReactNode; id?: string }[] = [
     {
+      key: "teacher",
       label: teachers.length > 1 ? "Teachers" : "Teacher Name",
       content: editing ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -507,13 +534,14 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
       ),
     },
     {
+      key: "host",
       label: hosts.length > 1 ? "Tour Hosts" : "Infinity Tours + Events",
       content: editing ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <PersonListEditor people={form.hosts} onChange={h => setForm(f => ({ ...f, hosts: h }))}
             namePlaceholder="Tour host name" contactPlaceholder="Tour host phone" addLabel="Add tour host"
             personnel={personnel} teacherRefs={teacherRefs} contactKind="phone" />
-          <div style={{ color: "#64748b", fontSize: 12 }}>
+          <div style={{ color: "var(--muted)", fontSize: 12 }}>
             Infinity Hotline {HOTLINE_DISPLAY}
           </div>
         </div>
@@ -525,7 +553,7 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
               {h.contact && <> · {link(telHref(h.contact), h.contact)}</>}
             </div>
           )) : <div>—</div>}
-          <div style={{ color: "#64748b" }}>
+          <div style={{ color: "var(--muted)" }}>
             Infinity Hotline {link(`tel:${HOTLINE_TEL}`, HOTLINE_DISPLAY)}
           </div>
         </>
@@ -533,6 +561,7 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
     },
     // Tour consultants (travel planners) — separate from the traveling tour host.
     ...(editing || (info.consultants ?? []).length ? [{
+      key: "consultant",
       label: (info.consultants ?? []).length > 1 ? "Tour Consultants" : "Tour Consultant",
       content: editing ? (
         <PersonListEditor people={form.consultants} onChange={c => setForm(f => ({ ...f, consultants: c }))}
@@ -550,14 +579,15 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
       ),
     }] : []),
     {
+      key: "participants",
       label: "Participants",
       content: editing ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "#64748b" }}>Participants (custom text)</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)" }}>Participants (custom text)</div>
           <input style={inputStyle} value={form.participantsOverride} placeholder="e.g. 42 travelers (final count pending)"
             onChange={e => setForm(f => ({ ...f, participantsOverride: e.target.value }))} />
-          <div style={{ fontSize: 11, color: "#94a3b8" }}>Overrides the roster breakdown below. Leave blank to use the roster counts.</div>
-          <div style={{ fontSize: 12, color: "#475569", background: "#fafbff", border: "1px solid #eef2f7", borderRadius: 6, padding: "6px 8px" }}>
+          <div style={{ fontSize: 11, color: "var(--muted-2)" }}>Overrides the roster breakdown below. Leave blank to use the roster counts.</div>
+          <div style={{ fontSize: 12, color: "var(--text-2)", background: "var(--surface-2)", border: "1px solid var(--border-soft)", borderRadius: 6, padding: "6px 8px" }}>
             <span style={{ fontWeight: 700 }}>From roster: </span>
             {info.participants.map(p => `${p.count} ${p.label}`).join(", ") || "—"}
           </div>
@@ -576,40 +606,43 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
     // Departure / Return: the tour dates, plus host-entered text (bus or flight
     // times, where to meet). Text replaces the dash when no date is set.
     {
+      key: "departure",
       label: "Departure",
       content: editing ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <div style={{ fontSize: 12, color: "#475569" }}>{formatFullDate(info.departure)}</div>
+          <div style={{ fontSize: 12, color: "var(--text-2)" }}>{formatFullDate(info.departure)}</div>
           <textarea style={textareaStyle} value={form.departureOverride}
             placeholder={"e.g.\nBus loads 5:30 AM at the school\nDelta 1642 departs SLC 8:05 AM"}
             onChange={e => setForm(f => ({ ...f, departureOverride: e.target.value }))} />
-          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>Shown under the departure date (bus or flight times, meeting place). The date itself comes from Trip Details.</div>
+          <div style={{ fontSize: 11, color: "var(--muted-2)", marginTop: 2 }}>Shown under the departure date (bus or flight times, meeting place). The date itself comes from Trip Details.</div>
         </div>
       ) : (
         <>
           {(info.departure || !(info.overrides?.departure ?? "").trim()) && <div>{formatFullDate(info.departure)}</div>}
-          {(info.overrides?.departure ?? "").trim() && <div style={{ whiteSpace: "pre-wrap", color: info.departure ? "#475569" : "#1e293b" }}>{info.overrides!.departure}</div>}
+          {(info.overrides?.departure ?? "").trim() && <div style={{ whiteSpace: "pre-wrap", color: info.departure ? "var(--text-2)" : "var(--text)" }}>{info.overrides!.departure}</div>}
         </>
       ),
     },
     {
+      key: "return",
       label: "Return",
       content: editing ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <div style={{ fontSize: 12, color: "#475569" }}>{formatFullDate(info.returnDate)}</div>
+          <div style={{ fontSize: 12, color: "var(--text-2)" }}>{formatFullDate(info.returnDate)}</div>
           <textarea style={textareaStyle} value={form.returnOverride}
             placeholder={"e.g.\nDelta 2210 departs JFK 6:40 PM\nBus arrives at the school about 11:30 PM"}
             onChange={e => setForm(f => ({ ...f, returnOverride: e.target.value }))} />
-          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>Shown under the return date.</div>
+          <div style={{ fontSize: 11, color: "var(--muted-2)", marginTop: 2 }}>Shown under the return date.</div>
         </div>
       ) : (
         <>
           {(info.returnDate || !(info.overrides?.return ?? "").trim()) && <div>{formatFullDate(info.returnDate)}</div>}
-          {(info.overrides?.return ?? "").trim() && <div style={{ whiteSpace: "pre-wrap", color: info.returnDate ? "#475569" : "#1e293b" }}>{info.overrides!.return}</div>}
+          {(info.overrides?.return ?? "").trim() && <div style={{ whiteSpace: "pre-wrap", color: info.returnDate ? "var(--text-2)" : "var(--text)" }}>{info.overrides!.return}</div>}
         </>
       ),
     },
     {
+      key: "flight",
       id: "flight",
       label: "Flight",
       content: editing ? (
@@ -628,10 +661,10 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
           ) : info.hasFlight ? (
             <>
               <div>{dash(info.flightName)}</div>
-              {info.flightAddress && <div style={{ color: "#64748b" }}>{info.flightAddress}</div>}
+              {info.flightAddress && <div style={{ color: "var(--muted)" }}>{info.flightAddress}</div>}
             </>
           ) : (
-            <div style={{ color: "#94a3b8" }}>{isHost ? "Add a flight travel item, or click Edit to type flight info here." : "—"}</div>
+            <div style={{ color: "var(--muted-2)" }}>{isHost ? "Add a flight travel item, or click Edit to type flight info here." : "—"}</div>
           )}
           {editLink(onEditFlight, "Edit Flight Item →")}
           {renderConf("flight", "Flight Confirmation")}
@@ -639,6 +672,7 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
       ),
     },
     {
+      key: "hotel",
       label: "Hotel",
       content: editing ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -656,7 +690,7 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
           ) : (
             <>
               <div>{dash(info.hotelName)}</div>
-              {info.hotelAddress && <div style={{ color: "#64748b" }}>{info.hotelAddress}</div>}
+              {info.hotelAddress && <div style={{ color: "var(--muted)" }}>{info.hotelAddress}</div>}
             </>
           )}
           {editLink(onEditHotel, "Edit Hotel Item →")}
@@ -665,6 +699,7 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
       ),
     },
     {
+      key: "bus",
       id: "bus",
       label: "Bus",
       content: editing ? (
@@ -687,18 +722,18 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
               {/* Company comes from the tour record (Overview → Bus Company). */}
               <div>{dash(info.busCompany)}</div>
               {(info.busContactName || info.busContactPhone) && (
-                <div style={{ color: "#64748b" }}>
+                <div style={{ color: "var(--muted)" }}>
                   {info.busContactName}
                   {info.busContactName && info.busContactPhone ? " · " : null}
                   {info.busContactPhone && link(telHref(info.busContactPhone), info.busContactPhone)}
                 </div>
               )}
-              {info.busCapacity ? <div style={{ color: "#64748b" }}>{info.busCapacity} passengers</div> : null}
+              {info.busCapacity ? <div style={{ color: "var(--muted)" }}>{info.busCapacity} passengers</div> : null}
             </>
           )}
           {/* Bus driver contact — host-facing only, never shown to participants. */}
           {isHost && (info.busDriverName || info.busDriverPhone) && (
-            <div style={{ color: "#64748b" }}>
+            <div style={{ color: "var(--muted)" }}>
               <span style={{ fontWeight: 600 }}>Driver: </span>
               {info.busDriverName}
               {info.busDriverName && info.busDriverPhone ? " · " : null}
@@ -712,6 +747,7 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
     },
     // Bus-driver map images — hosts + bus drivers only.
     ...(showDriverMap ? [{
+      key: "driver_map",
       label: "Driver Map",
       content: (
         <div>
@@ -721,11 +757,11 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
                 <span key={url} style={{ position: "relative", display: "inline-block" }}>
                   <a href={url} target="_blank" rel="noreferrer" title="Open full size">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={url} alt="Driver map" style={{ width: 120, height: 84, objectFit: "cover", borderRadius: 8, border: "1px solid #e2e8f0", display: "block" }} />
+                    <img src={url} alt="Driver map" style={{ width: 120, height: 84, objectFit: "cover", borderRadius: 8, border: "1px solid var(--border)", display: "block" }} />
                   </a>
                   {isHost && (
                     <button type="button" title="Remove map" onClick={() => removeDriverMap(url)}
-                      style={{ position: "absolute", top: -6, right: -6, background: "#fff", border: "1px solid #e2e8f0", borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#b91c1c", padding: 0 }}>
+                      style={{ position: "absolute", top: -6, right: -6, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "var(--red-text)", padding: 0 }}>
                       <X size={11} strokeWidth={3} />
                     </button>
                   )}
@@ -738,10 +774,10 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
               <input ref={mapInput} type="file" accept="image/*" multiple style={{ display: "none" }}
                 onChange={e => uploadDriverMap(e.target.files)} />
               <button type="button" onClick={() => mapInput.current?.click()} disabled={mapBusy}
-                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: "1.5px dashed #cbd5e1", background: "#fff", cursor: mapBusy ? "default" : "pointer", fontSize: 12, fontWeight: 600, color: "#475569", fontFamily: "inherit", opacity: mapBusy ? 0.6 : 1 }}>
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: "1.5px dashed var(--border-strong)", background: "var(--surface)", cursor: mapBusy ? "default" : "pointer", fontSize: 12, fontWeight: 600, color: "var(--text-2)", fontFamily: "inherit", opacity: mapBusy ? 0.6 : 1 }}>
                 <ImagePlus size={13} />{mapBusy ? "Uploading…" : "Upload Map Image"}
               </button>
-              <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
+              <div style={{ fontSize: 11, color: "var(--muted-2)", marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
                 <Map size={11} /> Visible only to you and bus drivers.
               </div>
             </>
@@ -752,11 +788,12 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
     // Host-named custom rows (extra info or links). Each row may be limited to
     // specific personas; the tour host always sees every row.
     ...(!editing ? (info.customRows ?? []).filter(r => isHost || customRowVisibleTo(r, viewerPersona ?? (viewerRole === "coordinator" ? "tour_host" : viewerRole))).map(r => ({
+      key: `custom:${r.id}`,
       label: r.label || "Info",
       content: (
         <div>
           {isHost && r.visibility && Object.values(r.visibility).some(Boolean) && (
-            <div style={{ fontSize: 10.5, color: "#94a3b8", marginBottom: 3 }}>
+            <div style={{ fontSize: 10.5, color: "var(--muted-2)", marginBottom: 3 }}>
               Only shown to: {Object.entries(r.visibility).filter(([, v]) => v).map(([k]) => personaLabel(k, info.personaLabels)).join(", ")}
             </div>
           )}
@@ -774,73 +811,96 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
         </div>
       ),
     })) : []),
-    // Custom-rows editor (edit mode only).
+    // Custom rows in EDIT mode: one row each (so they reorder like any other
+    // row), with the label / text / link / "Show to" editor inline.
+    ...(editing ? form.customRows.map((r, i) => ({
+      key: `custom:${r.id}`,
+      label: r.label.trim() || "New row",
+      content: (
+        <div key={r.id} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <input style={{ ...inputStyle, flex: 1 }} value={r.label} placeholder="Row name (e.g. Packing List)"
+              onChange={e => setForm(f => ({ ...f, customRows: f.customRows.map((x, idx) => idx === i ? { ...x, label: e.target.value } : x) }))} />
+            <button type="button" title="Remove row"
+              onClick={() => setForm(f => ({ ...f, customRows: f.customRows.filter((_, idx) => idx !== i), rowOrder: f.rowOrder.filter(k => k !== `custom:${r.id}`) }))}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted-2)", padding: 2, display: "flex", flexShrink: 0 }}>
+              <X size={13} />
+            </button>
+          </div>
+          <input style={inputStyle} value={r.value} placeholder="Text to show (optional)"
+            onChange={e => setForm(f => ({ ...f, customRows: f.customRows.map((x, idx) => idx === i ? { ...x, value: e.target.value } : x) }))} />
+          <input style={inputStyle} value={r.url} placeholder="Link URL (optional, makes the row a link)"
+            onChange={e => setForm(f => ({ ...f, customRows: f.customRows.map((x, idx) => idx === i ? { ...x, url: e.target.value } : x) }))} />
+          {/* Who sees this row. Nothing checked = everyone. */}
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, marginTop: 2 }}>
+            <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: 0.5 }}>Show to</span>
+            {rowPersonas.map(k => {
+              const on = r.visibility?.[k] === true;
+              return (
+                <label key={k} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, color: on ? "var(--text)" : "var(--muted)", cursor: "pointer" }}>
+                  <input type="checkbox" checked={on}
+                    onChange={() => setForm(f => ({ ...f, customRows: f.customRows.map((x, idx) => idx === i ? { ...x, visibility: { ...(x.visibility ?? {}), [k]: !on } } : x) }))}
+                    style={{ accentColor: BRAND.navy, width: 13, height: 13 }} />
+                  {personaLabel(k, info.personaLabels)}
+                </label>
+              );
+            })}
+            <span style={{ fontSize: 10.5, color: "var(--muted-2)" }}>{Object.values(r.visibility ?? {}).some(Boolean) ? "" : "Everyone (nothing checked)"}</span>
+          </div>
+        </div>
+      ),
+    })) : []),
+    // "Add row" (edit mode only, always last, not reorderable).
     ...(editing ? [{
+      key: "add_custom",
       label: "Additional Rows",
       content: (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {form.customRows.map((r, i) => (
-            <div key={r.id} style={{ display: "flex", flexDirection: "column", gap: 4, background: "#fafbff", border: "1px solid #eef2f7", borderRadius: 8, padding: 8 }}>
-              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                <input style={{ ...inputStyle, flex: 1 }} value={r.label} placeholder="Row name (e.g. Packing List)"
-                  onChange={e => setForm(f => ({ ...f, customRows: f.customRows.map((x, idx) => idx === i ? { ...x, label: e.target.value } : x) }))} />
-                <button type="button" title="Move row up" disabled={i === 0}
-                  onClick={() => setForm(f => { const rows = [...f.customRows]; [rows[i - 1], rows[i]] = [rows[i], rows[i - 1]]; return { ...f, customRows: rows }; })}
-                  style={{ background: "none", border: "none", cursor: i === 0 ? "default" : "pointer", color: i === 0 ? "#e2e8f0" : "#64748b", padding: 2, display: "flex", flexShrink: 0 }}>
-                  <ArrowUp size={13} />
-                </button>
-                <button type="button" title="Move row down" disabled={i === form.customRows.length - 1}
-                  onClick={() => setForm(f => { const rows = [...f.customRows]; [rows[i], rows[i + 1]] = [rows[i + 1], rows[i]]; return { ...f, customRows: rows }; })}
-                  style={{ background: "none", border: "none", cursor: i === form.customRows.length - 1 ? "default" : "pointer", color: i === form.customRows.length - 1 ? "#e2e8f0" : "#64748b", padding: 2, display: "flex", flexShrink: 0 }}>
-                  <ArrowDown size={13} />
-                </button>
-                <button type="button" title="Remove row"
-                  onClick={() => setForm(f => ({ ...f, customRows: f.customRows.filter((_, idx) => idx !== i) }))}
-                  style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 2, display: "flex", flexShrink: 0 }}>
-                  <X size={13} />
-                </button>
-              </div>
-              <input style={inputStyle} value={r.value} placeholder="Text to show (optional)"
-                onChange={e => setForm(f => ({ ...f, customRows: f.customRows.map((x, idx) => idx === i ? { ...x, value: e.target.value } : x) }))} />
-              <input style={inputStyle} value={r.url} placeholder="Link URL (optional — makes the row a link)"
-                onChange={e => setForm(f => ({ ...f, customRows: f.customRows.map((x, idx) => idx === i ? { ...x, url: e.target.value } : x) }))} />
-              {/* Who sees this row. Nothing checked = everyone. */}
-              <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, marginTop: 2 }}>
-                <span style={{ fontSize: 10.5, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5 }}>Show to</span>
-                {rowPersonas.map(k => {
-                  const on = r.visibility?.[k] === true;
-                  return (
-                    <label key={k} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, color: on ? "#1e293b" : "#64748b", cursor: "pointer" }}>
-                      <input type="checkbox" checked={on}
-                        onChange={() => setForm(f => ({ ...f, customRows: f.customRows.map((x, idx) => idx === i ? { ...x, visibility: { ...(x.visibility ?? {}), [k]: !on } } : x) }))}
-                        style={{ accentColor: BRAND.navy, width: 13, height: 13 }} />
-                      {personaLabel(k, info.personaLabels)}
-                    </label>
-                  );
-                })}
-                <span style={{ fontSize: 10.5, color: "#94a3b8" }}>{Object.values(r.visibility ?? {}).some(Boolean) ? "" : "Everyone (nothing checked)"}</span>
-              </div>
-            </div>
-          ))}
-          <button type="button" style={smallAddBtn}
-            onClick={() => setForm(f => ({ ...f, customRows: [...f.customRows, { id: crypto.randomUUID(), label: "", value: "", url: "", visibility: {} }] }))}>
-            <Plus size={11} /> Add row
-          </button>
-        </div>
+        <button type="button" style={smallAddBtn}
+          onClick={() => setForm(f => {
+            const id = crypto.randomUUID();
+            // Place the new row right before this "Add row" slot, i.e. at the end
+            // of the current order, so it appears where the host expects it.
+            const order = f.rowOrder.length ? [...f.rowOrder, `custom:${id}`] : f.rowOrder;
+            return { ...f, customRows: [...f.customRows, { id, label: "", value: "", url: "", visibility: {} }], rowOrder: order };
+          })}>
+          <Plus size={11} /> Add row
+        </button>
       ),
     }] : []),
   ];
 
+  // Move a row (edit mode). Works from the CURRENT displayed order so the first
+  // move on a tour with no saved order behaves as expected.
+  function moveRow(key: string, dir: -1 | 1) {
+    const keys = orderRows(rows, form.rowOrder).map(r => r.key).filter(k => k !== "add_custom");
+    const i = keys.indexOf(key);
+    const j = i + dir;
+    if (i === -1 || j < 0 || j >= keys.length) return;
+    [keys[i], keys[j]] = [keys[j], keys[i]];
+    setForm(f => ({ ...f, rowOrder: keys }));
+  }
+  function dropRow(targetKey: string) {
+    const from = dragKey;
+    setDragKey(null); setDragOverKey(null);
+    if (!from || from === targetKey || targetKey === "add_custom") return;
+    const keys = orderRows(rows, form.rowOrder).map(r => r.key).filter(k => k !== "add_custom" && k !== from);
+    const at = keys.indexOf(targetKey);
+    if (at === -1) return;
+    keys.splice(at, 0, from);
+    setForm(f => ({ ...f, rowOrder: keys }));
+  }
+
   // Data-driven section visibility — defers to the shared showTripSection() rule
   // so the live view and the server-side PDF renderer can never diverge.
-  const visibleRows = rows.filter(r => {
+  const visibleRows = orderRows(rows, editing ? form.rowOrder : (info.rowOrder ?? [])).filter(r => {
     if (editing) return true;
     if (r.id === "flight" || r.id === "bus") return showTripSection(r.id, info, { isHost });
     return true;
   });
+  const reorderable = visibleRows.filter(r => r.key !== "add_custom").map(r => r.key);
 
   return (
-    <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,.04)", marginBottom: 16 }}>
+    <div style={{ background: "var(--surface)", border: "1.5px solid var(--border-soft)", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,.04)", marginBottom: 16 }}>
       {/* Brand-blue header bar (Infinity footer periwinkle) */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px", background: INFINITY_BLUE }}>
         <button
@@ -874,21 +934,49 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
 
       {open && (
         <>
-          <div style={{ display: "grid", gridTemplateColumns: "minmax(110px, 32%) 1fr", borderTop: "1px solid #f1f5f9" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "minmax(110px, 32%) 1fr", borderTop: "1px solid var(--surface-3)" }}>
             {visibleRows.map((r, i) => (
-              <Fragment key={`${r.label}-${i}`}>
-                <div style={{
-                  padding: "10px 16px", fontSize: 11.5, fontWeight: 700, color: "#64748b",
-                  textTransform: "uppercase", letterSpacing: 0.4,
-                  borderTop: i === 0 ? "none" : "1px solid #f1f5f9",
-                  background: "#fafbff",
-                }}>
-                  {r.label}
+              <Fragment key={r.key}>
+                <div
+                  // Edit mode: the label cell is the drag handle (plus up/down
+                  // arrows for touch), so any row can be moved anywhere in the list.
+                  draggable={editing && r.key !== "add_custom"}
+                  onDragStart={editing ? (e => { e.dataTransfer.effectAllowed = "move"; setDragKey(r.key); }) : undefined}
+                  onDragEnd={editing ? (() => { setDragKey(null); setDragOverKey(null); }) : undefined}
+                  onDragOver={editing ? (e => { if (dragKey && r.key !== "add_custom") { e.preventDefault(); setDragOverKey(r.key); } }) : undefined}
+                  onDrop={editing ? (e => { e.preventDefault(); dropRow(r.key); }) : undefined}
+                  style={{
+                    padding: "10px 16px", fontSize: 11.5, fontWeight: 700, color: "var(--muted)",
+                    textTransform: "uppercase", letterSpacing: 0.4,
+                    borderTop: i === 0 ? "none" : dragOverKey === r.key && dragKey ? `2px solid ${BRAND.blue}` : "1px solid var(--surface-3)",
+                    background: "var(--surface-2)",
+                    display: "flex", alignItems: "flex-start", gap: 6,
+                    cursor: editing && r.key !== "add_custom" ? "grab" : undefined,
+                  }}>
+                  {editing && r.key !== "add_custom" && (
+                    <span style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", gap: 0, flexShrink: 0, marginLeft: -6, marginTop: -2 }}>
+                      <GripVertical size={13} style={{ color: "var(--muted-3)" }} />
+                      <button type="button" title="Move up" disabled={reorderable.indexOf(r.key) === 0}
+                        onClick={() => moveRow(r.key, -1)}
+                        style={{ background: "none", border: "none", cursor: reorderable.indexOf(r.key) === 0 ? "default" : "pointer", color: reorderable.indexOf(r.key) === 0 ? "var(--muted-3)" : "var(--muted)", padding: 0, display: "flex", lineHeight: 0 }}>
+                        <ArrowUp size={11} />
+                      </button>
+                      <button type="button" title="Move down" disabled={reorderable.indexOf(r.key) === reorderable.length - 1}
+                        onClick={() => moveRow(r.key, 1)}
+                        style={{ background: "none", border: "none", cursor: reorderable.indexOf(r.key) === reorderable.length - 1 ? "default" : "pointer", color: reorderable.indexOf(r.key) === reorderable.length - 1 ? "var(--muted-3)" : "var(--muted)", padding: 0, display: "flex", lineHeight: 0 }}>
+                        <ArrowDown size={11} />
+                      </button>
+                    </span>
+                  )}
+                  <span>{r.label}</span>
                 </div>
-                <div style={{
-                  padding: "10px 16px", fontSize: 13, color: "#1e293b", lineHeight: 1.5,
-                  borderTop: i === 0 ? "none" : "1px solid #f1f5f9",
-                }}>
+                <div
+                  onDragOver={editing ? (e => { if (dragKey && r.key !== "add_custom") { e.preventDefault(); setDragOverKey(r.key); } }) : undefined}
+                  onDrop={editing ? (e => { e.preventDefault(); dropRow(r.key); }) : undefined}
+                  style={{
+                    padding: "10px 16px", fontSize: 13, color: "var(--text)", lineHeight: 1.5,
+                    borderTop: i === 0 ? "none" : dragOverKey === r.key && dragKey ? `2px solid ${BRAND.blue}` : "1px solid var(--surface-3)",
+                  }}>
                   {r.content}
                 </div>
               </Fragment>
@@ -896,12 +984,12 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
           </div>
 
           {editing && (
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, padding: "12px 16px", borderTop: "1px solid #f1f5f9", background: "#fafbff" }}>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, padding: "12px 16px", borderTop: "1px solid var(--surface-3)", background: "var(--surface-2)" }}>
               <button
                 type="button"
                 onClick={() => setEditing(false)}
                 disabled={saving}
-                style={{ background: "#fff", border: "1px solid #cbd5e1", borderRadius: 8, padding: "7px 14px", fontSize: 13, fontWeight: 600, color: "#475569", cursor: "pointer", fontFamily: "inherit" }}
+                style={{ background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 8, padding: "7px 14px", fontSize: 13, fontWeight: 600, color: "var(--text-2)", cursor: "pointer", fontFamily: "inherit" }}
               >
                 Cancel
               </button>

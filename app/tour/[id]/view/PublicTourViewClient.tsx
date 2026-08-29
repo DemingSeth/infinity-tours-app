@@ -3,6 +3,7 @@
 import { useState } from "react";
 import AgendaRoleView from "@/components/tour/AgendaRoleView";
 import InfinityLogoImg from "@/components/shared/InfinityLogoImg";
+import ThemeToggle from "@/components/shared/ThemeToggle";
 import { BRAND, expandStateName, activePersonaKeys, personaLabel, personaColors, getPersona } from "@/lib/helpers";
 import type { AgendaDayWithItems, Role, TripInfo, TourGroup } from "@/lib/types";
 
@@ -83,7 +84,11 @@ export default function PublicTourViewClient({ tourId, tourName, tourDestination
 
   if (unlocked) {
     return (
-      <div style={{ minHeight: "100vh", background: "#f8fafc", padding: "24px 16px" }}>
+      <div style={{ minHeight: "100vh", background: "var(--page)", padding: "24px 16px" }}>
+        {/* Viewer's light / dark switch, tucked above the itinerary. */}
+        <div style={{ maxWidth: 680, margin: "0 auto 8px", display: "flex", justifyContent: "flex-end" }}>
+          <ThemeToggle onNavy={false} />
+        </div>
         <AgendaRoleView
           tourName={tourName}
           tourDestination={tourDestination}
@@ -107,35 +112,35 @@ export default function PublicTourViewClient({ tourId, tourName, tourDestination
   }
 
   const inp: React.CSSProperties = {
-    width: "100%", border: "1.5px solid #e2e8f0", borderRadius: 8,
-    padding: "10px 14px", fontSize: 14, color: "#1e293b",
-    fontFamily: "inherit", background: "#fff", outline: "none",
+    width: "100%", border: "1.5px solid var(--border)", borderRadius: 8,
+    padding: "10px 14px", fontSize: 14, color: "var(--text)",
+    fontFamily: "inherit", background: "var(--surface)", outline: "none",
     boxSizing: "border-box",
   };
 
   return (
     <div style={{ minHeight: "100vh", background: BRAND.navy, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
       <div style={{ width: "100%", maxWidth: 420 }}>
-        <div style={{ background: "#fff", borderRadius: 16, overflow: "hidden", boxShadow: "0 24px 80px rgba(0,0,0,0.3)" }}>
-          <div style={{ padding: "28px 32px 22px", textAlign: "center", borderBottom: "1px solid #f1f5f9" }}>
+        <div style={{ background: "var(--surface)", borderRadius: 16, overflow: "hidden", boxShadow: "0 24px 80px rgba(0,0,0,0.3)" }}>
+          <div style={{ padding: "28px 32px 22px", textAlign: "center", borderBottom: "1px solid var(--surface-3)" }}>
             <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
               <InfinityLogoImg height={48} />
             </div>
-            <div style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.03em", fontWeight: 400, fontSize: 18, color: BRAND.navy }}>
+            <div style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.03em", fontWeight: 400, fontSize: 18, color: "var(--ink)" }}>
               {tourName}
             </div>
             {(tourDestination || tourDates) && (
-              <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>
+              <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>
                 {[expandStateName(tourDestination), tourDates].filter(Boolean).join(" · ")}
               </div>
             )}
           </div>
 
           <div style={{ padding: "28px 32px 32px" }}>
-            <h2 style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", fontSize: 20, fontWeight: 400, color: BRAND.navy, margin: "0 0 6px" }}>
+            <h2 style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", fontSize: 20, fontWeight: 400, color: "var(--ink)", margin: "0 0 6px" }}>
               View Itinerary
             </h2>
-            <p style={{ fontSize: 12, color: "#64748b", margin: "0 0 20px" }}>
+            <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 20px" }}>
               Select your role and enter the access code from your tour coordinator.
             </p>
 
@@ -149,14 +154,14 @@ export default function PublicTourViewClient({ tourId, tourName, tourDestination
                     onClick={() => { setSelectedPersona(opt.key); setCode(""); setError(null); }}
                     style={{
                       display: "flex", alignItems: "center", gap: 12, padding: "10px 14px",
-                      border: `1.5px solid ${selected ? c.color : "#e2e8f0"}`,
-                      borderRadius: 10, background: selected ? c.bg : "#fff",
+                      border: `1.5px solid ${selected ? c.color : "var(--border)"}`,
+                      borderRadius: 10, background: selected ? c.bg : "var(--surface)",
                       cursor: "pointer", fontFamily: "inherit", textAlign: "left", width: "100%",
                     }}
                   >
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: selected ? c.color : "#1e293b" }}>{opt.label}</div>
-                      <div style={{ fontSize: 11, color: "#94a3b8" }}>{opt.desc}</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: selected ? c.color : "var(--text)" }}>{opt.label}</div>
+                      <div style={{ fontSize: 11, color: "var(--muted-2)" }}>{opt.desc}</div>
                     </div>
                     {selected && <div style={{ width: 8, height: 8, borderRadius: "50%", background: c.color, flexShrink: 0 }} />}
                   </button>
@@ -167,7 +172,7 @@ export default function PublicTourViewClient({ tourId, tourName, tourDestination
             {selectedPersona && (
               <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                  <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.8 }}>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: 0.8 }}>
                     Access Code
                   </label>
                   <input
@@ -180,7 +185,7 @@ export default function PublicTourViewClient({ tourId, tourName, tourDestination
                 </div>
 
                 {error && (
-                  <div style={{ background: "#fee2e2", color: "#b91c1c", borderRadius: 8, padding: "10px 14px", fontSize: 13 }}>
+                  <div style={{ background: "var(--red-bg)", color: "var(--red-text)", borderRadius: 8, padding: "10px 14px", fontSize: 13 }}>
                     {error}
                   </div>
                 )}

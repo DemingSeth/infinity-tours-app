@@ -34,13 +34,13 @@ export default function ForgotPasswordPage() {
 
   const inp: React.CSSProperties = {
     width: "100%",
-    border: "1.5px solid #e2e8f0",
+    border: "1.5px solid var(--border)",
     borderRadius: 8,
     padding: "10px 14px",
     fontSize: 14,
-    color: "#1e293b",
+    color: "var(--text)",
     fontFamily: "inherit",
-    background: "#fff",
+    background: "var(--surface)",
     outline: "none",
     boxSizing: "border-box",
   };
@@ -48,24 +48,24 @@ export default function ForgotPasswordPage() {
   return (
     <div style={{ minHeight: "100vh", background: BRAND.navy, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
       <div style={{ width: "100%", maxWidth: 400 }}>
-        <div style={{ background: "#fff", borderRadius: 16, overflow: "hidden", boxShadow: "0 24px 80px rgba(0,0,0,0.3)" }}>
-          <div style={{ padding: "28px 32px 22px", textAlign: "center", borderBottom: "1px solid #f1f5f9" }}>
+        <div style={{ background: "var(--surface)", borderRadius: 16, overflow: "hidden", boxShadow: "0 24px 80px rgba(0,0,0,0.3)" }}>
+          <div style={{ padding: "28px 32px 22px", textAlign: "center", borderBottom: "1px solid var(--surface-3)" }}>
             <div style={{ display: "flex", justifyContent: "center" }}>
               <InfinityLogoImg height={56} />
             </div>
           </div>
 
           <div style={{ padding: "28px 32px 32px" }}>
-            <h2 style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", fontSize: 22, fontWeight: 400, color: BRAND.navy, margin: "0 0 8px" }}>
+            <h2 style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", fontSize: 22, fontWeight: 400, color: "var(--ink)", margin: "0 0 8px" }}>
               Reset your password
             </h2>
-            <p style={{ fontSize: 13, color: "#64748b", margin: "0 0 24px", lineHeight: 1.5 }}>
+            <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 24px", lineHeight: 1.5 }}>
               Enter the email on your account and we&rsquo;ll send a link to set a new password.
             </p>
 
             {sent ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                <div style={{ background: "#dcfce7", color: "#15803d", borderRadius: 8, padding: "12px 14px", fontSize: 13, lineHeight: 1.5 }}>
+                <div style={{ background: "var(--green-bg)", color: "var(--green-text)", borderRadius: 8, padding: "12px 14px", fontSize: 13, lineHeight: 1.5 }}>
                   {NEUTRAL_MESSAGE}
                 </div>
                 <Link href="/login" style={{ fontSize: 13, fontWeight: 600, color: BRAND.blue, textDecoration: "none", textAlign: "center" }}>
@@ -75,7 +75,7 @@ export default function ForgotPasswordPage() {
             ) : (
               <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                  <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.8 }}>Email</label>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: 0.8 }}>Email</label>
                   <input
                     style={inp}
                     type="email"

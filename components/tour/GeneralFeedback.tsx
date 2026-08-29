@@ -59,7 +59,7 @@ export default function GeneralFeedback({
   if (done) {
     if (variant === "banner") return null; // banner just disappears once submitted
     return (
-      <div style={{ marginTop: 24, padding: "14px 16px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 12, display: "flex", alignItems: "center", gap: 8, color: "#15803d", fontWeight: 600, fontSize: 13 }}>
+      <div style={{ marginTop: 24, padding: "14px 16px", background: "var(--green-bg-soft)", border: "1px solid var(--green-border)", borderRadius: 12, display: "flex", alignItems: "center", gap: 8, color: "var(--green-text)", fontWeight: 600, fontSize: 13 }}>
         <Check size={16} /> Thanks for sharing your feedback!
       </div>
     );
@@ -70,9 +70,9 @@ export default function GeneralFeedback({
   // ── Collapsed CTA (card only — the banner opens expanded) ─────────────────
   if (!expanded) {
     return (
-      <div style={{ marginTop: 24, padding: "16px 18px", background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 12, boxShadow: "0 1px 4px rgba(0,0,0,.04)", textAlign: "center" }}>
-        <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 17, fontWeight: 400, color: BRAND.navy }}>How was your tour?</div>
-        <div style={{ fontSize: 12.5, color: "#64748b", margin: "4px 0 12px" }}>Share your feedback with the team.</div>
+      <div style={{ marginTop: 24, padding: "16px 18px", background: "var(--surface)", border: "1.5px solid var(--border-soft)", borderRadius: 12, boxShadow: "0 1px 4px rgba(0,0,0,.04)", textAlign: "center" }}>
+        <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 17, fontWeight: 400, color: "var(--ink)" }}>How was your tour?</div>
+        <div style={{ fontSize: 12.5, color: "var(--muted)", margin: "4px 0 12px" }}>Share your feedback with the team.</div>
         <button type="button" onClick={() => setExpanded(true)}
           style={{ display: "inline-flex", alignItems: "center", gap: 7, background: BRAND.blue, color: "#fff", border: "none", borderRadius: 10, padding: "9px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
           <Star size={15} /> Share Feedback
@@ -88,15 +88,15 @@ export default function GeneralFeedback({
       marginBottom: isBanner ? 18 : 0,
       padding: isBanner ? "18px 18px 16px" : "16px 18px",
       borderRadius: 14,
-      background: isBanner ? "linear-gradient(135deg, #0f2137 0%, #1e3a5f 100%)" : "#fff",
-      border: isBanner ? "none" : "1.5px solid #e8eef4",
+      background: isBanner ? "linear-gradient(135deg, #0f2137 0%, #1e3a5f 100%)" : "var(--surface)",
+      border: isBanner ? "none" : "1.5px solid var(--border-soft)",
       boxShadow: isBanner ? "0 6px 24px rgba(15,33,55,.25)" : "0 1px 4px rgba(0,0,0,.04)",
-      color: isBanner ? "#fff" : "#1e293b",
+      color: isBanner ? "#fff" : "var(--text)",
     }}>
-      <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", fontSize: isBanner ? 20 : 17, fontWeight: 400, color: isBanner ? "#fff" : BRAND.navy }}>
+      <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", fontSize: isBanner ? 20 : 17, fontWeight: 400, color: isBanner ? "#fff" : "var(--ink)" }}>
         How was your tour?
       </div>
-      <div style={{ fontSize: 12.5, color: isBanner ? "rgba(255,255,255,.8)" : "#64748b", margin: "4px 0 14px" }}>
+      <div style={{ fontSize: 12.5, color: isBanner ? "rgba(255,255,255,.8)" : "var(--muted)", margin: "4px 0 14px" }}>
         Your trip is wrapping up — tell us how it went.
       </div>
 
@@ -109,12 +109,12 @@ export default function GeneralFeedback({
             <button key={opt.v} type="button" onClick={() => setSentiment(opt.v)}
               style={{
                 flex: 1, minWidth: 0, minHeight: 54, padding: "8px 4px", borderRadius: 10,
-                border: `2px solid ${active ? BRAND.blue : (isBanner ? "rgba(255,255,255,.25)" : "#e2e8f0")}`,
-                background: active ? "#f0fdfa" : (isBanner ? "rgba(255,255,255,.06)" : "#fff"),
+                border: `2px solid ${active ? BRAND.blue : (isBanner ? "rgba(255,255,255,.25)" : "var(--border)")}`,
+                background: active ? "var(--green-bg-soft)" : (isBanner ? "rgba(255,255,255,.06)" : "var(--surface)"),
                 cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, fontFamily: "inherit",
               }}>
-              <Icon size={24} color={active ? color : (isBanner ? "rgba(255,255,255,.8)" : "#94a3b8")} />
-              <span style={{ fontSize: 11, fontWeight: 700, color: active ? BRAND.blue : (isBanner ? "rgba(255,255,255,.85)" : "#94a3b8") }}>{opt.l}</span>
+              <Icon size={24} color={active ? color : (isBanner ? "rgba(255,255,255,.8)" : "var(--muted-2)")} />
+              <span style={{ fontSize: 11, fontWeight: 700, color: active ? BRAND.blue : (isBanner ? "rgba(255,255,255,.85)" : "var(--muted-2)") }}>{opt.l}</span>
             </button>
           );
         })}
@@ -125,18 +125,18 @@ export default function GeneralFeedback({
         onChange={e => setText(e.target.value)}
         placeholder="Any comments about your tour? (optional)"
         rows={2}
-        style={{ width: "100%", boxSizing: "border-box", border: "1.5px solid #e2e8f0", borderRadius: 8, padding: "8px 10px", fontSize: 13, color: "#1e293b", fontFamily: "inherit", outline: "none", resize: "vertical", marginBottom: 8 }}
+        style={{ width: "100%", boxSizing: "border-box", border: "1.5px solid var(--border)", borderRadius: 8, padding: "8px 10px", fontSize: 13, color: "var(--text)", fontFamily: "inherit", outline: "none", resize: "vertical", marginBottom: 8 }}
       />
       <textarea
         value={highlight}
         onChange={e => setHighlight(e.target.value)}
         placeholder="What was the highlight? (optional)"
         rows={2}
-        style={{ width: "100%", boxSizing: "border-box", border: "1.5px solid #e2e8f0", borderRadius: 8, padding: "8px 10px", fontSize: 13, color: "#1e293b", fontFamily: "inherit", outline: "none", resize: "vertical" }}
+        style={{ width: "100%", boxSizing: "border-box", border: "1.5px solid var(--border)", borderRadius: 8, padding: "8px 10px", fontSize: 13, color: "var(--text)", fontFamily: "inherit", outline: "none", resize: "vertical" }}
       />
 
       {status === "error" && (
-        <div style={{ fontSize: 12, color: isBanner ? "#fecaca" : "#b91c1c", marginTop: 8 }}>Couldn’t save your feedback. Please try again.</div>
+        <div style={{ fontSize: 12, color: isBanner ? "var(--red-border)" : "var(--red-text)", marginTop: 8 }}>Couldn’t save your feedback. Please try again.</div>
       )}
 
       <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
@@ -146,7 +146,7 @@ export default function GeneralFeedback({
         </button>
         {!isBanner && (
           <button type="button" onClick={() => setExpanded(false)}
-            style={{ background: "none", color: "#64748b", border: "1px solid #e2e8f0", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+            style={{ background: "none", color: "var(--muted)", border: "1px solid var(--border)", borderRadius: 8, padding: "10px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
             Cancel
           </button>
         )}

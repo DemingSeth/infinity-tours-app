@@ -7,7 +7,9 @@ import { quoteFontVars } from "./fonts";
 // unaffected.
 export default function QuoteBuilderLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className={quoteFontVars}>
+    // The quote builder keeps its own light document styling regardless of the
+    // app theme (it is a print-facing surface).
+    <div className={quoteFontVars} data-theme="light">
       <style>{`
         @media print {
           header { display: none !important; }

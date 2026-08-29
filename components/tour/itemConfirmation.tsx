@@ -167,7 +167,7 @@ export function ConfirmationStatus({ linked, notRequired, size = 14 }: {
   }
   if (notRequired) {
     return (
-      <span title="No confirmation needed for this item" style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "#64748b", fontSize: 11, fontWeight: 700 }}>
+      <span title="No confirmation needed for this item" style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "var(--muted)", fontSize: 11, fontWeight: 700 }}>
         <MinusCircle size={size} />N/A
       </span>
     );
@@ -185,7 +185,7 @@ export function NoConfirmationToggle({ checked, onChange }: {
   checked: boolean; onChange: (next: boolean) => void;
 }) {
   return (
-    <label style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, color: "#64748b", cursor: "pointer", fontWeight: 600 }}>
+    <label style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, color: "var(--muted)", cursor: "pointer", fontWeight: 600 }}>
       <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)}
         style={{ accentColor: BRAND.navy, width: 13, height: 13, cursor: "pointer" }} />
       No confirmation needed
@@ -201,7 +201,7 @@ export function ConfirmationFileChips({ urls }: { urls: string[] }) {
     <>
       {urls.map(url => (
         <a key={url} href={url} target="_blank" rel="noreferrer" title={fileLabel(url)}
-          style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 600, color: "#15803d", textDecoration: "none", maxWidth: 200 }}>
+          style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "var(--green-bg-soft)", border: "1px solid var(--green-border)", borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 600, color: "var(--green-text)", textDecoration: "none", maxWidth: 200 }}>
           {isExternalLink(url) ? <LinkIcon size={12} style={{ flexShrink: 0 }} /> : isPdf(url) ? <FileText size={12} style={{ flexShrink: 0 }} /> : <ImageIcon size={12} style={{ flexShrink: 0 }} />}
           <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{fileLabel(url)}</span>
         </a>
@@ -244,14 +244,14 @@ export default function ItemConfirmationControl({ tourId, itemId, urls, notRequi
       {linked && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
           {urls.map(url => (
-            <span key={url} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 7, padding: "4px 8px", fontSize: 11, maxWidth: 240 }}>
-              {isExternalLink(url) ? <LinkIcon size={13} color="#0369a1" style={{ flexShrink: 0 }} /> : isPdf(url) ? <FileText size={13} color="#dc2626" style={{ flexShrink: 0 }} /> : <ImageIcon size={13} color="#0891b2" style={{ flexShrink: 0 }} />}
-              <a href={url} target="_blank" rel="noreferrer" style={{ color: "#1e293b", textDecoration: "none", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            <span key={url} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 7, padding: "4px 8px", fontSize: 11, maxWidth: 240 }}>
+              {isExternalLink(url) ? <LinkIcon size={13} style={{ flexShrink: 0, color: "var(--sky-text)" }} /> : isPdf(url) ? <FileText size={13} color="#dc2626" style={{ flexShrink: 0 }} /> : <ImageIcon size={13} color="#0891b2" style={{ flexShrink: 0 }} />}
+              <a href={url} target="_blank" rel="noreferrer" style={{ color: "var(--text)", textDecoration: "none", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {fileLabel(url)}
               </a>
               {isOwner && (
                 <button type="button" title="Remove confirmation" onClick={() => removeFile(url)}
-                  style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 0, lineHeight: 0, flexShrink: 0 }}>
+                  style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted-2)", padding: 0, lineHeight: 0, flexShrink: 0 }}>
                   <X size={12} strokeWidth={3} />
                 </button>
               )}
@@ -266,7 +266,7 @@ export default function ItemConfirmationControl({ tourId, itemId, urls, notRequi
           <input ref={inputRef} type="file" accept="image/*,.pdf" multiple style={{ display: "none" }}
             onChange={e => handleFiles(e.target.files)} />
           <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading}
-            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: 8, border: "1.5px dashed #cbd5e1", background: "#fff", cursor: uploading ? "default" : "pointer", fontSize: 12, fontWeight: 600, color: "#475569", fontFamily: "inherit", opacity: uploading ? 0.6 : 1 }}>
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: 8, border: "1.5px dashed var(--border-strong)", background: "var(--surface)", cursor: uploading ? "default" : "pointer", fontSize: 12, fontWeight: 600, color: "var(--text-2)", fontFamily: "inherit", opacity: uploading ? 0.6 : 1 }}>
             <Upload size={14} />{uploading ? "Uploading..." : linked ? "Add Another (PDF or image)" : "Upload Confirmation (PDF or image)"}
           </button>
           {linkOpen ? (
@@ -274,20 +274,20 @@ export default function ItemConfirmationControl({ tourId, itemId, urls, notRequi
               <input autoFocus value={linkVal} placeholder="Paste link (e.g. Google Drive)"
                 onChange={e => setLinkVal(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter") submitLink(); if (e.key === "Escape") { setLinkOpen(false); setLinkVal(""); } }}
-                style={{ border: "1px solid #cbd5e1", borderRadius: 7, padding: "6px 9px", fontSize: 12, fontFamily: "inherit", width: 220 }} />
+                style={{ border: "1px solid var(--border-strong)", borderRadius: 7, padding: "6px 9px", fontSize: 12, fontFamily: "inherit", width: 220 }} />
               <button type="button" onClick={submitLink}
                 style={{ background: BRAND.blue, color: "#fff", border: "none", borderRadius: 7, padding: "6px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                 Save
               </button>
               <button type="button" onClick={() => { setLinkOpen(false); setLinkVal(""); }}
-                style={{ background: "#fff", color: "#64748b", border: "1px solid #e2e8f0", borderRadius: 7, padding: "6px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                style={{ background: "var(--surface)", color: "var(--muted)", border: "1px solid var(--border)", borderRadius: 7, padding: "6px 10px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
                 Cancel
               </button>
             </span>
           ) : (
             <button type="button" title="Attach a link instead of a file (e.g. your Google Drive)"
               onClick={() => setLinkOpen(true)}
-              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: 8, border: "1.5px dashed #cbd5e1", background: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#475569", fontFamily: "inherit" }}>
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: 8, border: "1.5px dashed var(--border-strong)", background: "var(--surface)", cursor: "pointer", fontSize: 12, fontWeight: 600, color: "var(--text-2)", fontFamily: "inherit" }}>
               <LinkIcon size={13} />Attach Link
             </button>
           )}

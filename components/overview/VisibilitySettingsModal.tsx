@@ -20,27 +20,27 @@ export default function VisibilitySettingsModal({ onClose }: { onClose: () => vo
     >
       <div
         onClick={e => e.stopPropagation()}
-        style={{ background: "#fff", borderRadius: 16, padding: 24, width: "100%", maxWidth: 420, boxShadow: "0 20px 60px rgba(0,0,0,.2)" }}
+        style={{ background: "var(--surface)", borderRadius: 16, padding: 24, width: "100%", maxWidth: 420, boxShadow: "0 20px 60px rgba(0,0,0,.2)" }}
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 9, background: "#eef2f7", display: "flex", alignItems: "center", justifyContent: "center", color: BRAND.navy }}>
+            <div style={{ width: 32, height: 32, borderRadius: 9, background: "var(--border-soft)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ink)" }}>
               <Settings size={17} />
             </div>
-            <span style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.03em", fontSize: 17, fontWeight: 400, color: BRAND.navy }}>
+            <span style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.03em", fontSize: 17, fontWeight: 400, color: "var(--ink)" }}>
               Visibility Controls
             </span>
           </div>
-          <button onClick={onClose} aria-label="Close" style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 4 }}>
+          <button onClick={onClose} aria-label="Close" style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted-2)", padding: 4 }}>
             <X size={18} />
           </button>
         </div>
 
-        <div style={{ background: "#f8fafc", border: "1.5px dashed #e2e8f0", borderRadius: 12, padding: "18px 16px", textAlign: "center" }}>
-          <span style={{ fontSize: 9, fontWeight: 700, color: "#94a3b8", background: "#eef2f7", borderRadius: 20, padding: "3px 9px", textTransform: "uppercase", letterSpacing: 0.5 }}>
+        <div style={{ background: "var(--surface-2)", border: "1.5px dashed var(--border)", borderRadius: 12, padding: "18px 16px", textAlign: "center" }}>
+          <span style={{ fontSize: 9, fontWeight: 700, color: "var(--muted-2)", background: "var(--border-soft)", borderRadius: 20, padding: "3px 9px", textTransform: "uppercase", letterSpacing: 0.5 }}>
             Coming Soon
           </span>
-          <p style={{ fontSize: 13, color: "#475569", lineHeight: 1.6, margin: "12px 0 0" }}>
+          <p style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.6, margin: "12px 0 0" }}>
             Admin visibility controls coming soon — configure what data hosts can see on this page.
           </p>
         </div>

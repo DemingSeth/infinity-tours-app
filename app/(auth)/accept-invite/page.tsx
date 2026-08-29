@@ -110,13 +110,13 @@ export default function AcceptInvitePage() {
 
   const inp: React.CSSProperties = {
     width: "100%",
-    border: "1.5px solid #e2e8f0",
+    border: "1.5px solid var(--border)",
     borderRadius: 8,
     padding: "10px 14px",
     fontSize: 14,
-    color: "#1e293b",
+    color: "var(--text)",
     fontFamily: "inherit",
-    background: "#fff",
+    background: "var(--surface)",
     outline: "none",
     boxSizing: "border-box",
   };
@@ -124,25 +124,25 @@ export default function AcceptInvitePage() {
   return (
     <div style={{ minHeight: "100vh", background: BRAND.navy, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
       <div style={{ width: "100%", maxWidth: 400 }}>
-        <div style={{ background: "#fff", borderRadius: 16, overflow: "hidden", boxShadow: "0 24px 80px rgba(0,0,0,0.3)" }}>
-          <div style={{ padding: "28px 32px 22px", textAlign: "center", borderBottom: "1px solid #f1f5f9" }}>
+        <div style={{ background: "var(--surface)", borderRadius: 16, overflow: "hidden", boxShadow: "0 24px 80px rgba(0,0,0,0.3)" }}>
+          <div style={{ padding: "28px 32px 22px", textAlign: "center", borderBottom: "1px solid var(--surface-3)" }}>
             <div style={{ display: "flex", justifyContent: "center" }}>
               <InfinityLogoImg height={56} />
             </div>
           </div>
 
           <div style={{ padding: "28px 32px 32px" }}>
-            <h2 style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", fontSize: 22, fontWeight: 400, color: BRAND.navy, margin: "0 0 24px" }}>
+            <h2 style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", fontSize: 22, fontWeight: 400, color: "var(--ink)", margin: "0 0 24px" }}>
               {greeting ? `Welcome, ${greeting}` : "Welcome to Infinity Tours"}
             </h2>
 
             {status === "checking" && (
-              <p style={{ fontSize: 13, color: "#64748b", margin: 0 }}>Verifying your invite...</p>
+              <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>Verifying your invite...</p>
             )}
 
             {status === "invalid" && (
               <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                <div style={{ background: "#fee2e2", color: "#b91c1c", borderRadius: 8, padding: "12px 14px", fontSize: 13, lineHeight: 1.5 }}>
+                <div style={{ background: "var(--red-bg)", color: "var(--red-text)", borderRadius: 8, padding: "12px 14px", fontSize: 13, lineHeight: 1.5 }}>
                   This invite link is invalid or has expired. If you already set a password, sign in
                   below. Otherwise ask your administrator to send a new invite.
                 </div>
@@ -154,12 +154,12 @@ export default function AcceptInvitePage() {
 
             {(status === "ready" || status === "saving") && (
               <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                <p style={{ fontSize: 13, color: "#64748b", lineHeight: 1.5, margin: 0 }}>
+                <p style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.5, margin: 0 }}>
                   Choose a password to finish setting up your account.
                 </p>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                  <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.8 }}>Password</label>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: 0.8 }}>Password</label>
                   <input
                     style={inp}
                     type="password"
@@ -173,7 +173,7 @@ export default function AcceptInvitePage() {
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                  <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.8 }}>Confirm password</label>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: 0.8 }}>Confirm password</label>
                   <input
                     style={inp}
                     type="password"
@@ -187,7 +187,7 @@ export default function AcceptInvitePage() {
                 </div>
 
                 {error && (
-                  <div style={{ background: "#fee2e2", color: "#b91c1c", borderRadius: 8, padding: "10px 14px", fontSize: 13 }}>
+                  <div style={{ background: "var(--red-bg)", color: "var(--red-text)", borderRadius: 8, padding: "10px 14px", fontSize: 13 }}>
                     {error}
                   </div>
                 )}

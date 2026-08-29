@@ -70,15 +70,15 @@ export default function PipelineView({
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, flexWrap: "wrap", gap: 10 }}>
         <div>
-          <h2 style={{ fontSize: 26, fontWeight: 400, color: BRAND.navy, fontFamily: "'Fjalla One', Georgia, sans-serif", margin: 0, letterSpacing: -0.5 }}>
+          <h2 style={{ fontSize: 26, fontWeight: 400, color: "var(--ink)", fontFamily: "'Fjalla One', Georgia, sans-serif", margin: 0, letterSpacing: -0.5 }}>
             Tour Pipeline
           </h2>
-          <p style={{ color: "#64748b", fontSize: 13, marginTop: 4, marginBottom: 0 }}>
+          <p style={{ color: "var(--muted)", fontSize: 13, marginTop: 4, marginBottom: 0 }}>
             {filtered.length} tour{filtered.length !== 1 ? "s" : ""} · logged in as <strong>{currentHostName}</strong>
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <div style={{ display: "flex", gap: 1, background: "#f1f5f9", borderRadius: 8, padding: 3 }}>
+          <div style={{ display: "flex", gap: 1, background: "var(--surface-3)", borderRadius: 8, padding: 3 }}>
             {([{ value: "departure", label: "By Departure" }, { value: "recent", label: "Recently Added" }] as const).map(opt => (
               <button
                 key={opt.value}
@@ -87,8 +87,8 @@ export default function PipelineView({
                 style={{
                   padding: "5px 14px", borderRadius: 6, border: "none", cursor: "pointer",
                   fontSize: 12, fontWeight: 600, fontFamily: "inherit",
-                  background: sortMode === opt.value ? "#fff" : "transparent",
-                  color: sortMode === opt.value ? BRAND.navy : "#94a3b8",
+                  background: sortMode === opt.value ? "var(--surface)" : "transparent",
+                  color: sortMode === opt.value ? "var(--ink)" : "var(--muted-2)",
                   boxShadow: sortMode === opt.value ? "0 1px 3px rgba(0,0,0,.08)" : "none",
                   transition: "all .12s",
                 }}
@@ -97,7 +97,7 @@ export default function PipelineView({
               </button>
             ))}
           </div>
-          <div style={{ display: "flex", gap: 1, background: "#f1f5f9", borderRadius: 8, padding: 3 }}>
+          <div style={{ display: "flex", gap: 1, background: "var(--surface-3)", borderRadius: 8, padding: 3 }}>
             {([{ value: "mine", label: "My Tours" }, { value: "all", label: "All Tours" }] as const).map(opt => (
               <button
                 key={opt.value}
@@ -105,8 +105,8 @@ export default function PipelineView({
                 style={{
                   padding: "5px 14px", borderRadius: 6, border: "none", cursor: "pointer",
                   fontSize: 12, fontWeight: 600, fontFamily: "inherit",
-                  background: hostFilter === opt.value ? "#fff" : "transparent",
-                  color: hostFilter === opt.value ? BRAND.navy : "#94a3b8",
+                  background: hostFilter === opt.value ? "var(--surface)" : "transparent",
+                  color: hostFilter === opt.value ? "var(--ink)" : "var(--muted-2)",
                   boxShadow: hostFilter === opt.value ? "0 1px 3px rgba(0,0,0,.08)" : "none",
                   transition: "all .12s",
                 }}
@@ -142,10 +142,10 @@ export default function PipelineView({
                 title={collapsed ? `Show ${st.label} tours` : `Hide ${st.label} tours`}
                 style={{ width: "100%", display: "flex", alignItems: "center", gap: 7, marginBottom: 10, background: "none", border: "none", padding: "4px 0", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}
               >
-                {collapsed ? <ChevronRight size={13} color="#94a3b8" /> : <ChevronDown size={13} color="#94a3b8" />}
+                {collapsed ? <ChevronRight size={13} style={{ color: "var(--muted-2)" }} /> : <ChevronDown size={13} style={{ color: "var(--muted-2)" }} />}
                 <span style={{ width: 8, height: 8, borderRadius: "50%", background: st.dot, display: "inline-block" }} />
                 <span style={{ fontSize: 11, fontWeight: 700, color: st.color, textTransform: "uppercase", letterSpacing: 0.8 }}>{st.label}</span>
-                <span style={{ fontSize: 11, color: "#94a3b8", marginLeft: "auto" }}>{col.length}</span>
+                <span style={{ fontSize: 11, color: "var(--muted-2)", marginLeft: "auto" }}>{col.length}</span>
               </button>
               <div style={{ display: collapsed ? "none" : "flex", flexDirection: "column", gap: 8 }}>
                 {col.map(t => (
@@ -161,7 +161,7 @@ export default function PipelineView({
                   />
                 ))}
                 {col.length === 0 && (
-                  <div style={{ border: "2px dashed #e2e8f0", borderRadius: 10, padding: 18, textAlign: "center", color: "#cbd5e1", fontSize: 12 }}>
+                  <div style={{ border: "2px dashed var(--border)", borderRadius: 10, padding: 18, textAlign: "center", color: "var(--muted-3)", fontSize: 12 }}>
                     No tours
                   </div>
                 )}

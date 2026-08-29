@@ -250,6 +250,9 @@ export interface TourRow {
   // also shown on the Teacher view. Tour hosts always see them; students,
   // chaperones and bus drivers never do.
   confirmations_teacher_visible: boolean;
+  // Host-chosen order of the Trip Information rows (row keys such as
+  // "teacher", "flight", "custom:<id>"). Missing keys append in default order.
+  trip_info_row_order: string[];
   created_at: string;
   updated_at: string;
 }
@@ -321,6 +324,8 @@ export interface AgendaItemRow {
   elevate_url: string | null;
   // Group ids (tours.groups) this item applies to. Empty = everyone.
   group_tags: string[];
+  // Write-in type name when the "Other (write in)" sub-type is chosen.
+  custom_type_label: string | null;
   // Bus-driver map images for THIS item (host + driver only), e.g. a parking
   // or drop-off map for the stop. Separate from image_urls (visible to all).
   driver_map_urls: string[];
@@ -515,6 +520,8 @@ export interface TripInfo {
   personaLabels: Record<string, string>;
   // Whether teachers may see the confirmation links.
   confirmationsTeacherVisible: boolean;
+  // Host-chosen Trip Information row order (row keys); empty = default.
+  rowOrder: string[];
   flightName: string | null;
   flightAddress: string | null;
   hasFlight: boolean; // whether a flight travel item exists on the itinerary

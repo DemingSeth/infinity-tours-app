@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { BRAND } from "@/lib/helpers";
 import PipelineView from "@/components/pipeline/PipelineView";
 import NewTourModal from "@/components/pipeline/NewTourModal";
 import type { EditorViewer } from "@/lib/roles";
@@ -129,6 +128,7 @@ export default function PipelineClient({ initialTours, currentHostId, currentHos
         banner_focus_y: source.banner_focus_y,
         groups: source.groups,
         confirmations_teacher_visible: source.confirmations_teacher_visible,
+        trip_info_row_order: source.trip_info_row_order,
       })
       .select("*, tour_hosts(id, name, initials), tour_members(id, type, waiver)")
       .single();
@@ -179,6 +179,7 @@ export default function PipelineClient({ initialTours, currentHostId, currentHos
             meeting_icon_color: item.meeting_icon_color,
             elevate_url: item.elevate_url,
             group_tags: item.group_tags,
+            custom_type_label: item.custom_type_label,
             contact_name: item.contact_name,
             contact_phone: item.contact_phone,
             contact_email: item.contact_email,
@@ -227,22 +228,22 @@ export default function PipelineClient({ initialTours, currentHostId, currentHos
       )}
       {deleteTarget && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-          <div style={{ background: "#fff", borderRadius: 16, padding: 24, maxWidth: 440, width: "100%", boxShadow: "0 20px 60px rgba(0,0,0,.2)" }}>
-            <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 17, fontWeight: 400, color: BRAND.navy, marginBottom: 10 }}>
+          <div style={{ background: "var(--surface)", borderRadius: 16, padding: 24, maxWidth: 440, width: "100%", boxShadow: "0 20px 60px rgba(0,0,0,.2)" }}>
+            <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 17, fontWeight: 400, color: "var(--ink)", marginBottom: 10 }}>
               Delete Tour?
             </div>
-            <p style={{ fontSize: 13, color: "#475569", margin: "0 0 8px", lineHeight: 1.6 }}>
+            <p style={{ fontSize: 13, color: "var(--text-2)", margin: "0 0 8px", lineHeight: 1.6 }}>
               You&rsquo;re about to permanently delete <strong>{deleteTarget.name}</strong>
               {deleteTarget.school ? <> ({deleteTarget.school})</> : null}, including its itinerary, roster, confirmations, and notes.
             </p>
-            <p style={{ fontSize: 12, color: "#94a3b8", margin: "0 0 18px", lineHeight: 1.6 }}>
+            <p style={{ fontSize: 12, color: "var(--muted-2)", margin: "0 0 18px", lineHeight: 1.6 }}>
               Use this for accidental duplicates or groups that are no longer traveling. This cannot be undone.
             </p>
             <div style={{ display: "flex", gap: 8 }}>
               <button
                 onClick={() => setDeleteTarget(null)}
                 disabled={deleting}
-                style={{ flex: 1, background: "#f1f5f9", color: "#64748b", border: "1.5px solid #e2e8f0", borderRadius: 8, padding: "9px 0", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+                style={{ flex: 1, background: "var(--surface-3)", color: "var(--muted)", border: "1.5px solid var(--border)", borderRadius: 8, padding: "9px 0", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
               >
                 Cancel
               </button>

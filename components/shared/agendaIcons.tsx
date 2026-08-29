@@ -4,7 +4,8 @@ import {
   Plane, Bus, TrainFront, CarTaxiFront, TramFront, Sailboat, Ship, Fuel,
   RollerCoaster, Music, Drama, Hotel, MapPin, Smile,
   Sun, Moon, Star, Umbrella, Sparkles, ClipboardList,
-  Meh, Frown, Ticket, Landmark, Trophy, MicVocal, PackageOpen, type LucideIcon,
+  Meh, Frown, Ticket, Landmark, Trophy, MicVocal, PackageOpen, PartyPopper,
+  Coffee, Sandwich, UtensilsCrossed, Cookie, type LucideIcon,
 } from "lucide-react";
 
 // Icons accept the same prop subset Lucide does, so custom SVGs and Lucide
@@ -128,7 +129,7 @@ function ForkKnife(props: IconProps) {
 // ── Default icon + accent color per top-level type ─────────────────────────────
 export const AGENDA_TYPE_ICONS: Record<string, AgendaIcon> = {
   travel: Plane,             // overridden by the travel sub-type when set
-  activity: Sparkles,        // default Activity icon (no sub-type picked) - August 2026 request
+  activity: PartyPopper,     // default Activity icon (no sub-type picked); distinct from General's sparkles
   food: ForkKnife,           // fork + knife
   hotel: Hotel,
   free: Smile,               // leisure / downtime
@@ -171,12 +172,20 @@ export const ACTIVITY_SUBTYPE_ICONS: Record<string, AgendaIcon> = {
   clinic: TrebleClef,        // Clinic / Workshop
   performance: MicVocal,     // Performance (distinct from a clinic)
   game: Trophy,              // Game / Tournament (sports teams)
-  delivered_meal: PackageOpen,
   concert: Music,
   broadway: Drama,
   play_show: Ticket,
   museum: Landmark,
   other: Sparkles,
+};
+
+// Dining sub-types (stored in activity_subtypes like the others).
+export const FOOD_SUBTYPE_ICONS: Record<string, AgendaIcon> = {
+  breakfast: Coffee,
+  lunch: Sandwich,
+  dinner: UtensilsCrossed,
+  snack: Cookie,
+  delivered: PackageOpen,
 };
 
 // Instructions sub-types (stored in the item's activity_subtype field).
@@ -197,6 +206,7 @@ export const GENERAL_SUBTYPE_ICONS: Record<string, AgendaIcon> = {
 const SUBTYPE_ICON_MAPS: Record<string, Record<string, AgendaIcon>> = {
   travel: TRAVEL_SUBTYPE_ICONS,
   activity: ACTIVITY_SUBTYPE_ICONS,
+  food: FOOD_SUBTYPE_ICONS,
   instructions: INSTRUCTION_SUBTYPE_ICONS,
   general: GENERAL_SUBTYPE_ICONS,
 };

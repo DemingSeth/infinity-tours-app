@@ -216,23 +216,23 @@ export default function AdminUsersClient({
                   const pending = status === "Invitation pending";
 
                   return (
-                    <tr key={row.id} style={{ borderTop: "1px solid #f1f5f9", opacity: row.is_active ? 1 : 0.65 }}>
+                    <tr key={row.id} style={{ borderTop: "1px solid var(--surface-3)", opacity: row.is_active ? 1 : 0.65 }}>
                       <td style={td}>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <div style={avatar}>{row.initials || initialsFrom(row.name, "TH")}</div>
                           <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                            <span style={{ fontWeight: 600, color: "#1e293b" }}>
+                            <span style={{ fontWeight: 600, color: "var(--text)" }}>
                               {row.name}
-                              {isSelf && <span style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8" }}> (you)</span>}
+                              {isSelf && <span style={{ fontSize: 11, fontWeight: 600, color: "var(--muted-2)" }}> (you)</span>}
                             </span>
-                            <span style={{ fontSize: 12, color: "#64748b" }}>{row.email}</span>
+                            <span style={{ fontSize: 12, color: "var(--muted)" }}>{row.email}</span>
                           </div>
                         </div>
                       </td>
 
                       <td style={td}>
                         {locked ? (
-                          <span style={{ color: "#64748b" }}>{ROLE_LABELS[row.role]}</span>
+                          <span style={{ color: "var(--muted)" }}>{ROLE_LABELS[row.role]}</span>
                         ) : (
                           <select
                             value={row.role}
@@ -256,7 +256,7 @@ export default function AdminUsersClient({
                         <span style={pill(status)}>{status}</span>
                       </td>
 
-                      <td style={{ ...td, color: "#64748b", whiteSpace: "nowrap" }}>
+                      <td style={{ ...td, color: "var(--muted)", whiteSpace: "nowrap" }}>
                         {row.last_sign_in_at
                           ? formatStamp(row.last_sign_in_at)
                           : row.invited_at
@@ -266,7 +266,7 @@ export default function AdminUsersClient({
 
                       <td style={{ ...td, textAlign: "right", whiteSpace: "nowrap" }}>
                         {locked ? (
-                          <span style={{ fontSize: 12, color: "#cbd5e1" }}>-</span>
+                          <span style={{ fontSize: 12, color: "var(--muted-3)" }}>-</span>
                         ) : (
                           <div style={{ display: "inline-flex", alignItems: "center", gap: 14 }}>
                             {/* Resending and withdrawing both destroy and rebuild
@@ -285,7 +285,7 @@ export default function AdminUsersClient({
                                 <button
                                   onClick={() => run(row.id, () => revokeInvite(row.id))}
                                   disabled={busy}
-                                  style={linkBtn(busy, "#b91c1c")}
+                                  style={linkBtn(busy, "var(--red-text)")}
                                 >
                                   Withdraw
                                 </button>
@@ -300,7 +300,7 @@ export default function AdminUsersClient({
                                       : `${row.name} can sign in again.`)
                                 }
                                 disabled={busy}
-                                style={linkBtn(busy, row.is_active ? "#b91c1c" : BRAND.blue)}
+                                style={linkBtn(busy, row.is_active ? "var(--red-text)" : BRAND.blue)}
                               >
                                 {saving ? "Working..." : row.is_active ? "Turn off access" : "Turn access back on"}
                               </button>
@@ -323,8 +323,8 @@ export default function AdminUsersClient({
 function Notice({ ok, text }: Msg) {
   return (
     <div style={{
-      background: ok ? "#dcfce7" : "#fee2e2",
-      color: ok ? "#15803d" : "#b91c1c",
+      background: ok ? "var(--green-bg)" : "var(--red-bg)",
+      color: ok ? "var(--green-text)" : "var(--red-text)",
       borderRadius: 8, padding: "9px 13px", fontSize: 13, lineHeight: 1.5,
     }}>
       {text}
@@ -357,13 +357,13 @@ const pageTitle: React.CSSProperties = {
   letterSpacing: "0.03em",
   fontSize: 24,
   fontWeight: 400,
-  color: BRAND.navy,
+  color: "var(--ink)",
   margin: 0,
 };
 
 const card: React.CSSProperties = {
-  background: "#fff",
-  border: "1.5px solid #e8eef4",
+  background: "var(--surface)",
+  border: "1.5px solid var(--border-soft)",
   borderRadius: 14,
   padding: 20,
 };
@@ -373,13 +373,13 @@ const sectionTitle: React.CSSProperties = {
   letterSpacing: "0.03em",
   fontSize: 15,
   fontWeight: 700,
-  color: BRAND.navy,
+  color: "var(--ink)",
   margin: "0 0 14px",
 };
 
 const helpText: React.CSSProperties = {
   fontSize: 13,
-  color: "#64748b",
+  color: "var(--muted)",
   lineHeight: 1.5,
   margin: "0 0 14px",
 };
@@ -387,20 +387,20 @@ const helpText: React.CSSProperties = {
 const fieldLabel: React.CSSProperties = {
   fontSize: 11,
   fontWeight: 700,
-  color: "#94a3b8",
+  color: "var(--muted-2)",
   textTransform: "uppercase",
   letterSpacing: 0.8,
 };
 
 const inp: React.CSSProperties = {
   width: "100%",
-  border: "1.5px solid #e2e8f0",
+  border: "1.5px solid var(--border)",
   borderRadius: 8,
   padding: "10px 14px",
   fontSize: 14,
-  color: "#1e293b",
+  color: "var(--text)",
   fontFamily: "inherit",
-  background: "#fff",
+  background: "var(--surface)",
   outline: "none",
   boxSizing: "border-box",
 };
@@ -409,7 +409,7 @@ const th: React.CSSProperties = {
   textAlign: "left",
   fontSize: 11,
   fontWeight: 700,
-  color: "#94a3b8",
+  color: "var(--muted-2)",
   textTransform: "uppercase",
   letterSpacing: 0.8,
   padding: "0 12px 10px 0",
@@ -418,7 +418,7 @@ const th: React.CSSProperties = {
 
 const td: React.CSSProperties = {
   fontSize: 13,
-  color: "#1e293b",
+  color: "var(--text)",
   padding: "12px 12px 12px 0",
   verticalAlign: "middle",
 };
@@ -439,7 +439,7 @@ const avatar: React.CSSProperties = {
 
 const STATUS_COLORS: Record<Status, { bg: string; fg: string }> = {
   Active: { bg: "#ecfdf5", fg: "#065f46" },
-  "Invitation pending": { bg: "#fef3c7", fg: "#92400e" },
+  "Invitation pending": { bg: "var(--amber-bg)", fg: "var(--amber-text)" },
   Deactivated: { bg: "#f3f4f6", fg: "#374151" },
 };
 
@@ -480,7 +480,7 @@ function linkBtn(busy: boolean, color: string): React.CSSProperties {
     fontSize: 13,
     fontWeight: 600,
     fontFamily: "inherit",
-    color: busy ? "#94a3b8" : color,
+    color: busy ? "var(--muted-2)" : color,
     cursor: busy ? "wait" : "pointer",
     whiteSpace: "nowrap",
   };

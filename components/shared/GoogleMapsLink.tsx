@@ -10,7 +10,7 @@ import { getMapUrl } from "@/lib/helpers";
 export default function GoogleMapsLink({
   address = null,
   mapLink = null,
-  color = "#0369a1",
+  color = "var(--sky-text)",
   fontSize = 11,
   style,
 }: {

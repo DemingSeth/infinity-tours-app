@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef } from "react";
 import { Star } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { BRAND, ROLES } from "@/lib/helpers";
+import { ROLES } from "@/lib/helpers";
 import { getSentimentIcon } from "@/components/shared/agendaIcons";
 import { Tex, Btn } from "@/components/tour/ui";
 import type { TourRow, PostTripRow, PostTripReviewRow, AgendaDayWithItems, AgendaFeedbackRow } from "@/lib/types";
@@ -31,8 +31,8 @@ interface Props {
   currentUserId: string;
 }
 
-const cardStyle: React.CSSProperties = { background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 12, padding: 16 };
-const headingStyle: React.CSSProperties = { fontSize: 15, fontWeight: 400, color: BRAND.navy, fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", marginBottom: 12 };
+const cardStyle: React.CSSProperties = { background: "var(--surface)", border: "1.5px solid var(--border-soft)", borderRadius: 12, padding: 16 };
+const headingStyle: React.CSSProperties = { fontSize: 15, fontWeight: 400, color: "var(--ink)", fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", marginBottom: 12 };
 
 export default function PostTripTab({ tour, days, initialPostTrip, initialReview, generalFeedback, currentUserId }: Props) {
   const [postTrip, setPostTrip] = useState<PostTripRow | null>(initialPostTrip);
@@ -81,12 +81,12 @@ export default function PostTripTab({ tour, days, initialPostTrip, initialReview
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {/* Status bar */}
-      <div style={{ background: isComplete ? "#f0fdf4" : "#fffbeb", border: `1.5px solid ${isComplete ? "#bbf7d0" : "#fcd34d"}`, borderRadius: 12, padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: isComplete ? "#065f46" : "#92400e" }}>
+      <div style={{ background: isComplete ? "var(--green-bg-soft)" : "var(--amber-bg-soft)", border: `1.5px solid ${isComplete ? "var(--green-border)" : "var(--amber-border)"}`, borderRadius: 12, padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span style={{ fontSize: 13, fontWeight: 600, color: isComplete ? "var(--green-text)" : "var(--amber-text)" }}>
           {isComplete ? "Post-trip debrief complete" : "Post-trip debrief in progress"}
         </span>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          {(saving || saved) && <span style={{ fontSize: 11, color: "#94a3b8" }}>{saving ? "Saving..." : "Saved"}</span>}
+          {(saving || saved) && <span style={{ fontSize: 11, color: "var(--muted-2)" }}>{saving ? "Saving..." : "Saved"}</span>}
           <Btn onClick={toggleComplete} variant={isComplete ? "muted" : undefined} small>
             {isComplete ? "Re-open" : "Mark Complete"}
           </Btn>
@@ -96,7 +96,7 @@ export default function PostTripTab({ tour, days, initialPostTrip, initialReview
       {/* Debrief fields (host working notes) */}
       {DEBRIEF_FIELDS.map(({ key, label, placeholder }) => (
         <div key={key} style={cardStyle}>
-          <div style={{ fontSize: 13, fontWeight: 400, color: BRAND.navy, fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", marginBottom: 8 }}>{label}</div>
+          <div style={{ fontSize: 13, fontWeight: 400, color: "var(--ink)", fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", marginBottom: 8 }}>{label}</div>
           <Tex
             value={(draft[key] as string) || ""}
             onChange={e => update({ [key]: e.target.value })}
@@ -114,22 +114,22 @@ export default function PostTripTab({ tour, days, initialPostTrip, initialReview
 
       {/* 0. Overall Tour Feedback — whole-tour responses (null item_id), kept
              clearly separate from the per-item responses below. */}
-      <div style={{ ...cardStyle, borderColor: "#bae6fd", background: "#f8fcff" }}>
+      <div style={{ ...cardStyle, borderColor: "var(--sky-border)", background: "var(--surface-2)" }}>
         <div style={headingStyle}>
           Overall Tour Feedback{generalFeedback.length > 0 ? ` (${generalFeedback.length} response${generalFeedback.length !== 1 ? "s" : ""})` : ""}
         </div>
 
         {generalFeedback.length === 0 ? (
-          <div style={{ fontSize: 12, color: "#94a3b8" }}>
+          <div style={{ fontSize: 12, color: "var(--muted-2)" }}>
             No overall tour feedback yet. Students and guests are invited to rate the whole tour from the bottom of the shared itinerary (and a banner on the final day).
           </div>
         ) : (
           <>
             <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
               {[
-                { sentiment: "😊", label: "Great", col: "#166534", bg: "#f0fdf4" },
-                { sentiment: "😐", label: "OK",    col: "#92400e", bg: "#fef3c7" },
-                { sentiment: "😞", label: "Poor",  col: "#b91c1c", bg: "#fee2e2" },
+                { sentiment: "😊", label: "Great", col: "var(--green-text)", bg: "var(--green-bg-soft)" },
+                { sentiment: "😐", label: "OK",    col: "var(--amber-text)", bg: "var(--amber-bg)" },
+                { sentiment: "😞", label: "Poor",  col: "var(--red-text)", bg: "var(--red-bg)" },
               ].map(s => {
                 const count = generalFeedback.filter(f => f.sentiment === s.sentiment).length;
                 const { Icon } = getSentimentIcon(s.sentiment);
@@ -147,18 +147,18 @@ export default function PostTripTab({ tour, days, initialPostTrip, initialReview
               {generalFeedback.map(fb => {
                 const { Icon, color } = getSentimentIcon(fb.sentiment);
                 return (
-                  <div key={fb.id} style={{ background: "#fff", border: "1px solid #e8eef4", borderRadius: 8, padding: "9px 12px", fontSize: 12, display: "flex", gap: 8, alignItems: "flex-start" }}>
+                  <div key={fb.id} style={{ background: "var(--surface)", border: "1px solid var(--border-soft)", borderRadius: 8, padding: "9px 12px", fontSize: 12, display: "flex", gap: 8, alignItems: "flex-start" }}>
                     <Icon size={17} color={color} style={{ flexShrink: 0, marginTop: 1 }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", gap: 8, marginBottom: 2, alignItems: "center", flexWrap: "wrap" }}>
-                        <span style={{ background: ROLES_TYPED[fb.role]?.bg || "#f1f5f9", color: ROLES_TYPED[fb.role]?.color || "#475569", borderRadius: 4, padding: "1px 7px", fontSize: 10, fontWeight: 700 }}>
+                        <span style={{ background: ROLES_TYPED[fb.role]?.bg || "var(--surface-3)", color: ROLES_TYPED[fb.role]?.color || "var(--text-2)", borderRadius: 4, padding: "1px 7px", fontSize: 10, fontWeight: 700 }}>
                           {ROLES_TYPED[fb.role]?.label || fb.role}
                         </span>
                         <span style={{ fontSize: 11, fontWeight: 700, color }}>{SENTIMENT_LABEL[fb.sentiment] || fb.sentiment}</span>
                       </div>
-                      {fb.text && <div style={{ color: "#1e293b" }}>{fb.text}</div>}
+                      {fb.text && <div style={{ color: "var(--text)" }}>{fb.text}</div>}
                       {fb.highlight && (
-                        <div style={{ color: "#0c4a6e", marginTop: 4 }}>
+                        <div style={{ color: "var(--sky-text)", marginTop: 4 }}>
                           <span style={{ fontWeight: 700 }}>Highlight: </span>{fb.highlight}
                         </div>
                       )}
@@ -178,7 +178,7 @@ export default function PostTripTab({ tour, days, initialPostTrip, initialReview
         </div>
 
         {totalFeedback === 0 ? (
-          <div style={{ fontSize: 12, color: "#94a3b8" }}>
+          <div style={{ fontSize: 12, color: "var(--muted-2)" }}>
             No participant feedback has been submitted yet. Students, teachers, and chaperones can rate items from the shared itinerary view.
           </div>
         ) : (
@@ -190,9 +190,9 @@ export default function PostTripTab({ tour, days, initialPostTrip, initialReview
               return (
                 <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
                   {[
-                    { sentiment: "😊", label: "Good", col: "#166534", bg: "#f0fdf4" },
-                    { sentiment: "😐", label: "OK",   col: "#92400e", bg: "#fef3c7" },
-                    { sentiment: "😞", label: "Poor", col: "#b91c1c", bg: "#fee2e2" },
+                    { sentiment: "😊", label: "Good", col: "var(--green-text)", bg: "var(--green-bg-soft)" },
+                    { sentiment: "😐", label: "OK",   col: "var(--amber-text)", bg: "var(--amber-bg)" },
+                    { sentiment: "😞", label: "Poor", col: "var(--red-text)", bg: "var(--red-bg)" },
                   ].map(s => {
                     const count = all.filter(f => f.sentiment === s.sentiment).length;
                     const { Icon } = getSentimentIcon(s.sentiment);
@@ -212,24 +212,24 @@ export default function PostTripTab({ tour, days, initialPostTrip, initialReview
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               {feedbackByItem.map((group, gi) => (
                 <div key={gi}>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, color: BRAND.navy, marginBottom: 6, display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: "var(--ink)", marginBottom: 6, display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>
                     {group.itemTitle}
-                    <span style={{ fontSize: 10.5, color: "#94a3b8", fontWeight: 500 }}>{group.dayDate}</span>
+                    <span style={{ fontSize: 10.5, color: "var(--muted-2)", fontWeight: 500 }}>{group.dayDate}</span>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     {group.feedback.map(fb => {
                       const { Icon, color } = getSentimentIcon(fb.sentiment);
                       return (
-                        <div key={fb.id} style={{ background: "#f8fafc", borderRadius: 8, padding: "9px 12px", fontSize: 12, display: "flex", gap: 8, alignItems: "flex-start" }}>
+                        <div key={fb.id} style={{ background: "var(--surface-2)", borderRadius: 8, padding: "9px 12px", fontSize: 12, display: "flex", gap: 8, alignItems: "flex-start" }}>
                           <Icon size={17} color={color} style={{ flexShrink: 0, marginTop: 1 }} />
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ display: "flex", gap: 8, marginBottom: 2, alignItems: "center", flexWrap: "wrap" }}>
-                              <span style={{ background: ROLES_TYPED[fb.role]?.bg || "#f1f5f9", color: ROLES_TYPED[fb.role]?.color || "#475569", borderRadius: 4, padding: "1px 7px", fontSize: 10, fontWeight: 700 }}>
+                              <span style={{ background: ROLES_TYPED[fb.role]?.bg || "var(--surface-3)", color: ROLES_TYPED[fb.role]?.color || "var(--text-2)", borderRadius: 4, padding: "1px 7px", fontSize: 10, fontWeight: 700 }}>
                                 {ROLES_TYPED[fb.role]?.label || fb.role}
                               </span>
                               <span style={{ fontSize: 11, fontWeight: 700, color }}>{SENTIMENT_LABEL[fb.sentiment] || fb.sentiment}</span>
                             </div>
-                            {fb.text && <div style={{ color: "#1e293b" }}>{fb.text}</div>}
+                            {fb.text && <div style={{ color: "var(--text)" }}>{fb.text}</div>}
                           </div>
                         </div>
                       );
@@ -246,11 +246,11 @@ export default function PostTripTab({ tour, days, initialPostTrip, initialReview
       <PostTripSurvey tourId={tour.id} hostId={currentUserId} initialReview={initialReview} />
 
       {/* 4. Social / Share placeholder */}
-      <div style={{ background: "#f8fafc", border: "1.5px dashed #e2e8f0", borderRadius: 12, padding: 16, opacity: 0.85 }}>
-        <div style={{ fontSize: 15, fontWeight: 400, color: "#94a3b8", fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", marginBottom: 4 }}>
+      <div style={{ background: "var(--surface-2)", border: "1.5px dashed var(--border)", borderRadius: 12, padding: 16, opacity: 0.85 }}>
+        <div style={{ fontSize: 15, fontWeight: 400, color: "var(--muted-2)", fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", marginBottom: 4 }}>
           Social / Share
         </div>
-        <div style={{ fontSize: 12, color: "#cbd5e1" }}>Post-trip social sharing coming soon.</div>
+        <div style={{ fontSize: 12, color: "var(--muted-3)" }}>Post-trip social sharing coming soon.</div>
       </div>
     </div>
   );
@@ -321,7 +321,7 @@ function PostTripSurvey({ tourId, hostId, initialReview }: {
         <ReadRow label="What Went Well"><ReadText text={review.went_well} /></ReadRow>
         <ReadRow label="What to Improve"><ReadText text={review.to_improve} /></ReadRow>
         <ReadRow label="Notes for the Database"><ReadText text={review.vendor_notes} /></ReadRow>
-        <div style={{ fontSize: 10.5, color: "#94a3b8", marginTop: 6 }}>
+        <div style={{ fontSize: 10.5, color: "var(--muted-2)", marginTop: 6 }}>
           Submitted {new Date(review.submitted_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
         </div>
       </div>
@@ -353,7 +353,7 @@ function PostTripSurvey({ tourId, hostId, initialReview }: {
         <Tex value={vendorNotes} onChange={e => setVendorNotes(e.target.value)} placeholder="Vendor pricing changes, new contacts, quality issues to record..." style={{ minHeight: 70 }} />
       </div>
 
-      {error && <div style={{ fontSize: 12, color: "#b91c1c", marginBottom: 10 }}>{error}</div>}
+      {error && <div style={{ fontSize: 12, color: "var(--red-text)", marginBottom: 10 }}>{error}</div>}
 
       <div style={{ display: "flex", gap: 8 }}>
         <Btn onClick={submit} disabled={saving}>{saving ? "Saving…" : review ? "Update Survey" : "Submit Survey"}</Btn>
@@ -364,20 +364,20 @@ function PostTripSurvey({ tourId, hostId, initialReview }: {
 }
 
 function Label({ children }: { children: React.ReactNode }) {
-  return <div style={{ fontSize: 13, fontWeight: 400, color: BRAND.navy, fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", marginBottom: 8 }}>{children}</div>;
+  return <div style={{ fontSize: 13, fontWeight: 400, color: "var(--ink)", fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", marginBottom: 8 }}>{children}</div>;
 }
 
 function ReadRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 12 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>{label}</div>
       {children}
     </div>
   );
 }
 
 function ReadText({ text }: { text: string | null }) {
-  return <div style={{ fontSize: 13, color: text ? "#1e293b" : "#cbd5e1", whiteSpace: "pre-wrap" }}>{text || "—"}</div>;
+  return <div style={{ fontSize: 13, color: text ? "var(--text)" : "var(--muted-3)", whiteSpace: "pre-wrap" }}>{text || "—"}</div>;
 }
 
 function Stars({ value, onChange, readOnly }: { value: number; onChange?: (n: number) => void; readOnly?: boolean }) {
@@ -394,7 +394,7 @@ function Stars({ value, onChange, readOnly }: { value: number; onChange?: (n: nu
             aria-label={`${n} star${n !== 1 ? "s" : ""}`}
             style={{ background: "none", border: "none", padding: 0, cursor: readOnly ? "default" : "pointer", lineHeight: 0 }}
           >
-            <Star size={24} color={filled ? "#f59e0b" : "#cbd5e1"} fill={filled ? "#f59e0b" : "none"} />
+            <Star size={24} style={{ color: filled ? "#f59e0b" : "var(--muted-3)" }} fill={filled ? "#f59e0b" : "none"} />
           </button>
         );
       })}

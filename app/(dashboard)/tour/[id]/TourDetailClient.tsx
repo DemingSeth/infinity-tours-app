@@ -139,7 +139,7 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
       <div style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 20 }}>
         <button
           onClick={() => router.push("/dashboard")}
-          style={{ background: "#f1f5f9", border: "none", borderRadius: 8, padding: "7px 13px", fontSize: 12, color: "#64748b", cursor: "pointer", fontFamily: "inherit", fontWeight: 600, marginTop: 3, flexShrink: 0 }}
+          style={{ background: "var(--surface-3)", border: "none", borderRadius: 8, padding: "7px 13px", fontSize: 12, color: "var(--muted)", cursor: "pointer", fontFamily: "inherit", fontWeight: 600, marginTop: 3, flexShrink: 0 }}
         >
           Back
         </button>
@@ -155,21 +155,21 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
                 }}
                 onBlur={() => { if (nameVal.trim()) handleTourChange({ name: nameVal.trim() }); setEditingName(false); }}
                 autoFocus
-                style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", fontSize: 22, fontWeight: 400, color: BRAND.navy, border: "none", borderBottom: `2px solid ${BRAND.navy}`, outline: "none", background: "transparent", padding: "0 2px", minWidth: 200 }}
+                style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", fontSize: 22, fontWeight: 400, color: "var(--ink)", border: "none", borderBottom: `2px solid ${"var(--ink)"}`, outline: "none", background: "transparent", padding: "0 2px", minWidth: 200 }}
               />
             ) : (
               <h2
                 onClick={isOwner ? () => { setNameVal(tour.name); setEditingName(true); } : undefined}
                 title={isOwner ? "Click to edit tour name" : undefined}
-                style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", fontSize: 22, fontWeight: 400, color: BRAND.navy, margin: 0, cursor: isOwner ? "text" : "default" }}
+                style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", fontSize: 22, fontWeight: 400, color: "var(--ink)", margin: 0, cursor: isOwner ? "text" : "default" }}
               >
                 {tour.name}
               </h2>
             )}
             <StatusPill status={tour.status} />
-            {saving && <span style={{ fontSize: 11, color: "#94a3b8" }}>Saving...</span>}
+            {saving && <span style={{ fontSize: 11, color: "var(--muted-2)" }}>Saving...</span>}
           </div>
-          <div style={{ color: "#64748b", fontSize: 12, marginTop: 3 }}>
+          <div style={{ color: "var(--muted)", fontSize: 12, marginTop: 3 }}>
             {/* School/group name omitted (redundant with the title); state names spelled out in full. */}
             {[expandStateName(tour.destination), tour.dates].filter(Boolean).join(" · ")}
           </div>
@@ -178,7 +178,7 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
           <select
             value={tour.status}
             onChange={e => handleTourChange({ status: e.target.value })}
-            style={{ border: "1.5px solid #e2e8f0", borderRadius: 8, padding: "6px 10px", fontSize: 12, color: "#1e293b", fontFamily: "inherit", background: "#fff", outline: "none", width: 140 }}
+            style={{ border: "1.5px solid var(--border)", borderRadius: 8, padding: "6px 10px", fontSize: 12, color: "var(--text)", fontFamily: "inherit", background: "var(--surface)", outline: "none", width: 140 }}
           >
             {STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
           </select>
@@ -186,7 +186,7 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
       </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: 1, borderBottom: "2px solid #f1f5f9", marginBottom: 24, overflowX: "auto" }}>
+      <div style={{ display: "flex", gap: 1, borderBottom: "2px solid var(--surface-3)", marginBottom: 24, overflowX: "auto" }}>
         {TABS.map(t => (
           <button
             key={t.id}
@@ -194,8 +194,8 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
             style={{
               display: "flex", alignItems: "center", gap: 5, padding: "9px 14px",
               fontSize: 12, fontWeight: 600, background: "none", border: "none", cursor: "pointer",
-              color: tab === t.id ? BRAND.navy : "#94a3b8",
-              borderBottom: tab === t.id ? `2px solid ${BRAND.navy}` : "2px solid transparent",
+              color: tab === t.id ? "var(--ink)" : "var(--muted-2)",
+              borderBottom: tab === t.id ? `2px solid ${"var(--ink)"}` : "2px solid transparent",
               marginBottom: -2, fontFamily: "inherit", whiteSpace: "nowrap", flexShrink: 0,
             }}
           >
@@ -216,6 +216,7 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
           members={members}
           isOwner={isOwner}
           onChange={handleTourChange}
+          saving={saving}
         />
       )}
       {tab === "agenda" && (
@@ -266,22 +267,23 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
           currentUserId={currentUserId}
           onTourChange={handleTourChange}
           onPersonaAdded={key => setAddedPersona(key)}
+          saving={saving}
         />
       )}
 
       {cascadePrompt && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-          <div style={{ background: "#fff", borderRadius: 16, padding: 24, maxWidth: 420, width: "100%", boxShadow: "0 20px 60px rgba(0,0,0,.2)" }}>
-            <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 17, fontWeight: 400, color: BRAND.navy, marginBottom: 10 }}>
+          <div style={{ background: "var(--surface)", borderRadius: 16, padding: 24, maxWidth: 420, width: "100%", boxShadow: "0 20px 60px rgba(0,0,0,.2)" }}>
+            <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 17, fontWeight: 400, color: "var(--ink)", marginBottom: 10 }}>
               Update Itinerary Dates?
             </div>
-            <p style={{ fontSize: 13, color: "#475569", margin: "0 0 18px", lineHeight: 1.6 }}>
+            <p style={{ fontSize: 13, color: "var(--text-2)", margin: "0 0 18px", lineHeight: 1.6 }}>
               Would you like to update your itinerary day dates to match the new tour dates? This will reassign dates starting from <strong>{formatAgendaDate(new Date(cascadePrompt.newStartDate + "T12:00:00"))}</strong> across all <strong>{cascadePrompt.dayCount}</strong> existing day{cascadePrompt.dayCount !== 1 ? "s" : ""}.
             </p>
             <div style={{ display: "flex", gap: 8 }}>
               <button
                 onClick={() => setCascadePrompt(null)}
-                style={{ flex: 1, background: "#f1f5f9", color: "#64748b", border: "1.5px solid #e2e8f0", borderRadius: 8, padding: "9px 0", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+                style={{ flex: 1, background: "var(--surface-3)", color: "var(--muted)", border: "1.5px solid var(--border)", borderRadius: 8, padding: "9px 0", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
               >
                 Keep Existing Dates
               </button>

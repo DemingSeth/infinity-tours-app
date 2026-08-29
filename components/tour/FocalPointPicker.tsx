@@ -32,7 +32,7 @@ export default function FocalPointPicker({ imageUrl, x, y, onChange }: {
       onPointerUp={(e) => { setDragging(false); try { e.currentTarget.releasePointerCapture(e.pointerId); } catch { /* ignore */ } }}
       style={{
         position: "relative", display: "inline-block", maxWidth: "100%", lineHeight: 0,
-        borderRadius: 10, overflow: "hidden", border: "1px solid #e2e8f0", background: "#f1f5f9",
+        borderRadius: 10, overflow: "hidden", border: "1px solid var(--border)", background: "var(--surface-3)",
         cursor: "crosshair", touchAction: "none", userSelect: "none",
       }}
     >
@@ -53,7 +53,7 @@ export default function FocalPointPicker({ imageUrl, x, y, onChange }: {
       <div style={{
         position: "absolute", left: `${x}%`, top: `${y}%`, transform: "translate(-50%, -50%)",
         width: 26, height: 26, borderRadius: "50%", background: "rgba(255,255,255,0.92)",
-        border: "2px solid #fff", boxShadow: "0 1px 6px rgba(0,0,0,0.55)", pointerEvents: "none",
+        border: "2px solid var(--surface)", boxShadow: "0 1px 6px rgba(0,0,0,0.55)", pointerEvents: "none",
         display: "flex", alignItems: "center", justifyContent: "center",
       }}>
         <div style={{ width: 6, height: 6, borderRadius: "50%", background: BRAND.navy }} />

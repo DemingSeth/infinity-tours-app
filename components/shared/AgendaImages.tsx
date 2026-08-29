@@ -11,14 +11,14 @@ import { X, ChevronLeft, ChevronRight } from "lucide-react";
 const AGENDA_PHOTO_CLASS = "agenda-photo";
 const photoStyle: React.CSSProperties = {
   display: "block", maxWidth: "100%", maxHeight: 300, width: "auto", height: "auto",
-  objectFit: "contain", borderRadius: 10, border: "1px solid #e2e8f0", background: "#f1f5f9",
+  objectFit: "contain", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface-3)",
   margin: "0 auto",
 };
 
 // Print-only compact thumbnails: small, left-aligned, whole image (no crop).
 const printThumbStyle: React.CSSProperties = {
   display: "block", maxHeight: 80, maxWidth: 120, width: "auto", height: "auto",
-  objectFit: "contain", borderRadius: 6, border: "1px solid #e2e8f0", background: "#f1f5f9",
+  objectFit: "contain", borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface-3)",
 };
 
 export default function AgendaImages({
@@ -119,8 +119,8 @@ export default function AgendaImages({
             rel="noreferrer"
             style={{
               display: "block", position: "relative", width: "100%", height: "100%",
-              borderRadius: 8, overflow: "hidden", border: "1px solid #e2e8f0",
-              background: "#f1f5f9",
+              borderRadius: 8, overflow: "hidden", border: "1px solid var(--border)",
+              background: "var(--surface-3)",
             }}
           >
             <Image src={url} alt="Itinerary item photo" fill sizes={`${size}px`} style={{ objectFit: "cover" }} />
@@ -133,7 +133,7 @@ export default function AgendaImages({
               style={{
                 position: "absolute", top: -6, right: -6, width: 20, height: 20,
                 borderRadius: "50%", background: "#ef4444", color: "#fff",
-                border: "2px solid #fff", cursor: "pointer", padding: 0,
+                border: "2px solid var(--surface)", cursor: "pointer", padding: 0,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 lineHeight: 1, boxShadow: "0 1px 3px rgba(0,0,0,.3)",
               }}

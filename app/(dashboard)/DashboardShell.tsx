@@ -5,6 +5,7 @@ import type { User } from "@supabase/supabase-js";
 import type { TourHostRow } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import BrandLockup from "@/components/shared/BrandLockup";
+import ThemeToggle from "@/components/shared/ThemeToggle";
 import { KanbanSquare, LayoutGrid, FileText, Users } from "lucide-react";
 import { BRAND } from "@/lib/helpers";
 import { isAdmin } from "@/lib/roles";
@@ -53,7 +54,7 @@ export default function DashboardShell({ children, user, tourHost }: Props) {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f8fafc", display: "flex", flexDirection: "column" }}>
+    <div style={{ minHeight: "100vh", background: "var(--page)", display: "flex", flexDirection: "column" }}>
       {/* Top nav */}
       {/* Responsive: the lockup shrinks and the nav drops to its own scrolling
           row at narrow widths (see .app-header rules in globals.css), so the
@@ -111,6 +112,7 @@ export default function DashboardShell({ children, user, tourHost }: Props) {
               {tourHost?.name || user.email}
             </span>
           </div>
+          <ThemeToggle />
           <button
             onClick={() => router.push("/account")}
             style={{

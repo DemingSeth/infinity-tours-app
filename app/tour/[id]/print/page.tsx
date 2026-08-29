@@ -94,7 +94,8 @@ export default async function ItineraryPrintPage({
         }
       `}</style>
       <PrintLauncher />
-      <div style={{ background: "#ffffff", padding: "8px 12px" }}>
+      {/* Print / PDF is always the light theme, whatever the viewer chose. */}
+      <div data-theme="light" style={{ background: "#ffffff", padding: "8px 12px" }}>
         <AgendaRoleView
           tourName={tour.name}
           tourDestination={tour.destination}

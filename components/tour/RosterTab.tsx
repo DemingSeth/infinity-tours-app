@@ -188,26 +188,26 @@ export default function RosterTab({ tour, members, isOwner, viewerRole = "coordi
     <div>
       {/* Tour-level planning summary (reuses the roster calculators) */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12, fontSize: 12 }}>
-        <div style={{ background: "#eff6ff", border: "1.5px solid #bfdbfe", borderRadius: 9, padding: "10px 12px" }}>
-          <div style={{ fontWeight: 700, color: "#1e40af", marginBottom: 3 }}>Bus Planning</div>
-          <div style={{ color: "#1e40af" }}>
+        <div style={{ background: "var(--sky-bg-soft)", border: "1.5px solid var(--sky-border)", borderRadius: 9, padding: "10px 12px" }}>
+          <div style={{ fontWeight: 700, color: "var(--sky-text)", marginBottom: 3 }}>Bus Planning</div>
+          <div style={{ color: "var(--sky-text)" }}>
             {calc.busRiders} riders · {tour.bus_capacity} seats/bus · <strong>{calc.busesNeeded} bus{calc.busesNeeded !== 1 ? "es" : ""} needed</strong>
           </div>
-          <div style={{ color: "#64748b", marginTop: 2, fontSize: 11 }}>Count includes all non-driver travelers</div>
+          <div style={{ color: "var(--muted)", marginTop: 2, fontSize: 11 }}>Count includes all non-driver travelers</div>
         </div>
-        <div style={{ background: "#f0fdf4", border: "1.5px solid #bbf7d0", borderRadius: 9, padding: "10px 12px" }}>
-          <div style={{ fontWeight: 700, color: "#065f46", marginBottom: 3 }}>Room Planning</div>
-          <div style={{ color: "#065f46" }}>
+        <div style={{ background: "var(--green-bg-soft)", border: "1.5px solid var(--green-border)", borderRadius: 9, padding: "10px 12px" }}>
+          <div style={{ fontWeight: 700, color: "var(--green-text)", marginBottom: 3 }}>Room Planning</div>
+          <div style={{ color: "var(--green-text)" }}>
             {rooms.girls} girls → {rooms.girlRooms} room{rooms.girlRooms !== 1 ? "s" : ""} · {rooms.boys} boys → {rooms.boyRooms} room{rooms.boyRooms !== 1 ? "s" : ""}
           </div>
-          <div style={{ color: "#64748b", marginTop: 2, fontSize: 11 }}>
+          <div style={{ color: "var(--muted)", marginTop: 2, fontSize: 11 }}>
             {tour.room_config?.girlsPerRoom || 4}/room girls · {tour.room_config?.boysPerRoom || 4}/room boys
           </div>
         </div>
       </div>
 
       {pendingWaivers > 0 && (
-        <div style={{ background: "#fffbeb", border: "1.5px solid #fcd34d", borderRadius: 9, padding: "9px 14px", fontSize: 12, color: "#92400e", marginBottom: 12, display: "flex", gap: 7, alignItems: "center" }}>
+        <div style={{ background: "var(--amber-bg-soft)", border: "1.5px solid var(--amber-border)", borderRadius: 9, padding: "9px 14px", fontSize: 12, color: "var(--amber-text)", marginBottom: 12, display: "flex", gap: 7, alignItems: "center" }}>
           <I n="warn" s={13} />
           {pendingWaivers} waiver{pendingWaivers > 1 ? "s" : ""} still pending across the roster
         </div>
@@ -229,7 +229,7 @@ export default function RosterTab({ tour, members, isOwner, viewerRole = "coordi
           const waiverComplete = count > 0 && sec.waiversSigned === count;
           const memberType = getPersona(sec.key)!.memberType as MemberType;
           return (
-            <div key={sec.key} style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
+            <div key={sec.key} style={{ background: "var(--surface)", border: "1.5px solid var(--border-soft)", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
               {/* Header — chevron + label + status pills */}
               <div
                 onClick={() => toggle(sec.key, count)}
@@ -238,10 +238,10 @@ export default function RosterTab({ tour, members, isOwner, viewerRole = "coordi
                 style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 16px", cursor: "pointer", borderLeft: `4px solid ${sec.colors.color}` }}
               >
                 {collapsed
-                  ? <ChevronRight size={18} color="#64748b" style={{ flexShrink: 0 }} />
-                  : <ChevronDown size={18} color="#64748b" style={{ flexShrink: 0 }} />}
+                  ? <ChevronRight size={18} style={{ flexShrink: 0, color: "var(--muted)" }} />
+                  : <ChevronDown size={18} style={{ flexShrink: 0, color: "var(--muted)" }} />}
                 <span style={{ width: 9, height: 9, borderRadius: "50%", background: sec.colors.color, flexShrink: 0 }} />
-                <span style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.03em", fontSize: 16, fontWeight: 400, color: BRAND.navy }}>
+                <span style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.03em", fontSize: 16, fontWeight: 400, color: "var(--ink)" }}>
                   {sec.label}
                 </span>
 
@@ -253,8 +253,8 @@ export default function RosterTab({ tour, members, isOwner, viewerRole = "coordi
                   {/* Waiver completion */}
                   {count > 0 && (
                     <span style={{
-                      background: waiverComplete ? "#dcfce7" : "#fef3c7",
-                      color: waiverComplete ? "#166534" : "#92400e",
+                      background: waiverComplete ? "var(--green-bg)" : "var(--amber-bg)",
+                      color: waiverComplete ? "var(--green-text)" : "var(--amber-text)",
                       borderRadius: 999, padding: "3px 10px", fontSize: 11, fontWeight: 700,
                     }}>
                       Waivers {sec.waiversSigned}/{count}
@@ -262,7 +262,7 @@ export default function RosterTab({ tour, members, isOwner, viewerRole = "coordi
                   )}
                   {/* Allergy / dietary flags */}
                   {sec.flags > 0 && (
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#fff1f2", color: "#be123c", borderRadius: 999, padding: "3px 10px", fontSize: 11, fontWeight: 700 }} title="Participants with allergies or dietary notes">
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "var(--red-bg)", color: "var(--red-text)", borderRadius: 999, padding: "3px 10px", fontSize: 11, fontWeight: 700 }} title="Participants with allergies or dietary notes">
                       <I n="warn" s={11} />{sec.flags}
                     </span>
                   )}
@@ -272,8 +272,8 @@ export default function RosterTab({ tour, members, isOwner, viewerRole = "coordi
               {/* Body */}
               {!collapsed && (
                 count === 0 ? (
-                  <div style={{ borderTop: "1px solid #f1f5f9", padding: "26px 16px", textAlign: "center" }}>
-                    <div style={{ color: "#94a3b8", fontSize: 13, marginBottom: isOwner ? 12 : 0 }}>
+                  <div style={{ borderTop: "1px solid var(--surface-3)", padding: "26px 16px", textAlign: "center" }}>
+                    <div style={{ color: "var(--muted-2)", fontSize: 13, marginBottom: isOwner ? 12 : 0 }}>
                       No {sec.label.toLowerCase()} added yet.
                     </div>
                     {isOwner && (
@@ -284,12 +284,12 @@ export default function RosterTab({ tour, members, isOwner, viewerRole = "coordi
                     )}
                   </div>
                 ) : (
-                  <div style={{ borderTop: "1px solid #f1f5f9", overflowX: "auto" }}>
+                  <div style={{ borderTop: "1px solid var(--surface-3)", overflowX: "auto" }}>
                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                       <thead>
-                        <tr style={{ borderBottom: "2px solid #f1f5f9", background: "#f8fafc" }}>
+                        <tr style={{ borderBottom: "2px solid var(--surface-3)", background: "var(--surface-2)" }}>
                           {["Name", "Dietary", "Allergies", "Waiver", "Custom", ""].map(h => (
-                            <th key={h} style={{ textAlign: "left", padding: "8px 12px", fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .6, whiteSpace: "nowrap" }}>{h}</th>
+                            <th key={h} style={{ textAlign: "left", padding: "8px 12px", fontSize: 10, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: .6, whiteSpace: "nowrap" }}>{h}</th>
                           ))}
                         </tr>
                       </thead>
@@ -297,23 +297,23 @@ export default function RosterTab({ tour, members, isOwner, viewerRole = "coordi
                         {sec.list.map((m, i) => {
                           const custom = Object.entries(m.custom_attributes || {});
                           return (
-                            <tr key={m.id} style={{ borderBottom: "1px solid #f8fafc", background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
+                            <tr key={m.id} style={{ borderBottom: "1px solid var(--surface-2)", background: i % 2 === 0 ? "var(--surface)" : "var(--surface-2)" }}>
                               <td style={{ padding: "9px 12px", fontWeight: 600, color: "#0f2233", whiteSpace: "nowrap" }}>{m.name}</td>
-                              <td style={{ padding: "9px 12px", color: "#64748b" }}>{m.dietary_restrictions || <span style={{ color: "#e2e8f0" }}>—</span>}</td>
-                              <td style={{ padding: "9px 12px", color: m.allergies ? "#be123c" : "#64748b" }}>{m.allergies || <span style={{ color: "#e2e8f0" }}>—</span>}</td>
+                              <td style={{ padding: "9px 12px", color: "var(--muted)" }}>{m.dietary_restrictions || <span style={{ color: "var(--muted-3)" }}>—</span>}</td>
+                              <td style={{ padding: "9px 12px", color: m.allergies ? "var(--red-text)" : "var(--muted)" }}>{m.allergies || <span style={{ color: "var(--muted-3)" }}>—</span>}</td>
                               <td style={{ padding: "9px 12px" }}>
                                 <button
                                   onClick={() => isOwner && toggleWaiver(m)}
                                   disabled={!isOwner}
-                                  style={{ background: m.waiver ? "#dcfce7" : "#fee2e2", color: m.waiver ? "#166534" : "#b91c1c", border: "none", borderRadius: 5, padding: "2px 8px", fontSize: 10, fontWeight: 700, cursor: isOwner ? "pointer" : "default", fontFamily: "inherit" }}>
+                                  style={{ background: m.waiver ? "var(--green-bg)" : "var(--red-bg)", color: m.waiver ? "var(--green-text)" : "var(--red-text)", border: "none", borderRadius: 5, padding: "2px 8px", fontSize: 10, fontWeight: 700, cursor: isOwner ? "pointer" : "default", fontFamily: "inherit" }}>
                                   {m.waiver ? "Signed" : "Pending"}
                                 </button>
                               </td>
                               <td style={{ padding: "9px 12px" }}>
-                                {custom.length === 0 ? <span style={{ color: "#e2e8f0" }}>—</span> : (
+                                {custom.length === 0 ? <span style={{ color: "var(--muted-3)" }}>—</span> : (
                                   <span style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                                     {custom.map(([k, v]) => (
-                                      <span key={k} style={{ background: "#f1f5f9", color: "#475569", borderRadius: 5, padding: "1px 6px", fontSize: 10, fontWeight: 600 }}>
+                                      <span key={k} style={{ background: "var(--surface-3)", color: "var(--text-2)", borderRadius: 5, padding: "1px 6px", fontSize: 10, fontWeight: 600 }}>
                                         {k}: {String(v)}
                                       </span>
                                     ))}
@@ -323,10 +323,10 @@ export default function RosterTab({ tour, members, isOwner, viewerRole = "coordi
                               <td style={{ padding: "9px 12px", whiteSpace: "nowrap", textAlign: "right" }}>
                                 {isOwner && (
                                   <>
-                                    <button onClick={() => openEdit(m)} title="Edit" style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 2, marginRight: 4 }}>
+                                    <button onClick={() => openEdit(m)} title="Edit" style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted-2)", padding: 2, marginRight: 4 }}>
                                       <I n="edit" s={13} />
                                     </button>
-                                    <button onClick={() => removeMember(m.id)} title="Remove" style={{ background: "none", border: "none", cursor: "pointer", color: "#cbd5e1", padding: 2 }}>
+                                    <button onClick={() => removeMember(m.id)} title="Remove" style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted-3)", padding: 2 }}>
                                       <I n="trash" s={13} />
                                     </button>
                                   </>
@@ -371,7 +371,7 @@ export default function RosterTab({ tour, members, isOwner, viewerRole = "coordi
 
             {/* Custom attributes (label → value) */}
             <div style={{ width: "100%" }}>
-              <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .8 }}>Custom Attributes</label>
+              <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: .8 }}>Custom Attributes</label>
               <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 6 }}>
                 {form.custom.map((row, idx) => (
                   <div key={idx} style={{ display: "flex", gap: 6 }}>
@@ -380,7 +380,7 @@ export default function RosterTab({ tour, members, isOwner, viewerRole = "coordi
                     <Inp value={row.value} placeholder="Value (e.g. L)" style={{ flex: 1 }}
                       onChange={e => setForm(p => ({ ...p, custom: p.custom.map((r, i) => i === idx ? { ...r, value: e.target.value } : r) }))} />
                     <button onClick={() => setForm(p => ({ ...p, custom: p.custom.filter((_, i) => i !== idx) }))}
-                      style={{ background: "none", border: "1.5px solid #e2e8f0", borderRadius: 8, cursor: "pointer", color: "#94a3b8", padding: "0 10px" }}>
+                      style={{ background: "none", border: "1.5px solid var(--border)", borderRadius: 8, cursor: "pointer", color: "var(--muted-2)", padding: "0 10px" }}>
                       <I n="x" s={13} />
                     </button>
                   </div>
@@ -412,8 +412,8 @@ export default function RosterTab({ tour, members, isOwner, viewerRole = "coordi
                 options={MEMBER_TYPES.map(t => ({ value: t.value, label: t.label }))} />
             </Field>
           </div>
-          <p style={{ fontSize: 12, color: "#64748b", margin: "0 0 10px", lineHeight: 1.6 }}>
-            One row per person. Format: <code style={{ background: "#f1f5f9", padding: "1px 5px", borderRadius: 4 }}>Full Name, gender, dietary, allergies</code> (gender, dietary, and allergies optional).
+          <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 10px", lineHeight: 1.6 }}>
+            One row per person. Format: <code style={{ background: "var(--surface-3)", padding: "1px 5px", borderRadius: 4 }}>Full Name, gender, dietary, allergies</code> (gender, dietary, and allergies optional).
           </p>
           <Tex value={csvText} onChange={e => setCsvText(e.target.value)} style={{ minHeight: 140, fontFamily: "monospace", fontSize: 12 }}
             placeholder={"Ava Christensen, female, vegetarian, none\nBrody Larsen, male\nCami Petersen, female, , nut allergy"} />

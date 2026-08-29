@@ -45,7 +45,7 @@ const ICONS: Record<string, string> = {
 
 function I({ n, s = 13, c }: { n: string; s?: number; c?: string }) {
   return (
-    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c || "currentColor"} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: c }}>
       <path d={ICONS[n] ?? ""} />
     </svg>
   );
@@ -53,8 +53,8 @@ function I({ n, s = 13, c }: { n: string; s?: number; c?: string }) {
 
 // ── Form primitives ────────────────────────────────────────────────────────────
 const INP: React.CSSProperties = {
-  border: "1.5px solid #e2e8f0", borderRadius: 8, padding: "7px 11px",
-  fontSize: 13, fontFamily: "inherit", color: "#1e293b", background: "#fff",
+  border: "1.5px solid var(--border)", borderRadius: 8, padding: "7px 11px",
+  fontSize: 13, fontFamily: "inherit", color: "var(--text)", background: "var(--surface)",
   outline: "none", width: "100%", boxSizing: "border-box",
 };
 
@@ -62,7 +62,7 @@ function Field({ label, children, half, third }: { label: string; children: Reac
   const w = third ? "calc(33.33% - 7px)" : half ? "calc(50% - 5px)" : "100%";
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4, width: w, minWidth: 0, flexShrink: 0 }}>
-      <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .8 }}>{label}</label>
+      <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: .8 }}>{label}</label>
       {children}
     </div>
   );
@@ -92,8 +92,8 @@ function Btn({ children, onClick, variant, small, style, disabled }: {
     display: "inline-flex", alignItems: "center", gap: 5, cursor: disabled ? "default" : "pointer",
     fontFamily: "inherit", fontWeight: 600, border: "none", borderRadius: 8, opacity: disabled ? .6 : 1,
     padding: small ? "5px 11px" : "8px 16px", fontSize: small ? 11 : 12,
-    background: variant === "muted" ? "#f1f5f9" : variant === "ghost" ? "transparent" : BRAND.navy,
-    color: variant === "muted" ? "#64748b" : variant === "ghost" ? "#64748b" : "#fff",
+    background: variant === "muted" ? "var(--surface-3)" : variant === "ghost" ? "transparent" : BRAND.navy,
+    color: variant === "muted" ? "var(--muted)" : variant === "ghost" ? "var(--muted)" : "#fff",
   };
   return <button onClick={onClick} disabled={disabled} style={{ ...base, ...style }}>{children}</button>;
 }
@@ -207,7 +207,7 @@ function TimePicker({ value, onChange, placeholder = "Pick a time" }: {
   const btn = (active: boolean): React.CSSProperties => ({
     padding: "5px 0", borderRadius: 6, fontSize: 13, fontWeight: active ? 700 : 400,
     cursor: "pointer", background: active ? BRAND.navy : "transparent",
-    color: active ? "#fff" : "#1e293b", border: "none", fontFamily: "inherit", width: "100%", textAlign: "center",
+    color: active ? "#fff" : "var(--text)", border: "none", fontFamily: "inherit", width: "100%", textAlign: "center",
   });
 
   return (
@@ -222,44 +222,44 @@ function TimePicker({ value, onChange, placeholder = "Pick a time" }: {
             if (e.key === "Escape") { setText(value); setOpen(false); }
           }}
           onBlur={() => { if (!open) commitText(); }}
-          style={{ flex: 1, minWidth: 0, border: "none", outline: "none", background: "transparent", fontSize: 13, fontFamily: "inherit", color: "#1e293b", padding: "7px 11px" }}
+          style={{ flex: 1, minWidth: 0, border: "none", outline: "none", background: "transparent", fontSize: 13, fontFamily: "inherit", color: "var(--text)", padding: "7px 11px" }}
         />
         <span style={{ display: "inline-flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
           {(text || value) && (
             <button type="button" title="Clear time"
               onClick={() => { setText(""); onChange(""); setOpen(false); }}
-              style={{ background: "none", border: "none", cursor: "pointer", padding: 2, display: "flex", color: "#94a3b8" }}>
+              style={{ background: "none", border: "none", cursor: "pointer", padding: 2, display: "flex", color: "var(--muted-2)" }}>
               <XIcon size={13} />
             </button>
           )}
           <button type="button" title="Pick from clock" onClick={() => (open ? setOpen(false) : openWheel())}
             style={{ background: "none", border: "none", cursor: "pointer", padding: 2, display: "flex" }}>
-            <Clock size={14} color={open ? BRAND.navy : "#94a3b8"} />
+            <Clock size={14} style={{ color: open ? "var(--ink)" : "var(--muted-2)" }} />
           </button>
         </span>
       </div>
       {open && (
-        <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 500, background: "#fff", borderRadius: 12, boxShadow: "0 8px 32px rgba(0,0,0,.18)", border: "1.5px solid #e2e8f0", padding: 12, width: 210 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: BRAND.navy, marginBottom: 8, textAlign: "center", fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em" }}>
+        <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 500, background: "var(--surface)", borderRadius: 12, boxShadow: "0 8px 32px rgba(0,0,0,.18)", border: "1.5px solid var(--border)", padding: 12, width: 210 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 8, textAlign: "center", fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em" }}>
             {draft.h}:{pad2(draft.m)} {draft.ap}
           </div>
           <div style={{ display: "flex", gap: 4 }}>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 10, color: "#94a3b8", textAlign: "center", marginBottom: 3 }}>Hour</div>
+              <div style={{ fontSize: 10, color: "var(--muted-2)", textAlign: "center", marginBottom: 3 }}>Hour</div>
               <div ref={hourRef} style={col}>{hours.map(hr => <button key={hr} type="button" style={btn(hr === draft.h)} onClick={() => setDraft(d => ({ ...d, h: hr }))}>{hr}</button>)}</div>
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 10, color: "#94a3b8", textAlign: "center", marginBottom: 3 }}>Min</div>
+              <div style={{ fontSize: 10, color: "var(--muted-2)", textAlign: "center", marginBottom: 3 }}>Min</div>
               <div ref={minRef} style={col}>{mins.map(mn => <button key={mn} type="button" style={btn(mn === draft.m)} onClick={() => setDraft(d => ({ ...d, m: mn }))}>{pad2(mn)}</button>)}</div>
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 10, color: "#94a3b8", textAlign: "center", marginBottom: 3 }}>AM/PM</div>
+              <div style={{ fontSize: 10, color: "var(--muted-2)", textAlign: "center", marginBottom: 3 }}>AM/PM</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4, paddingTop: 4 }}>
                 {["AM", "PM"].map(a => <button key={a} type="button" style={{ ...btn(a === draft.ap), padding: "8px 0" }} onClick={() => setDraft(d => ({ ...d, ap: a }))}>{a}</button>)}
               </div>
             </div>
           </div>
-          <div style={{ borderTop: "1px solid #f1f5f9", marginTop: 8, paddingTop: 7, textAlign: "center" }}>
+          <div style={{ borderTop: "1px solid var(--surface-3)", marginTop: 8, paddingTop: 7, textAlign: "center" }}>
             <button type="button" onClick={done} style={{ background: BRAND.navy, color: "#fff", border: "none", borderRadius: 7, padding: "5px 20px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Done</button>
           </div>
         </div>
@@ -279,10 +279,10 @@ function Modal({ title, onClose, children, wide }: {
   }, [onClose]);
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "40px 16px", overflowY: "auto" }}>
-      <div style={{ background: "#fff", borderRadius: 16, padding: 24, width: "100%", maxWidth: wide ? 680 : 420, boxShadow: "0 20px 60px rgba(0,0,0,.2)" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 16, padding: 24, width: "100%", maxWidth: wide ? 680 : 420, boxShadow: "0 20px 60px rgba(0,0,0,.2)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <span style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 16, fontWeight: 400, color: BRAND.navy }}>{title}</span>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 4 }}><I n="x" s={16} /></button>
+          <span style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 16, fontWeight: 400, color: "var(--ink)" }}>{title}</span>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted-2)", padding: 4 }}><I n="x" s={16} /></button>
         </div>
         {children}
       </div>
@@ -360,47 +360,47 @@ function AccessLinkManager({ tour, onTourChange, open, setOpen, isOwner }: {
   // Subdued, collapsed-by-default secondary card (the preview buttons above are
   // the primary action). Expands to one shareable link per participant persona.
   return (
-    <div style={{ background: "#f8fafc", border: "1px solid #eef2f7", borderRadius: 10, padding: "10px 14px", marginBottom: 16 }}>
+    <div style={{ background: "var(--surface-2)", border: "1px solid var(--border-soft)", borderRadius: 10, padding: "10px 14px", marginBottom: 16 }}>
       <button onClick={() => setOpen(!open)}
         style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", padding: 0 }}>
         <I n={open ? "chevron" : "chevronRight"} s={13} />
-        <span style={{ fontSize: 12, fontWeight: 700, color: "#64748b" }}>Access Links</span>
-        <span style={{ fontSize: 11, color: "#94a3b8", marginLeft: "auto" }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)" }}>Access Links</span>
+        <span style={{ fontSize: 11, color: "var(--muted-2)", marginLeft: "auto" }}>
           {readyCount} link{readyCount !== 1 ? "s" : ""} · send each to the right group
         </span>
       </button>
       {open && (
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
           {linkGroups.length > 0 && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", fontSize: 12, color: "#64748b" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", fontSize: 12, color: "var(--muted)" }}>
               <span style={{ fontWeight: 700 }}>Links open to:</span>
               <select value={linkGroup} onChange={e => setLinkGroup(e.target.value)}
                 style={{ ...INP, width: "auto", padding: "4px 8px", fontSize: 12 }}>
                 <option value="">Everyone (all groups)</option>
                 {linkGroups.map(g => <option key={g.id} value={g.id}>{g.name} only</option>)}
               </select>
-              <span style={{ fontSize: 11, color: "#94a3b8" }}>Viewers can still switch groups on the page.</span>
+              <span style={{ fontSize: 11, color: "var(--muted-2)" }}>Viewers can still switch groups on the page.</span>
             </div>
           )}
           {visibleRows.length === 0 && (
-            <div style={{ fontSize: 11, color: "#94a3b8" }}>No shareable links yet.</div>
+            <div style={{ fontSize: 11, color: "var(--muted-2)" }}>No shareable links yet.</div>
           )}
           {visibleRows.map(r => {
             const copied = copiedKey === r.codeKey;
             return (
-              <div key={r.key} style={{ display: "flex", alignItems: "center", gap: 8, background: "#fff", border: "1px solid #eef2f7", borderRadius: 9, padding: "8px 10px" }}>
+              <div key={r.key} style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--surface)", border: "1px solid var(--border-soft)", borderRadius: 9, padding: "8px 10px" }}>
                 <span style={{ fontSize: 10, fontWeight: 700, color: r.color, textTransform: "uppercase", letterSpacing: .7, flex: "0 0 96px" }}>{r.label}</span>
                 <input readOnly value={linkFor(r.codeKey)}
                   onFocus={e => e.currentTarget.select()}
-                  style={{ flex: 1, minWidth: 0, border: "1px solid #e2e8f0", borderRadius: 6, padding: "5px 8px", fontSize: 11, fontFamily: "inherit", color: "#64748b", background: "#f8fafc", outline: "none" }} />
+                  style={{ flex: 1, minWidth: 0, border: "1px solid var(--border)", borderRadius: 6, padding: "5px 8px", fontSize: 11, fontFamily: "inherit", color: "var(--muted)", background: "var(--surface-2)", outline: "none" }} />
                 {isOwner && (
                   <button onClick={() => regenerate(r.codeKey)} title="Generate a new link (the old one stops working)"
-                    style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 4, display: "flex", flexShrink: 0 }}>
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted-2)", padding: 4, display: "flex", flexShrink: 0 }}>
                     <I n="refresh" s={13} />
                   </button>
                 )}
                 <button onClick={() => copy(r.codeKey)}
-                  style={{ display: "inline-flex", alignItems: "center", gap: 4, border: "none", borderRadius: 6, padding: "5px 10px", cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit", flexShrink: 0, background: copied ? "#dcfce7" : r.color, color: copied ? "#15803d" : "#fff" }}>
+                  style={{ display: "inline-flex", alignItems: "center", gap: 4, border: "none", borderRadius: 6, padding: "5px 10px", cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit", flexShrink: 0, background: copied ? "var(--green-bg)" : r.color, color: copied ? "var(--green-text)" : "#fff" }}>
                   {copied ? <><Check size={12} strokeWidth={3} />Copied</> : "Copy"}
                 </button>
               </div>
@@ -433,6 +433,7 @@ type ItemFormState = {
   meeting_icon_color: string | null;
   elevate_url: string;
   group_tags: string[];
+  custom_type_label: string;
 };
 
 const BLANK: ItemFormState = {
@@ -442,7 +443,7 @@ const BLANK: ItemFormState = {
   cost: "", cost_paid: false, confirmation_not_required: false, driver_note: "", internal_note: "",
   meal_money: [], persona_visibility: defaultPersonaVisibility("activity", []),
   feedback_enabled: isActivityType("activity", []), image_urls: [], driver_map_urls: [], flight_icon_color: null,
-  bus_icon_color: null, meeting_icon_color: null, elevate_url: "", group_tags: [],
+  bus_icon_color: null, meeting_icon_color: null, elevate_url: "", group_tags: [], custom_type_label: "",
 };
 
 // Toggle a value in/out of a string array (used for multi-select sub-types).
@@ -477,7 +478,7 @@ const TYPE_COLORS = AGENDA_TYPE_COLORS;
 
 // Meal-money chips: one yellow that matches the Dining icon (#f59e0b tint),
 // regardless of how the meal is covered.
-export const MEAL_CHIP_STYLE: React.CSSProperties = { background: "#fef3c7", color: "#92400e" };
+export const MEAL_CHIP_STYLE: React.CSSProperties = { background: "var(--amber-bg)", color: "var(--amber-text)" };
 
 // Flight / bus / meeting-point icon color choices. Each renders the icon in the
 // chosen color on a light tint of that color, exactly like every other item
@@ -500,7 +501,7 @@ function IconColorPicker({ label, Icon, value, onChange, defaultColor }: {
   const choices = [{ value: "", label: "Default" }, ...ICON_COLOR_CHOICES];
   return (
     <div style={{ marginBottom: 14 }}>
-      <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>{label}</label>
+      <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>{label}</label>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         {choices.map(c => {
           const hex = c.value || defaultColor;
@@ -592,7 +593,7 @@ function ImageUploader({ tourId, itemId, urls, onChange, folder, buttonLabel = "
       <input ref={inputRef} type="file" accept="image/*" multiple style={{ display: "none" }}
         onChange={e => handleFiles(e.target.files)} />
       <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading}
-        style={{ marginTop: urls.length ? 10 : 0, display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: 8, border: "1.5px dashed #cbd5e1", background: "#fff", cursor: uploading ? "default" : "pointer", fontSize: 12, fontWeight: 600, color: "#475569", fontFamily: "inherit", opacity: uploading ? 0.6 : 1 }}>
+        style={{ marginTop: urls.length ? 10 : 0, display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: 8, border: "1.5px dashed var(--border-strong)", background: "var(--surface)", cursor: uploading ? "default" : "pointer", fontSize: 12, fontWeight: 600, color: "var(--text-2)", fontFamily: "inherit", opacity: uploading ? 0.6 : 1 }}>
         <ImagePlus size={14} />{uploading ? "Uploading..." : buttonLabel}
       </button>
     </div>
@@ -639,20 +640,28 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
   });
 
   return (
-    <div style={{ padding: 16, background: "#f8fafc", borderTop: "1.5px solid #e2e8f0" }} onClick={e => e.stopPropagation()}>
-      <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 13, fontWeight: 400, color: BRAND.navy, marginBottom: 12 }}>
-        {isEdit ? "Edit Item" : "New Itinerary Item"}
+    <div style={{ padding: 16, background: "var(--surface-2)", borderTop: "1.5px solid var(--border)" }} onClick={e => e.stopPropagation()}>
+      {/* Title row with Save / Cancel at the TOP as well as the bottom, so a
+          long form never needs a scroll to save (August 2026 request). */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
+        <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 13, fontWeight: 400, color: "var(--ink)" }}>
+          {isEdit ? "Edit Item" : "New Itinerary Item"}
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Btn onClick={onCancel} variant="muted" small>Cancel</Btn>
+          <Btn onClick={onSave} small disabled={saving}>{saving ? "Saving..." : isEdit ? "Save Changes" : "Add Item"}</Btn>
+        </div>
       </div>
 
       {isEdit && moveDayOptions && moveDayOptions.length > 1 && (
         <div style={{ marginBottom: 14 }}>
-          <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>Move to day</label>
+          <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>Move to day</label>
           <Sel options={moveDayOptions} value={moveTargetDayId ?? ""} onChange={e => onMoveTargetChange?.(e.target.value)} />
         </div>
       )}
 
       <div style={{ marginBottom: 14 }}>
-        <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>Type</label>
+        <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>Type</label>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {AGENDA_TYPES.map(t => {
             const bg = TYPE_COLORS[t.value] || "#6b7280";
@@ -660,7 +669,7 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
             const TypeIcon = getAgendaTypeIcon(t.value);
             return (
               <button key={t.value} type="button" onClick={() => fT({ type: t.value as AgendaItemType })}
-                style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 20, border: `2px solid ${active ? bg : "#e2e8f0"}`, background: active ? bg + "18" : "#fff", cursor: "pointer", fontSize: 12, fontWeight: active ? 700 : 400, color: active ? bg : "#64748b", fontFamily: "inherit" }}>
+                style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 20, border: `2px solid ${active ? bg : "var(--border)"}`, background: active ? bg + "18" : "var(--surface)", cursor: "pointer", fontSize: 12, fontWeight: active ? 700 : 400, color: active ? bg : "var(--muted)", fontFamily: "inherit" }}>
                 <TypeIcon size={15} strokeWidth={2} />{t.label}
               </button>
             );
@@ -679,8 +688,8 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
           : { options: [...SUBTYPES_BY_TYPE[form.type]], suggested: [] as string[] };
         return (
           <div style={{ marginBottom: 14 }}>
-            <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>
-              {isActivity ? "Activity Types" : "Sub-type"}
+            <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>
+              {isActivity ? "Activity Types" : form.type === "food" ? "Meal" : "Sub-type"}
               {isActivity && suggested.length > 0 && destination && (
                 <span style={{ marginLeft: 8, textTransform: "none", letterSpacing: 0, fontWeight: 600, color: BRAND.blue }}>
                   ★ Suggested for {expandStateName(destination)} shown first
@@ -696,15 +705,18 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
                 return (
                   <button key={st.value} type="button"
                     onClick={() => f({ activity_subtypes: toggleInArray(form.activity_subtypes, st.value) })}
-                    style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 20, border: `2px solid ${active ? bg : isSuggested ? bg + "66" : "#e2e8f0"}`, background: active ? bg + "18" : "#fff", cursor: "pointer", fontSize: 12, fontWeight: active ? 700 : 400, color: active ? bg : "#64748b", fontFamily: "inherit" }}>
+                    style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 20, border: `2px solid ${active ? bg : isSuggested ? bg + "66" : "var(--border)"}`, background: active ? bg + "18" : "var(--surface)", cursor: "pointer", fontSize: 12, fontWeight: active ? 700 : 400, color: active ? bg : "var(--muted)", fontFamily: "inherit" }}>
                     {SubIcon && <SubIcon size={15} strokeWidth={2} />}{st.label}{isSuggested && !active && <span style={{ color: bg, fontSize: 10 }}>★</span>}
                   </button>
                 );
               })}
             </div>
             {isActivity && form.activity_subtypes.includes("other") && (
-              <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 6 }}>
-                &ldquo;Other&rdquo; uses the item title as its label — type anything in the Title field below.
+              <div style={{ marginTop: 8 }}>
+                <Field label="Write in the activity type">
+                  <Inp value={form.custom_type_label} onChange={e => f({ custom_type_label: e.target.value })} placeholder="e.g. Escape Room, Ropes Course, Rehearsal" autoFocus />
+                </Field>
+                <div style={{ fontSize: 11, color: "var(--muted-2)", marginTop: 4 }}>Shown as a tag on the item. The icon stays the generic activity icon.</div>
               </div>
             )}
           </div>
@@ -715,7 +727,7 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
           available on every item type, so a method can be added to any item and
           any applied method can always be cleared (no more stuck tags). */}
       <div style={{ marginBottom: 14 }}>
-        <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>Travel Methods</label>
+        <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>Travel Methods</label>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {TRAVEL_SUBTYPES.map(st => {
             const bg = TYPE_COLORS.travel || "#3b82f6";
@@ -724,7 +736,7 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
             return (
               <button key={st.value} type="button"
                 onClick={() => fT({ travel_methods: toggleInArray(form.travel_methods, st.value) })}
-                style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 20, border: `2px solid ${active ? bg : "#e2e8f0"}`, background: active ? bg + "18" : "#fff", cursor: "pointer", fontSize: 12, fontWeight: active ? 700 : 400, color: active ? bg : "#64748b", fontFamily: "inherit" }}>
+                style={{ display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 20, border: `2px solid ${active ? bg : "var(--border)"}`, background: active ? bg + "18" : "var(--surface)", cursor: "pointer", fontSize: 12, fontWeight: active ? 700 : 400, color: active ? bg : "var(--muted)", fontFamily: "inherit" }}>
                 {SubIcon && <SubIcon size={15} strokeWidth={2} />}{st.label}
               </button>
             );
@@ -750,9 +762,9 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
       {/* Who can see this item: one toggle chip per persona, colored with the
           persona's own color when on. The Tour Host always sees everything. */}
       <div style={{ marginBottom: 14 }}>
-        <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>
+        <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>
           Who sees this item
-          <span style={{ marginLeft: 8, textTransform: "none", letterSpacing: 0, fontWeight: 500, color: "#94a3b8" }}>tap to show or hide</span>
+          <span style={{ marginLeft: 8, textTransform: "none", letterSpacing: 0, fontWeight: 500, color: "var(--muted-2)" }}>tap to show or hide</span>
         </label>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {activePersonas.map(key => {
@@ -764,7 +776,7 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
                 aria-pressed={on}
                 title={locked ? "The Tour Host always sees every item" : on ? `Shown to ${personaLabel(key, personaLabels)} (tap to hide)` : `Hidden from ${personaLabel(key, personaLabels)} (tap to show)`}
                 onClick={() => f({ persona_visibility: { ...form.persona_visibility, [key]: !on } })}
-                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: 20, border: `2px solid ${on ? meta.color : "#e2e8f0"}`, background: on ? meta.bg : "#fff", color: on ? meta.color : "#94a3b8", fontSize: 12, fontWeight: on ? 700 : 500, cursor: locked ? "default" : "pointer", fontFamily: "inherit", textDecoration: on ? "none" : "line-through" }}>
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: 20, border: `2px solid ${on ? meta.color : "var(--border)"}`, background: on ? meta.bg : "var(--surface)", color: on ? meta.color : "var(--muted-2)", fontSize: 12, fontWeight: on ? 700 : 500, cursor: locked ? "default" : "pointer", fontFamily: "inherit", textDecoration: on ? "none" : "line-through" }}>
                 {on ? <Check size={12} strokeWidth={3} /> : <XIcon size={12} strokeWidth={3} />}
                 {personaLabel(key, personaLabels)}{locked && <Lock size={11} />}
               </button>
@@ -777,16 +789,16 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
           selected = everyone on the tour. */}
       {groups.length > 0 && (
         <div style={{ marginBottom: 14 }}>
-          <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>
+          <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>
             Group
-            <span style={{ marginLeft: 8, textTransform: "none", letterSpacing: 0, fontWeight: 500, color: "#94a3b8" }}>none selected = everyone</span>
+            <span style={{ marginLeft: 8, textTransform: "none", letterSpacing: 0, fontWeight: 500, color: "var(--muted-2)" }}>none selected = everyone</span>
           </label>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {groups.map(g => {
               const on = form.group_tags.includes(g.id);
               return (
                 <button key={g.id} type="button" onClick={() => f({ group_tags: toggleInArray(form.group_tags, g.id) })}
-                  style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 11px", borderRadius: 20, border: `2px solid ${on ? BRAND.blue : "#e2e8f0"}`, background: on ? BRAND.blue + "18" : "#fff", color: on ? BRAND.blue : "#64748b", fontSize: 12, fontWeight: on ? 700 : 500, cursor: "pointer", fontFamily: "inherit" }}>
+                  style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 11px", borderRadius: 20, border: `2px solid ${on ? BRAND.blue : "var(--border)"}`, background: on ? BRAND.blue + "18" : "var(--surface)", color: on ? BRAND.blue : "var(--muted)", fontSize: 12, fontWeight: on ? 700 : 500, cursor: "pointer", fontFamily: "inherit" }}>
                   <Tag size={12} />{g.name}
                 </button>
               );
@@ -798,7 +810,7 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
       {/* Per-item student feedback toggle. Defaults on for Activities (set when
           the type changes), but the host can override it for any item type. */}
       <div style={{ marginBottom: 14 }}>
-        <label style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12, fontWeight: 600, color: form.feedback_enabled ? "#1e293b" : "#64748b", cursor: "pointer" }}>
+        <label style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12, fontWeight: 600, color: form.feedback_enabled ? "var(--text)" : "var(--muted)", cursor: "pointer" }}>
           <input type="checkbox" checked={form.feedback_enabled}
             onChange={() => f({ feedback_enabled: !form.feedback_enabled })}
             style={{ accentColor: BRAND.navy, width: 15, height: 15, cursor: "pointer" }} />
@@ -836,12 +848,12 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
         </Field>
         <Field label="Bus Driver Maps (host & driver only)">
           <ImageUploader tourId={tourId} itemId={itemId} urls={form.driver_map_urls} folder="driver-maps" buttonLabel="Upload Map" onChange={urls => f({ driver_map_urls: urls })} isShared={isImageShared} />
-          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>Parking / drop-off maps for this stop. Only tour hosts and bus drivers see these.</div>
+          <div style={{ fontSize: 11, color: "var(--muted-2)", marginTop: 4 }}>Parking / drop-off maps for this stop. Only tour hosts and bus drivers see these.</div>
         </Field>
 
         {form.type === "food" && (
-          <div style={{ width: "100%", background: "#fff8f0", border: "1.5px solid #fed7aa", borderRadius: 10, padding: "12px 14px", display: "flex", flexWrap: "wrap", gap: 10 }}>
-            <div style={{ width: "100%", fontSize: 11, fontWeight: 700, color: "#92400e", textTransform: "uppercase", letterSpacing: .7 }}>Meal Money</div>
+          <div style={{ width: "100%", background: "var(--amber-bg-soft)", border: "1.5px solid var(--amber-border)", borderRadius: 10, padding: "12px 14px", display: "flex", flexWrap: "wrap", gap: 10 }}>
+            <div style={{ width: "100%", fontSize: 11, fontWeight: 700, color: "var(--amber-text)", textTransform: "uppercase", letterSpacing: .7 }}>Meal Money</div>
             <Field label="How is this meal covered? (select any that apply)">
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {MEAL_MONEY_TYPES.map(opt => {
@@ -853,7 +865,7 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
                           ? form.meal_money.filter(e => e.type !== opt.value)
                           : [...form.meal_money, { type: opt.value as MealMoneyType, amount: "" }],
                       })}
-                      style={{ flex: "1 1 110px", padding: "6px 8px", borderRadius: 8, border: `2px solid ${active ? "#92400e" : "#e2e8f0"}`, background: active ? "#fef3c7" : "#fff", cursor: "pointer", fontSize: 11, fontWeight: active ? 700 : 400, color: active ? "#92400e" : "#64748b", fontFamily: "inherit", textAlign: "center", lineHeight: 1.3 }}>
+                      style={{ flex: "1 1 110px", padding: "6px 8px", borderRadius: 8, border: `2px solid ${active ? "var(--amber-text)" : "var(--border)"}`, background: active ? "var(--amber-bg)" : "var(--surface)", cursor: "pointer", fontSize: 11, fontWeight: active ? 700 : 400, color: active ? "var(--amber-text)" : "var(--muted)", fontFamily: "inherit", textAlign: "center", lineHeight: 1.3 }}>
                       {opt.label}
                     </button>
                   );
@@ -875,7 +887,7 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
         </Field>
         <Field label="Elevate Your Experience link" half>
           <Inp value={form.elevate_url} onChange={e => f({ elevate_url: e.target.value })} placeholder="https://infinitytours.us/..." />
-          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>Shows as an &ldquo;Elevate Your Experience&rdquo; link on this item (Infinity travel assets, social media).</div>
+          <div style={{ fontSize: 11, color: "var(--muted-2)", marginTop: 4 }}>Shows as an &ldquo;Elevate Your Experience&rdquo; link on this item (Infinity travel assets, social media).</div>
         </Field>
         <Field label="Contact Name" half>
           <Inp value={form.contact_name} onChange={e => f({ contact_name: e.target.value })} placeholder="Jane Smith" />
@@ -891,9 +903,9 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
         </Field>
         <Field label="Bus Driver Note">
           <Tex value={form.driver_note} onChange={e => f({ driver_note: e.target.value })} placeholder="Drop at main entrance, gate code 4821, idle in north lot..." style={{ minHeight: 52 }} />
-          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>Only visible to bus drivers and tour hosts.</div>
+          <div style={{ fontSize: 11, color: "var(--muted-2)", marginTop: 4 }}>Only visible to bus drivers and tour hosts.</div>
           {form.driver_note.trim() && form.persona_visibility?.bus_driver !== true && (
-            <div style={{ marginTop: 6, display: "flex", gap: 6, alignItems: "flex-start", background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 8, padding: "7px 10px", fontSize: 11.5, color: "#92400e" }}>
+            <div style={{ marginTop: 6, display: "flex", gap: 6, alignItems: "flex-start", background: "var(--amber-bg-soft)", border: "1px solid var(--amber-border)", borderRadius: 8, padding: "7px 10px", fontSize: 11.5, color: "var(--amber-text)" }}>
               <Bus size={13} style={{ flexShrink: 0, marginTop: 1 }} />
               <span>This item isn&rsquo;t visible to bus drivers yet. Turn on bus driver visibility above so they can see this note.</span>
             </div>
@@ -957,8 +969,8 @@ function DayVisibilityButton({ dayId, activePersonas, personaLabels, onApply }: 
         <I n="eye" s={13} c="rgba(255,255,255,.7)" />
       </button>
       {open && (
-        <div style={{ position: "absolute", right: 0, top: "calc(100% + 6px)", zIndex: 50, width: 230, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, boxShadow: "0 12px 30px rgba(0,0,0,.18)", padding: 12, cursor: "default", color: "#1e293b" }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: BRAND.navy, marginBottom: 8 }}>Set visibility for items in this day:</div>
+        <div style={{ position: "absolute", right: 0, top: "calc(100% + 6px)", zIndex: 50, width: 230, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, boxShadow: "0 12px 30px rgba(0,0,0,.18)", padding: 12, cursor: "default", color: "var(--text)" }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>Set visibility for items in this day:</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
             {personas.map(k => (
               <label key={k} style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12, cursor: "pointer" }}>
@@ -967,7 +979,7 @@ function DayVisibilityButton({ dayId, activePersonas, personaLabels, onApply }: 
               </label>
             ))}
           </div>
-          <div style={{ fontSize: 10.5, color: "#94a3b8", marginBottom: 10 }}>Tour Host always stays visible.</div>
+          <div style={{ fontSize: 10.5, color: "var(--muted-2)", marginBottom: 10 }}>Tour Host always stays visible.</div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             <Btn small onClick={() => { onApply(dayId, sel); setOpen(false); }}>Apply to Day</Btn>
             <Btn small variant="muted" onClick={() => { onApply(null, sel); setOpen(false); }}>Apply to Entire Tour</Btn>
@@ -985,14 +997,14 @@ function ActionButton({ title, onClick, active, danger, children }: {
   title: string; onClick: () => void; active?: boolean; danger?: boolean; children: React.ReactNode;
 }) {
   const [hover, setHover] = useState(false);
-  const color = active ? "#0369a1" : danger && hover ? "#dc2626" : BRAND.navy;
+  const color = active ? "var(--sky-text)" : danger && hover ? "#dc2626" : "var(--ink)";
   return (
     <button
       type="button" onClick={onClick} title={title}
       onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
       style={{
         display: "inline-flex", alignItems: "center", justifyContent: "center",
-        background: active ? "#e0f2fe" : hover ? "#e2e8f0" : "transparent",
+        background: active ? "var(--sky-bg)" : hover ? "var(--border)" : "transparent",
         border: "none", cursor: "pointer", padding: 5, borderRadius: 6,
         color, opacity: active || hover ? 1 : 0.8,
         transition: "background .12s, opacity .12s, color .12s",
@@ -1003,9 +1015,50 @@ function ActionButton({ title, onClick, active, danger, children }: {
   );
 }
 
-function ItemRow({ item, groups, onEdit, onRemove, onDuplicate, onCopyToDays, onToggleCostPaid, onRemoveImage, dragProps, isDragOver }: {
+// Click-to-edit text block for an item note (detail / public / internal).
+// Saves on blur or Ctrl/Cmd+Enter; Escape cancels. Rendering stays identical to
+// the read-only block while not editing.
+function InlineNote({ value, onSave, style, prefix }: {
+  value: string; onSave: (v: string) => Promise<boolean>; style: React.CSSProperties; prefix?: React.ReactNode;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const [saving, setSaving] = useState(false);
+  async function commit() {
+    if (saving) return;
+    if (draft.trim() === value.trim()) { setEditing(false); return; }
+    setSaving(true);
+    const ok = await onSave(draft);
+    setSaving(false);
+    if (ok) setEditing(false);
+  }
+  if (editing) {
+    return (
+      <div style={{ ...style, padding: 0, background: "transparent", border: "none" }} onClick={e => e.stopPropagation()}>
+        <textarea autoFocus value={draft} onChange={e => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={e => {
+            if (e.key === "Escape") { setDraft(value); setEditing(false); }
+            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); commit(); }
+          }}
+          style={{ ...INP, minHeight: 64, resize: "vertical", fontSize: 12, lineHeight: 1.5 }} />
+        <div style={{ fontSize: 10.5, color: "var(--muted-2)", marginTop: 3 }}>{saving ? "Saving..." : "Click away or press Ctrl+Enter to save. Esc to cancel."}</div>
+      </div>
+    );
+  }
+  return (
+    <div title="Click to edit" onClick={e => { e.stopPropagation(); setDraft(value); setEditing(true); }}
+      style={{ ...style, cursor: "text" }}>
+      {prefix}{value}
+    </div>
+  );
+}
+
+function ItemRow({ item, groups, onEdit, onRemove, onDuplicate, onCopyToDays, onToggleCostPaid, onRemoveImage, onSaveField, dragProps, isDragOver }: {
   item: AgendaItemWithFeedback;
   groups: TourGroup[];
+  // Inline note edits (detail / public / internal) straight from the row.
+  onSaveField: (field: "detail" | "public_note" | "internal_note", value: string) => Promise<boolean>;
   onEdit: () => void; onRemove: () => void; onToggleCostPaid: () => void;
   // Duplicate = open a prefilled New Item form in this day; Copy to days =
   // pick other days to receive a copy (August 2026 request).
@@ -1028,7 +1081,7 @@ function ItemRow({ item, groups, onEdit, onRemove, onDuplicate, onCopyToDays, on
 
   return (
     <div
-      style={{ padding: "14px 16px", borderBottom: "1px solid #f8fafc", background: "#fff", borderTop: isDragOver ? `2px solid ${BRAND.blue}` : "2px solid transparent" }}
+      style={{ padding: "14px 16px", borderBottom: "1px solid var(--surface-2)", background: "var(--surface)", borderTop: isDragOver ? `2px solid ${BRAND.blue}` : "2px solid transparent" }}
       onClick={e => e.stopPropagation()}
       onDragOver={dragProps?.onDragOver}
       onDrop={dragProps?.onDrop}
@@ -1040,24 +1093,29 @@ function ItemRow({ item, groups, onEdit, onRemove, onDuplicate, onCopyToDays, on
             onDragStart={dragProps.onDragStart}
             onDragEnd={dragProps.onDragEnd}
             title="Drag to reorder, or drop on another day to move it there"
-            style={{ cursor: "grab", color: "#cbd5e1", paddingTop: 6, flexShrink: 0, display: "flex" }}
+            style={{ cursor: "grab", color: "var(--muted-3)", paddingTop: 6, flexShrink: 0, display: "flex" }}
           >
             <GripVertical size={15} />
           </div>
         )}
         {/* Times: bold, navy like the title, and a step larger so they catch
             the eye first (August 2026 request). */}
-        <div style={{ width: 64, fontSize: 13, fontWeight: 700, color: BRAND.navy, flexShrink: 0, paddingTop: 5, textAlign: "right", lineHeight: 1.35 }}>
-          {item.time || (item.end_time ? "" : <span style={{ color: "#cbd5e1" }}>-</span>)}
+        <div style={{ width: 64, fontSize: 13, fontWeight: 700, color: "var(--ink)", flexShrink: 0, paddingTop: 5, textAlign: "right", lineHeight: 1.35 }}>
+          {item.time || (item.end_time ? "" : <span style={{ color: "var(--muted-3)" }}>-</span>)}
           {item.end_time && <div style={{ fontSize: 12 }}>– {item.end_time}</div>}
         </div>
         <TypeDot type={item.type} travelMethod={travelMethods[0] ?? null} subtype={activitySubtypes[0] ?? null} size={32} flightColor={item.flight_icon_color} busColor={item.bus_icon_color} meetingColor={item.meeting_icon_color} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", marginBottom: 3 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: BRAND.navy }}>{item.title}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{item.title}</span>
             {/* The leading TypeDot icon conveys the item type; no redundant
                 type/sub-type text tags here. Group tags do show, so a host can
                 see which group an item is limited to. */}
+            {item.custom_type_label?.trim() && (
+              <span style={{ fontSize: 10, fontWeight: 700, color: AGENDA_TYPE_COLORS.activity, background: AGENDA_TYPE_COLORS.activity + "18", borderRadius: 5, padding: "1px 7px" }}>
+                {item.custom_type_label}
+              </span>
+            )}
             {(item.group_tags ?? []).map(g => (
               <span key={g} style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, color: BRAND.blue, background: BRAND.blue + "18", borderRadius: 5, padding: "1px 7px" }}>
                 <Tag size={9} />{groupName(groups, g)}
@@ -1067,16 +1125,18 @@ function ItemRow({ item, groups, onEdit, onRemove, onDuplicate, onCopyToDays, on
                 uploading / status lives in the edit modal and Confirmations page. */}
             <ConfirmationFileChips urls={item.confirmation_urls ?? []} />
           </div>
-          {item.address && <div style={{ fontSize: 12, color: "#64748b", marginBottom: 3, display: "flex", alignItems: "center", gap: 4 }}><MapPin size={12} style={{ flexShrink: 0 }} />{item.address}</div>}
-          {item.detail && <div style={{ fontSize: 12, color: "#475569", marginBottom: 3, whiteSpace: "pre-wrap", lineHeight: 1.5 }}>{item.detail}</div>}
+          {item.address && <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 3, display: "flex", alignItems: "center", gap: 4 }}><MapPin size={12} style={{ flexShrink: 0 }} />{item.address}</div>}
+          {item.detail && (
+            <InlineNote value={item.detail} onSave={v => onSaveField("detail", v)}
+              style={{ fontSize: 12, color: "var(--text-2)", marginBottom: 3, whiteSpace: "pre-wrap", lineHeight: 1.5 }} />
+          )}
           {item.public_note && (
-            <div style={{ fontSize: 12, background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 7, padding: "5px 10px", marginBottom: 5, color: "#0c4a6e", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
-              {item.public_note}
-            </div>
+            <InlineNote value={item.public_note} onSave={v => onSaveField("public_note", v)}
+              style={{ fontSize: 12, background: "var(--sky-bg-soft)", border: "1px solid var(--sky-border)", borderRadius: 7, padding: "5px 10px", marginBottom: 5, color: "var(--sky-text)", lineHeight: 1.5, whiteSpace: "pre-wrap" }} />
           )}
           {item.map_link?.trim() && (
             <div style={{ marginBottom: 4 }}>
-              <GoogleMapsLink address={item.address} mapLink={item.map_link} color="#0369a1" fontSize={11} />
+              <GoogleMapsLink address={item.address} mapLink={item.map_link} style={{ color: "var(--sky-text)" }} fontSize={11} />
             </div>
           )}
           {item.type === "food" && (item.meal_money?.length ?? 0) > 0 && (
@@ -1105,7 +1165,7 @@ function ItemRow({ item, groups, onEdit, onRemove, onDuplicate, onCopyToDays, on
           )}
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 4, alignItems: "center" }}>
             {item.website && (
-              <a href={item.website} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: "#5b21b6", display: "inline-flex", alignItems: "center", gap: 3, textDecoration: "none", fontWeight: 600 }}>
+              <a href={item.website} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: "var(--purple-text)", display: "inline-flex", alignItems: "center", gap: 3, textDecoration: "none", fontWeight: 600 }}>
                 <I n="eye" s={10} />Website
               </a>
             )}
@@ -1115,42 +1175,41 @@ function ItemRow({ item, groups, onEdit, onRemove, onDuplicate, onCopyToDays, on
               </a>
             )}
             {item.contact_name && (
-              <span style={{ fontSize: 11, color: "#475569", display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <span style={{ fontSize: 11, color: "var(--text-2)", display: "inline-flex", alignItems: "center", gap: 4 }}>
                 <Phone size={11} style={{ flexShrink: 0 }} />{item.contact_name}{item.contact_phone ? ` · ${item.contact_phone}` : ""}
               </span>
             )}
             {item.cost > 0 && (
               <span style={{ fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4 }}>
-                <span style={{ color: "#92400e", fontWeight: 700 }}>{fmt$(item.cost)}</span>
+                <span style={{ color: "var(--amber-text)", fontWeight: 700 }}>{fmt$(item.cost)}</span>
                 <button onClick={onToggleCostPaid}
-                  style={{ background: item.cost_paid ? "#dcfce7" : "#fee2e2", color: item.cost_paid ? "#166534" : "#b91c1c", border: "none", borderRadius: 4, padding: "1px 6px", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                  style={{ background: item.cost_paid ? "var(--green-bg)" : "var(--red-bg)", color: item.cost_paid ? "var(--green-text)" : "var(--red-text)", border: "none", borderRadius: 4, padding: "1px 6px", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                   {item.cost_paid ? "Paid" : "Unpaid"}
                 </button>
               </span>
             )}
-            {item.driver_note && <span style={{ fontSize: 10, background: "#fef3c7", color: "#92400e", borderRadius: 5, padding: "1px 7px", display: "inline-flex", alignItems: "center", gap: 4 }}><Bus size={11} style={{ flexShrink: 0 }} /><strong style={{ fontWeight: 700 }}>Bus Driver Note:</strong> {item.driver_note}</span>}
+            {item.driver_note && <span style={{ fontSize: 10, background: "var(--amber-bg)", color: "var(--amber-text)", borderRadius: 5, padding: "1px 7px", display: "inline-flex", alignItems: "center", gap: 4 }}><Bus size={11} style={{ flexShrink: 0 }} /><strong style={{ fontWeight: 700 }}>Bus Driver Note:</strong> {item.driver_note}</span>}
           </div>
 
           {/* Internal note — full text, own block (no truncation), host-only view. */}
           {item.internal_note && (
-            <div style={{ fontSize: 12, background: "#f3e8ff", color: "#6b21a8", borderRadius: 7, padding: "6px 10px", marginTop: 6, display: "flex", alignItems: "flex-start", gap: 6, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
-              <Lock size={12} style={{ flexShrink: 0, marginTop: 2 }} />
-              <span><strong style={{ fontWeight: 700 }}>Internal:</strong> {item.internal_note}</span>
-            </div>
+            <InlineNote value={item.internal_note} onSave={v => onSaveField("internal_note", v)}
+              prefix={<strong style={{ fontWeight: 700 }}><Lock size={12} style={{ display: "inline", verticalAlign: "-2px", marginRight: 4 }} />Internal: </strong>}
+              style={{ fontSize: 12, background: "var(--purple-bg)", color: "var(--purple-text)", borderRadius: 7, padding: "6px 10px", marginTop: 6, lineHeight: 1.5, whiteSpace: "pre-wrap" }} />
           )}
 
           <AgendaImages urls={item.image_urls} fullWidth onRemove={onRemoveImage} />
 
           {(item.driver_map_urls?.length ?? 0) > 0 && (
             <div style={{ marginTop: 8 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: "#92400e", textTransform: "uppercase", letterSpacing: .5, marginBottom: 4, display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "var(--amber-text)", textTransform: "uppercase", letterSpacing: .5, marginBottom: 4, display: "inline-flex", alignItems: "center", gap: 4 }}>
                 <Bus size={11} /> Driver Maps
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {item.driver_map_urls.map(url => (
                   <a key={url} href={url} target="_blank" rel="noreferrer" title="Open full size">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={url} alt="Driver map" style={{ width: 96, height: 68, objectFit: "cover", borderRadius: 8, border: "1px solid #fcd34d", display: "block" }} />
+                    <img src={url} alt="Driver map" style={{ width: 96, height: 68, objectFit: "cover", borderRadius: 8, border: "1px solid var(--amber-border)", display: "block" }} />
                   </a>
                 ))}
               </div>
@@ -1158,15 +1217,15 @@ function ItemRow({ item, groups, onEdit, onRemove, onDuplicate, onCopyToDays, on
           )}
 
           {item.agenda_feedback?.length > 0 && (
-            <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid #f1f5f9" }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", marginBottom: 5 }}>
+            <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid var(--surface-3)" }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "var(--muted-2)", marginBottom: 5 }}>
                 FEEDBACK ({item.agenda_feedback.length}) - coordinator only
               </div>
               {item.agenda_feedback.map(fb => (
-                <div key={fb.id} style={{ fontSize: 11, color: "#475569", marginBottom: 4, display: "flex", alignItems: "flex-start", gap: 6 }}>
+                <div key={fb.id} style={{ fontSize: 11, color: "var(--text-2)", marginBottom: 4, display: "flex", alignItems: "flex-start", gap: 6 }}>
                   {(() => { const { Icon, color } = getSentimentIcon(fb.sentiment); return <Icon size={15} color={color} style={{ flexShrink: 0, marginTop: 1 }} />; })()}
                   <span>
-                    <span style={{ background: ROLES_TYPED[fb.role]?.bg || "#f1f5f9", color: ROLES_TYPED[fb.role]?.color || "#475569", borderRadius: 4, padding: "0 5px", fontSize: 10, fontWeight: 600, marginRight: 5 }}>
+                    <span style={{ background: ROLES_TYPED[fb.role]?.bg || "var(--surface-3)", color: ROLES_TYPED[fb.role]?.color || "var(--text-2)", borderRadius: 4, padding: "0 5px", fontSize: 10, fontWeight: 600, marginRight: 5 }}>
                       {ROLES_TYPED[fb.role]?.label || fb.role}
                     </span>
                     {fb.text}
@@ -1355,6 +1414,7 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
       meeting_icon_color: f.type === "meeting" ? (f.meeting_icon_color || null) : null,
       elevate_url: f.elevate_url.trim() || null,
       group_tags: f.group_tags,
+      custom_type_label: f.type === "activity" && f.activity_subtypes.includes("other") ? (f.custom_type_label.trim() || null) : null,
     };
   }
 
@@ -1383,7 +1443,22 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
       meeting_icon_color: item.meeting_icon_color ?? null,
       elevate_url: item.elevate_url || "",
       group_tags: item.group_tags ?? [],
+      custom_type_label: item.custom_type_label || "",
     };
+  }
+
+  // Inline note edit from the itinerary view (click the note text): writes just
+  // that field and reflects it locally. Surfaces a refused write.
+  async function saveItemField(dayId: string, itemId: string, field: "detail" | "public_note" | "internal_note", value: string) {
+    const v = value.trim() || null;
+    const { data, error } = await createClient().from("agenda_items").update({ [field]: v }).eq("id", itemId).select("id");
+    if (error || !data || data.length === 0) {
+      console.error("[agenda_items.inline] save failed", { itemId, field, error });
+      if (typeof window !== "undefined") window.alert(`Could not save the note: ${error?.message ?? "no row updated (permission?)"}`);
+      return false;
+    }
+    onDaysChange(daysRef.current.map(d => d.id === dayId ? { ...d, agenda_items: d.agenda_items.map(i => i.id === itemId ? { ...i, [field]: v } : i) } : d));
+    return true;
   }
 
   // Whether any OTHER item on the tour still references an image URL (copies
@@ -1874,13 +1949,13 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
     <div>
       {/* Persona-added review banner */}
       {recentlyAddedPersona && (
-        <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#fffbeb", border: "1.5px solid #fcd34d", borderRadius: 10, padding: "10px 14px", marginBottom: 14 }}>
-          <span style={{ fontSize: 13, color: "#92400e", flex: 1 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--amber-bg-soft)", border: "1.5px solid var(--amber-border)", borderRadius: 10, padding: "10px 14px", marginBottom: 14 }}>
+          <span style={{ fontSize: 13, color: "var(--amber-text)", flex: 1 }}>
             <strong>{personaLabel(recentlyAddedPersona, tour.persona_labels)}</strong> was added to this tour. Review item visibility to choose what they can see.
           </span>
           <button onClick={onDismissAddedPersona} title="Dismiss"
-            style={{ background: "none", border: "none", cursor: "pointer", color: "#92400e", padding: 4, display: "flex", alignItems: "center", flexShrink: 0 }}>
-            <I n="x" s={14} c="#92400e" />
+            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--amber-text)", padding: 4, display: "flex", alignItems: "center", flexShrink: 0 }}>
+            <I n="x" s={14} c="var(--amber-text)" />
           </button>
         </div>
       )}
@@ -1901,9 +1976,9 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
 
       {/* Preview role buttons — primary action, prominent at the top */}
       {days.length > 0 && (
-        <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 12, padding: 16, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
-          <div style={{ fontSize: 15, fontWeight: 400, color: BRAND.navy, fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", marginBottom: 2 }}>Preview the Itinerary</div>
-          <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 12 }}>See exactly what each role sees on the shared view, then share the link.</div>
+        <div style={{ background: "var(--surface)", border: "1.5px solid var(--border-soft)", borderRadius: 12, padding: 16, marginBottom: 14, boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
+          <div style={{ fontSize: 15, fontWeight: 400, color: "var(--ink)", fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", marginBottom: 2 }}>Preview the Itinerary</div>
+          <div style={{ fontSize: 12, color: "var(--muted-2)", marginBottom: 12 }}>See exactly what each role sees on the shared view, then share the link.</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {/* One preview per active participant persona (Tour Host = the editor). */}
             {activePersonaKeys(tour.active_personas).filter(k => k !== "tour_host").map(key => {
@@ -1935,17 +2010,17 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
                 <>
                   {/* Click-away backdrop closes the menu. */}
                   <div onClick={() => setPrintMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
-                  <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, zIndex: 41, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, boxShadow: "0 8px 28px rgba(0,0,0,.14)", overflow: "hidden", minWidth: 210 }}>
+                  <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, zIndex: 41, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, boxShadow: "0 8px 28px rgba(0,0,0,.14)", overflow: "hidden", minWidth: 210 }}>
                     <button onClick={() => { setPrintMenuOpen(false); openPrintView(); }}
-                      style={{ width: "100%", display: "flex", alignItems: "center", gap: 9, padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid #f1f5f9", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, color: "#1e293b", textAlign: "left" }}>
+                      style={{ width: "100%", display: "flex", alignItems: "center", gap: 9, padding: "10px 14px", background: "none", border: "none", borderBottom: "1px solid var(--surface-3)", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, color: "var(--text)", textAlign: "left" }}>
                       <Printer size={14} />Full itinerary
-                      <span style={{ color: "#94a3b8", fontWeight: 600, marginLeft: "auto" }}>{personaLabel("tour_host", tour.persona_labels)}</span>
+                      <span style={{ color: "var(--muted-2)", fontWeight: 600, marginLeft: "auto" }}>{personaLabel("tour_host", tour.persona_labels)}</span>
                     </button>
                     {activePersonaKeys(tour.active_personas).filter(k => k !== "tour_host").map(key => {
                       const meta = personaColors(key);
                       return (
                         <button key={key} onClick={() => { setPrintMenuOpen(false); openPrintView(key); }}
-                          style={{ width: "100%", display: "flex", alignItems: "center", gap: 9, padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, color: "#1e293b", textAlign: "left" }}>
+                          style={{ width: "100%", display: "flex", alignItems: "center", gap: 9, padding: "10px 14px", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 600, color: "var(--text)", textAlign: "left" }}>
                           <span style={{ width: 9, height: 9, borderRadius: "50%", background: meta.color, flexShrink: 0 }} />
                           {personaLabel(key, tour.persona_labels)}
                         </button>
@@ -1984,7 +2059,7 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 13, fontWeight: 400, color: BRAND.navy, fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em" }}>
+          <span style={{ fontSize: 13, fontWeight: 400, color: "var(--ink)", fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em" }}>
             {days.length} day{days.length !== 1 ? "s" : ""} planned
           </span>
           {pastDays.length > 0 && (
@@ -1996,7 +2071,7 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
               pastDays.forEach(d => { m[d.id] = !anyPastCollapsed; });
               return m;
             })}
-              style={{ background: anyPastCollapsed ? "#f1f5f9" : "#e0f2fe", border: "none", borderRadius: 6, padding: "3px 10px", fontSize: 11, color: anyPastCollapsed ? "#64748b" : "#0369a1", cursor: "pointer", fontWeight: 600, fontFamily: "inherit" }}>
+              style={{ background: anyPastCollapsed ? "var(--surface-3)" : "var(--sky-bg)", border: "none", borderRadius: 6, padding: "3px 10px", fontSize: 11, color: anyPastCollapsed ? "var(--muted)" : "var(--sky-text)", cursor: "pointer", fontWeight: 600, fontFamily: "inherit" }}>
               {anyPastCollapsed ? "Expand" : "Collapse"} {pastDays.length} past day{pastDays.length !== 1 ? "s" : ""}
             </button>
           )}
@@ -2004,7 +2079,7 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
             // Collapse or expand every day at once.
             <button onClick={() => setCollapsedDays(Object.fromEntries(days.map(d => [d.id, !allCollapsed])))}
               title={allCollapsed ? "Expand all days" : "Collapse all days"}
-              style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#f1f5f9", border: "none", borderRadius: 6, padding: "3px 10px", fontSize: 11, color: "#64748b", cursor: "pointer", fontWeight: 600, fontFamily: "inherit" }}>
+              style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "var(--surface-3)", border: "none", borderRadius: 6, padding: "3px 10px", fontSize: 11, color: "var(--muted)", cursor: "pointer", fontWeight: 600, fontFamily: "inherit" }}>
               <ChevronsUpDown size={12} />{allCollapsed ? "Expand all" : "Collapse all"}
             </button>
           )}
@@ -2018,12 +2093,12 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
           with no group always show). Groups are defined in Settings. */}
       {tourGroups.length > 0 && days.length > 0 && (
         <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .6, display: "inline-flex", alignItems: "center", gap: 4 }}><Tag size={11} />Show</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: .6, display: "inline-flex", alignItems: "center", gap: 4 }}><Tag size={11} />Show</span>
           {[{ id: null as string | null, name: "All groups" }, ...tourGroups].map(g => {
             const on = groupFilter === g.id;
             return (
               <button key={g.id ?? "all"} type="button" onClick={() => setGroupFilter(g.id)}
-                style={{ padding: "4px 11px", borderRadius: 20, border: `1.5px solid ${on ? BRAND.blue : "#e2e8f0"}`, background: on ? BRAND.blue + "18" : "#fff", color: on ? BRAND.blue : "#64748b", fontSize: 12, fontWeight: on ? 700 : 500, cursor: "pointer", fontFamily: "inherit" }}>
+                style={{ padding: "4px 11px", borderRadius: 20, border: `1.5px solid ${on ? BRAND.blue : "var(--border)"}`, background: on ? BRAND.blue + "18" : "var(--surface)", color: on ? BRAND.blue : "var(--muted)", fontSize: 12, fontWeight: on ? 700 : 500, cursor: "pointer", fontFamily: "inherit" }}>
                 {g.name}
               </button>
             );
@@ -2032,7 +2107,7 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
       )}
 
       {days.length === 0 && (
-        <div style={{ background: "#f8fafc", border: "2px dashed #e2e8f0", borderRadius: 12, padding: "40px 20px", textAlign: "center", color: "#94a3b8", fontSize: 13 }}>
+        <div style={{ background: "var(--surface-2)", border: "2px dashed var(--border)", borderRadius: 12, padding: "40px 20px", textAlign: "center", color: "var(--muted-2)", fontSize: 13 }}>
           No itinerary days yet. Add your first day to get started.
         </div>
       )}
@@ -2052,7 +2127,7 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
             return isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-US", { weekday: "long" });
           })();
           return (
-            <div key={day.id} style={{ background: "#fff", border: `1.5px solid ${past ? "#e5e7eb" : "#e8eef4"}`, borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
+            <div key={day.id} style={{ background: "var(--surface)", border: `1.5px solid ${past ? "var(--border)" : "var(--border-soft)"}`, borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
               <div
                 style={{ background: dragCtx && dragCtx.dayId !== day.id && dragOverIdx?.dayId === day.id && dragOverIdx.index === -1 ? BRAND.blue : BRAND.navy, padding: "11px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", transition: "background .12s" }}
                 onClick={() => toggleDayCollapse(day.id)}
@@ -2153,7 +2228,7 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
               {!collapsed && (
                 <div>
                   {day.agenda_items.length === 0 && addingItem !== day.id && (
-                    <div style={{ color: "#cbd5e1", fontSize: 12, padding: "14px 16px", textAlign: "center" }}>No items yet</div>
+                    <div style={{ color: "var(--muted-3)", fontSize: 12, padding: "14px 16px", textAlign: "center" }}>No items yet</div>
                   )}
                   {orderAgendaItems(day.agenda_items).filter(item => itemMatchesGroup(item, groupFilter)).map(item => {
                     // Drop positions index the FULL day order, not the filtered list.
@@ -2169,6 +2244,7 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
                       onCopyToDays={() => { setCopyCtx({ dayId: day.id, item }); setCopyTargets({}); }}
                       onToggleCostPaid={() => toggleCostPaid(day.id, item)}
                       onRemoveImage={url => removeItemImage(day.id, item, url)}
+                      onSaveField={(field, v) => saveItemField(day.id, item.id, field, v)}
                       isDragOver={dragOverIdx?.dayId === day.id && dragOverIdx.index === itemIdx}
                       dragProps={{
                         onDragStart: e => {
@@ -2234,17 +2310,17 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
                 <div style={{ fontSize: 11, color: BRAND.blue, marginTop: 3 }}>Suggested based on existing days</div>
               )}
             </Field>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "#f8fafc", borderRadius: 9, border: "1.5px solid #e2e8f0" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: "var(--surface-2)", borderRadius: 9, border: "1.5px solid var(--border)" }}>
               <input type="checkbox" id="multiday" checked={addMultiple} onChange={e => setAddMultiple(e.target.checked)} style={{ accentColor: BRAND.navy, width: 15, height: 15 }} />
               <label htmlFor="multiday" style={{ fontSize: 13, cursor: "pointer", fontWeight: 500 }}>Add multiple consecutive days</label>
             </div>
             {addMultiple && (
               <Field label="How many days?">
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <button onClick={() => setMultiCount(c => Math.max(1, c - 1))} style={{ width: 32, height: 32, borderRadius: 8, border: "1.5px solid #e2e8f0", background: "#fff", cursor: "pointer", fontSize: 16, fontWeight: 700, color: BRAND.navy, fontFamily: "inherit" }}>-</button>
-                  <span style={{ fontSize: 18, fontWeight: 700, color: BRAND.navy, minWidth: 32, textAlign: "center" }}>{multiCount}</span>
-                  <button onClick={() => setMultiCount(c => c + 1)} style={{ width: 32, height: 32, borderRadius: 8, border: "1.5px solid #e2e8f0", background: "#fff", cursor: "pointer", fontSize: 16, fontWeight: 700, color: BRAND.navy, fontFamily: "inherit" }}>+</button>
-                  <span style={{ fontSize: 12, color: "#64748b" }}>
+                  <button onClick={() => setMultiCount(c => Math.max(1, c - 1))} style={{ width: 32, height: 32, borderRadius: 8, border: "1.5px solid var(--border)", background: "var(--surface)", cursor: "pointer", fontSize: 16, fontWeight: 700, color: "var(--ink)", fontFamily: "inherit" }}>-</button>
+                  <span style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", minWidth: 32, textAlign: "center" }}>{multiCount}</span>
+                  <button onClick={() => setMultiCount(c => c + 1)} style={{ width: 32, height: 32, borderRadius: 8, border: "1.5px solid var(--border)", background: "var(--surface)", cursor: "pointer", fontSize: 16, fontWeight: 700, color: "var(--ink)", fontFamily: "inherit" }}>+</button>
+                  <span style={{ fontSize: 12, color: "var(--muted)" }}>
                     {multiCount > 1 && newDayDate && parseAgendaDate(newDayDate) ? (() => {
                       const end = new Date(parseAgendaDate(newDayDate)!);
                       end.setDate(end.getDate() + multiCount - 1);
@@ -2300,9 +2376,9 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
         return (
           <Modal title="Delete Day?" onClose={() => setConfirmDeleteDayId(null)}>
             <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-              <div style={{ fontSize: 14, lineHeight: 1.55, color: "#334155" }}>
+              <div style={{ fontSize: 14, lineHeight: 1.55, color: "var(--text)" }}>
                 {dayToDelete
-                  ? <>You&rsquo;re about to delete <strong style={{ color: BRAND.navy }}>{dayToDelete.date}</strong>{itemCount > 0 ? <> and its {itemCount} itinerary item{itemCount !== 1 ? "s" : ""}</> : null}.</>
+                  ? <>You&rsquo;re about to delete <strong style={{ color: "var(--ink)" }}>{dayToDelete.date}</strong>{itemCount > 0 ? <> and its {itemCount} itinerary item{itemCount !== 1 ? "s" : ""}</> : null}.</>
                   : <>You&rsquo;re about to delete this day.</>}
               </div>
               <div style={{ display: "flex", gap: 8 }}>
@@ -2328,9 +2404,9 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
         return (
           <Modal title="Delete Item?" onClose={() => setConfirmDeleteItem(null)}>
             <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-              <div style={{ fontSize: 14, lineHeight: 1.55, color: "#334155" }}>
-                You&rsquo;re about to delete <strong style={{ color: BRAND.navy }}>{target?.title || "this item"}</strong>{target?.time ? <> ({target.time})</> : null} and everything entered on it.
-                <div style={{ fontSize: 12, color: "#64748b", marginTop: 6 }}>You&rsquo;ll have a few seconds to undo after deleting.</div>
+              <div style={{ fontSize: 14, lineHeight: 1.55, color: "var(--text)" }}>
+                You&rsquo;re about to delete <strong style={{ color: "var(--ink)" }}>{target?.title || "this item"}</strong>{target?.time ? <> ({target.time})</> : null} and everything entered on it.
+                <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 6 }}>You&rsquo;ll have a few seconds to undo after deleting.</div>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <Btn onClick={() => setConfirmDeleteItem(null)} variant="muted" style={{ flex: 1 }}>Cancel</Btn>
@@ -2357,14 +2433,14 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
         return (
           <Modal title="Copy Item to Other Days" onClose={() => setCopyCtx(null)}>
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <div style={{ fontSize: 13, color: "#334155", lineHeight: 1.5 }}>
-                Copy <strong style={{ color: BRAND.navy }}>{copyCtx.item.title}</strong>{copyCtx.item.time ? ` (${copyCtx.item.time})` : ""} into the days you pick. Each copy can be edited on its own afterward.
+              <div style={{ fontSize: 13, color: "var(--text)", lineHeight: 1.5 }}>
+                Copy <strong style={{ color: "var(--ink)" }}>{copyCtx.item.title}</strong>{copyCtx.item.time ? ` (${copyCtx.item.time})` : ""} into the days you pick. Each copy can be edited on its own afterward.
               </div>
               {others.length === 0 ? (
-                <div style={{ fontSize: 12, color: "#94a3b8" }}>There are no other days yet. Add a day first.</div>
+                <div style={{ fontSize: 12, color: "var(--muted-2)" }}>There are no other days yet. Add a day first.</div>
               ) : (
                 <>
-                  <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", padding: "8px 10px", background: "#f8fafc", border: "1.5px solid #e2e8f0", borderRadius: 9 }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", padding: "8px 10px", background: "var(--surface-2)", border: "1.5px solid var(--border)", borderRadius: 9 }}>
                     <input type="checkbox" checked={allChosen}
                       onChange={() => setCopyTargets(allChosen ? {} : Object.fromEntries(others.map(d => [d.id, true])))}
                       style={{ accentColor: BRAND.navy, width: 15, height: 15 }} />
@@ -2374,7 +2450,7 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
                     {days.map((d, i) => {
                       const isSource = d.id === copyCtx.dayId;
                       return (
-                        <label key={d.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, padding: "6px 10px", borderRadius: 8, cursor: isSource ? "default" : "pointer", color: isSource ? "#94a3b8" : "#1e293b" }}>
+                        <label key={d.id} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, padding: "6px 10px", borderRadius: 8, cursor: isSource ? "default" : "pointer", color: isSource ? "var(--muted-2)" : "var(--text)" }}>
                           <input type="checkbox" disabled={isSource} checked={isSource ? false : !!copyTargets[d.id]}
                             onChange={() => setCopyTargets(t => ({ ...t, [d.id]: !t[d.id] }))}
                             style={{ accentColor: BRAND.navy, width: 15, height: 15 }} />

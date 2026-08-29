@@ -25,11 +25,13 @@ export const BANNER_TEXT_SHADOW = "0 1px 6px rgba(0,0,0,0.75)";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
+// color / bg are theme tokens (globals.css) so status pills read in light and
+// dark; dot stays a hex because callers append alpha to it (`${st.dot}33`).
 export const STATUSES = [
-  { id: "bid",         label: "Quote",       color: "#92400e", bg: "#fef3c7", dot: "#d97706" },
-  { id: "committed",   label: "Committed",   color: "#065f46", bg: "#ecfdf5", dot: "#10b981" },
-  { id: "in-progress", label: "In Progress", color: "#1e40af", bg: "#eff6ff", dot: "#3b82f6" },
-  { id: "closed",      label: "Closed",      color: "#374151", bg: "#f3f4f6", dot: "#9ca3af" },
+  { id: "bid",         label: "Quote",       color: "var(--amber-text)", bg: "var(--amber-bg)",     dot: "#d97706" },
+  { id: "committed",   label: "Committed",   color: "var(--green-text)", bg: "var(--green-bg-soft)", dot: "#10b981" },
+  { id: "in-progress", label: "In Progress", color: "var(--sky-text)",   bg: "var(--sky-bg-soft)",   dot: "#3b82f6" },
+  { id: "closed",      label: "Closed",      color: "var(--text-2)",     bg: "var(--surface-3)",     dot: "#9ca3af" },
 ] as const;
 
 // Top-level itinerary item types. "Travel" and "Activity" have sub-types
@@ -61,9 +63,9 @@ export const TRAVEL_SUBTYPES = [
 
 // Activity sub-types — stored in the item's `activity_subtype` field.
 // August 2026 (Amy): Beach -> Beach / Park, Clinic -> Clinic / Workshop, plus
-// Game / Tournament (sports teams), Performance (distinct from a clinic) and
-// Delivered Meal. "Other" is the write-in option: it keeps the generic icon and
-// uses the item title as its label.
+// Game / Tournament (sports teams) and Performance (distinct from a clinic).
+// "Other" is the write-in option: it keeps the generic icon and the host types
+// the type name (agenda_items.custom_type_label), shown as a tag on the item.
 export const ACTIVITY_SUBTYPES = [
   { value: "theme_park",     label: "Theme Park" },
   { value: "disney",         label: "Disney" },
@@ -76,8 +78,17 @@ export const ACTIVITY_SUBTYPES = [
   { value: "broadway",       label: "Broadway" },
   { value: "play_show",      label: "Play / Show" },
   { value: "museum",         label: "Museum" },
-  { value: "delivered_meal", label: "Delivered Meal" },
   { value: "other",          label: "Other (write in)" },
+] as const;
+
+// Dining sub-types (August 2026: Delivered Meal lives under Dining). Also
+// stored in activity_subtypes; the first one drives the item icon.
+export const FOOD_SUBTYPES = [
+  { value: "breakfast", label: "Breakfast" },
+  { value: "lunch",     label: "Lunch" },
+  { value: "dinner",    label: "Dinner" },
+  { value: "snack",     label: "Snack" },
+  { value: "delivered", label: "Delivered Meal" },
 ] as const;
 
 // City-aware activity suggestions: when the tour destination matches a keyword,
@@ -163,6 +174,7 @@ export const GENERAL_SUBTYPES = [
 // (travel_method); activity, instructions, and general all use activity_subtype.
 export const SUBTYPES_BY_TYPE: Record<string, readonly { value: string; label: string }[]> = {
   activity: ACTIVITY_SUBTYPES,
+  food: FOOD_SUBTYPES,
   instructions: INSTRUCTION_SUBTYPES,
   general: GENERAL_SUBTYPES,
 };
@@ -510,6 +522,7 @@ export function buildTripInfo({ tour, members, days, hostName, hostPhone, confir
     activePersonas: active,
     personaLabels: labels ?? {},
     confirmationsTeacherVisible: tour?.confirmations_teacher_visible === true,
+    rowOrder: Array.isArray(tour?.trip_info_row_order) ? (tour.trip_info_row_order as string[]).filter(k => typeof k === "string") : [],
     flightName: flightName || null,
     flightAddress: flight?.address || null,
     hasFlight: flightItems.length > 0,

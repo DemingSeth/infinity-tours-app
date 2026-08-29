@@ -55,7 +55,7 @@ export default function ItemFeedback({ itemId, tourId, role, preview = false }: 
   if (status === "done") {
     return (
       <div style={{ marginTop: 8, display: "flex", justifyContent: "flex-end" }}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 700, color: "#15803d", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 999, padding: "4px 11px" }}>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 700, color: "var(--green-text)", background: "var(--green-bg-soft)", border: "1px solid var(--green-border)", borderRadius: 999, padding: "4px 11px" }}>
           <Check size={14} /> Thanks!
         </span>
       </div>
@@ -71,9 +71,9 @@ export default function ItemFeedback({ itemId, tourId, role, preview = false }: 
           onClick={() => setExpanded(true)}
           title="How was this?"
           style={{
-            display: "inline-flex", alignItems: "center", gap: 6, background: "#f8fafc",
-            border: "1px solid #e2e8f0", borderRadius: 999, padding: "5px 12px", fontSize: 12,
-            fontWeight: 600, color: "#64748b", cursor: "pointer", fontFamily: "inherit",
+            display: "inline-flex", alignItems: "center", gap: 6, background: "var(--surface-2)",
+            border: "1px solid var(--border)", borderRadius: 999, padding: "5px 12px", fontSize: 12,
+            fontWeight: 600, color: "var(--muted)", cursor: "pointer", fontFamily: "inherit",
           }}
         >
           <MessageCircle size={15} /> How was this?
@@ -83,16 +83,16 @@ export default function ItemFeedback({ itemId, tourId, role, preview = false }: 
   }
 
   return (
-    <div style={{ marginTop: 8, padding: "10px 12px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8 }}>
+    <div style={{ marginTop: 8, padding: "10px 12px", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 8 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: 0.6 }}>
           How was this?
         </div>
         <button
           type="button"
           onClick={() => setExpanded(false)}
           aria-label="Close feedback"
-          style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 2, display: "inline-flex", fontFamily: "inherit" }}
+          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted-2)", padding: 2, display: "inline-flex", fontFamily: "inherit" }}
         >
           <X size={16} />
         </button>
@@ -110,14 +110,14 @@ export default function ItemFeedback({ itemId, tourId, role, preview = false }: 
               onClick={() => setSentiment(opt.v)}
               style={{
                 flex: 1, minWidth: 0, minHeight: 46, padding: "6px 4px", borderRadius: 8,
-                border: `2px solid ${active ? BRAND.blue : "#e2e8f0"}`,
-                background: active ? "#f0fdfa" : "#fff", cursor: "pointer",
+                border: `2px solid ${active ? BRAND.blue : "var(--border)"}`,
+                background: active ? "var(--green-bg-soft)" : "var(--surface)", cursor: "pointer",
                 display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3,
                 fontFamily: "inherit",
               }}
             >
-              <Icon size={22} color={active ? color : "#94a3b8"} />
-              <span style={{ fontSize: 10, fontWeight: 700, color: active ? BRAND.blue : "#94a3b8" }}>{opt.l}</span>
+              <Icon size={22} color={active ? color : "var(--muted-2)"} />
+              <span style={{ fontSize: 10, fontWeight: 700, color: active ? BRAND.blue : "var(--muted-2)" }}>{opt.l}</span>
             </button>
           );
         })}
@@ -132,13 +132,13 @@ export default function ItemFeedback({ itemId, tourId, role, preview = false }: 
             placeholder="Add a comment (optional)…"
             rows={2}
             style={{
-              width: "100%", boxSizing: "border-box", border: "1.5px solid #e2e8f0",
-              borderRadius: 8, padding: "8px 10px", fontSize: 13, color: "#1e293b",
+              width: "100%", boxSizing: "border-box", border: "1.5px solid var(--border)",
+              borderRadius: 8, padding: "8px 10px", fontSize: 13, color: "var(--text)",
               fontFamily: "inherit", outline: "none", resize: "vertical",
             }}
           />
           {status === "error" && (
-            <div style={{ fontSize: 12, color: "#b91c1c" }}>Couldn’t save feedback. Please try again.</div>
+            <div style={{ fontSize: 12, color: "var(--red-text)" }}>Couldn’t save feedback. Please try again.</div>
           )}
           <button
             type="button"

@@ -16,15 +16,15 @@ export const ICONS: Record<string, string> = {
 
 export function I({ n, s = 13, c }: { n: string; s?: number; c?: string }) {
   return (
-    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c || "currentColor"} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: c }}>
       <path d={ICONS[n] ?? ""} />
     </svg>
   );
 }
 
 export const INP: React.CSSProperties = {
-  border: "1.5px solid #e2e8f0", borderRadius: 8, padding: "7px 11px",
-  fontSize: 13, fontFamily: "inherit", color: "#1e293b", background: "#fff",
+  border: "1.5px solid var(--border)", borderRadius: 8, padding: "7px 11px",
+  fontSize: 13, fontFamily: "inherit", color: "var(--text)", background: "var(--surface)",
   outline: "none", width: "100%", boxSizing: "border-box",
 };
 
@@ -32,7 +32,7 @@ export function Field({ label, children, half, third }: { label: string; childre
   const w = third ? "calc(33.33% - 7px)" : half ? "calc(50% - 5px)" : "100%";
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4, width: w, minWidth: 0, flexShrink: 0 }}>
-      <label style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .8 }}>{label}</label>
+      <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: .8 }}>{label}</label>
       {children}
     </div>
   );
@@ -63,8 +63,8 @@ export function Btn({ children, onClick, variant, small, style, disabled }: {
     display: "inline-flex", alignItems: "center", gap: 5, cursor: disabled ? "default" : "pointer",
     fontFamily: "inherit", fontWeight: 600, border: "none", borderRadius: 8,
     padding: small ? "5px 11px" : "8px 16px", fontSize: small ? 11 : 12, opacity: disabled ? .6 : 1,
-    background: variant === "muted" ? "#f1f5f9" : variant === "ghost" ? "transparent" : variant === "teal" ? BRAND.blue : BRAND.navy,
-    color: variant === "muted" ? "#64748b" : variant === "ghost" ? "#64748b" : "#fff",
+    background: variant === "muted" ? "var(--surface-3)" : variant === "ghost" ? "transparent" : variant === "teal" ? BRAND.blue : BRAND.navy,
+    color: variant === "muted" ? "var(--muted)" : variant === "ghost" ? "var(--muted)" : "#fff",
   };
   return <button onClick={onClick} disabled={disabled} style={{ ...base, ...style }}>{children}</button>;
 }
@@ -79,10 +79,10 @@ export function Modal({ title, onClose, children, wide }: {
   }, [onClose]);
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "40px 16px", overflowY: "auto" }}>
-      <div style={{ background: "#fff", borderRadius: 16, padding: 24, width: "100%", maxWidth: wide ? 680 : 420, boxShadow: "0 20px 60px rgba(0,0,0,.2)" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 16, padding: 24, width: "100%", maxWidth: wide ? 680 : 420, boxShadow: "0 20px 60px rgba(0,0,0,.2)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <span style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 16, fontWeight: 400, color: BRAND.navy }}>{title}</span>
-          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 4 }}><I n="x" s={16} /></button>
+          <span style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 16, fontWeight: 400, color: "var(--ink)" }}>{title}</span>
+          <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted-2)", padding: 4 }}><I n="x" s={16} /></button>
         </div>
         {children}
       </div>

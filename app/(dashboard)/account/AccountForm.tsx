@@ -67,7 +67,7 @@ export default function AccountForm({
 
   return (
     <div style={{ maxWidth: 560, margin: "0 auto", display: "flex", flexDirection: "column", gap: 20 }}>
-      <h1 style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.03em", fontSize: 24, fontWeight: 400, color: BRAND.navy, margin: 0 }}>
+      <h1 style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.03em", fontSize: 24, fontWeight: 400, color: "var(--ink)", margin: 0 }}>
         Account
       </h1>
 
@@ -77,7 +77,7 @@ export default function AccountForm({
 
         <div style={{ display: "flex", flexDirection: "column", gap: 5, marginBottom: 16 }}>
           <label style={fieldLabel}>Email</label>
-          <input value={email} readOnly style={{ ...inp, background: "#f8fafc", color: "#64748b", cursor: "not-allowed" }} />
+          <input value={email} readOnly style={{ ...inp, background: "var(--surface-2)", color: "var(--muted)", cursor: "not-allowed" }} />
         </div>
 
         <form onSubmit={saveName} style={{ display: "flex", flexDirection: "column", gap: 5 }}>
@@ -135,8 +135,8 @@ export default function AccountForm({
 function Msg({ ok, text }: { ok: boolean; text: string }) {
   return (
     <div style={{
-      background: ok ? "#dcfce7" : "#fee2e2",
-      color: ok ? "#15803d" : "#b91c1c",
+      background: ok ? "var(--green-bg)" : "var(--red-bg)",
+      color: ok ? "var(--green-text)" : "var(--red-text)",
       borderRadius: 8, padding: "8px 12px", fontSize: 13,
     }}>
       {text}
@@ -145,8 +145,8 @@ function Msg({ ok, text }: { ok: boolean; text: string }) {
 }
 
 const card: React.CSSProperties = {
-  background: "#fff",
-  border: "1.5px solid #e8eef4",
+  background: "var(--surface)",
+  border: "1.5px solid var(--border-soft)",
   borderRadius: 14,
   padding: 20,
 };
@@ -156,27 +156,27 @@ const sectionTitle: React.CSSProperties = {
   letterSpacing: "0.03em",
   fontSize: 15,
   fontWeight: 700,
-  color: BRAND.navy,
+  color: "var(--ink)",
   margin: "0 0 14px",
 };
 
 const fieldLabel: React.CSSProperties = {
   fontSize: 11,
   fontWeight: 700,
-  color: "#94a3b8",
+  color: "var(--muted-2)",
   textTransform: "uppercase",
   letterSpacing: 0.8,
 };
 
 const inp: React.CSSProperties = {
   width: "100%",
-  border: "1.5px solid #e2e8f0",
+  border: "1.5px solid var(--border)",
   borderRadius: 8,
   padding: "10px 14px",
   fontSize: 14,
-  color: "#1e293b",
+  color: "var(--text)",
   fontFamily: "inherit",
-  background: "#fff",
+  background: "var(--surface)",
   outline: "none",
   boxSizing: "border-box",
 };

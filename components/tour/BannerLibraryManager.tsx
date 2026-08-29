@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { BRAND } from "@/lib/helpers";
 import { I, Inp, Btn } from "@/components/tour/ui";
 import type { BannerImageLibraryRow } from "@/lib/types";
 
@@ -99,19 +98,19 @@ export default function BannerLibraryManager({ currentHostId }: { currentHostId:
   return (
     <div>
       {/* Add form */}
-      <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 10, padding: 14, marginBottom: 14 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: "#475569", marginBottom: 8 }}>Add to Library</div>
+      <div style={{ background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 10, padding: 14, marginBottom: 14 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)", marginBottom: 8 }}>Add to Library</div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           <input ref={inputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => setFile(e.target.files?.[0] ?? null)} />
           <Btn variant="muted" onClick={() => inputRef.current?.click()}><I n="upload" s={13} />{file ? "Change Image" : "Choose Image"}</Btn>
-          {file && <span style={{ fontSize: 11, color: "#64748b", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{file.name}</span>}
+          {file && <span style={{ fontSize: 11, color: "var(--muted)", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{file.name}</span>}
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
           <Inp value={label} onChange={e => setLabel(e.target.value)} placeholder="Label (e.g. Anaheim - Convention Center)" style={{ flex: "1 1 220px" }} />
           <Inp value={destination} onChange={e => setDestination(e.target.value)} placeholder="Destination tag (e.g. Anaheim, CA)" style={{ flex: "1 1 160px" }} />
         </div>
         {error && (
-          <div style={{ marginTop: 8, background: "#fee2e2", color: "#b91c1c", border: "1px solid #fecaca", borderRadius: 8, padding: "8px 10px", fontSize: 12, lineHeight: 1.45 }}>
+          <div style={{ marginTop: 8, background: "var(--red-bg)", color: "var(--red-text)", border: "1px solid var(--red-border)", borderRadius: 8, padding: "8px 10px", fontSize: 12, lineHeight: 1.45 }}>
             {error}
           </div>
         )}
@@ -122,16 +121,16 @@ export default function BannerLibraryManager({ currentHostId }: { currentHostId:
 
       {/* Library grid */}
       {loading ? (
-        <div style={{ fontSize: 12, color: "#94a3b8" }}>Loading…</div>
+        <div style={{ fontSize: 12, color: "var(--muted-2)" }}>Loading…</div>
       ) : images.length === 0 ? (
-        <div style={{ background: "#f8fafc", border: "2px dashed #e2e8f0", borderRadius: 10, padding: "24px 16px", textAlign: "center", color: "#94a3b8", fontSize: 12 }}>
+        <div style={{ background: "var(--surface-2)", border: "2px dashed var(--border)", borderRadius: 10, padding: "24px 16px", textAlign: "center", color: "var(--muted-2)", fontSize: 12 }}>
           No images in the library yet.
         </div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 12 }}>
           {images.map(img => (
             <div key={img.id}>
-              <div style={{ position: "relative", width: "100%", aspectRatio: "4 / 3", borderRadius: 10, overflow: "hidden", border: "1px solid #e2e8f0", background: "#f1f5f9" }}>
+              <div style={{ position: "relative", width: "100%", aspectRatio: "4 / 3", borderRadius: 10, overflow: "hidden", border: "1px solid var(--border)", background: "var(--surface-3)" }}>
                 <Image src={img.url} alt={img.label} fill sizes="200px" style={{ objectFit: "cover" }} />
                 <button
                   type="button" title="Delete from library" onClick={() => remove(img)}
@@ -140,9 +139,9 @@ export default function BannerLibraryManager({ currentHostId }: { currentHostId:
                   <Trash2 size={13} />
                 </button>
               </div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: BRAND.navy, marginTop: 6, lineHeight: 1.3 }}>{img.label}</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", marginTop: 6, lineHeight: 1.3 }}>{img.label}</div>
               {img.destination && (
-                <span style={{ display: "inline-block", fontSize: 10, color: "#475569", background: "#eef2f7", borderRadius: 5, padding: "1px 6px", marginTop: 3 }}>{img.destination}</span>
+                <span style={{ display: "inline-block", fontSize: 10, color: "var(--text-2)", background: "var(--border-soft)", borderRadius: 5, padding: "1px 6px", marginTop: 3 }}>{img.destination}</span>
               )}
             </div>
           ))}
