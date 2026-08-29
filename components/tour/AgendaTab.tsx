@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
-import IconColorButton from "@/components/shared/IconColorPicker";
+import IconColorButton, { IconColorRow } from "@/components/shared/IconColorPicker";
 import {
   BRAND, ROLES, AGENDA_TYPES, TRAVEL_SUBTYPES, SUBTYPES_BY_TYPE,
   isDayInPast, initialCollapsedDays, parseAgendaDate, formatAgendaDate, suggestNextDate,
@@ -703,6 +703,25 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
         </div>
       </div>
 
+      {/* Icon color for THIS item, any type. An inline row (not a popover): in
+          the editor it has to be impossible to miss. The itinerary list keeps
+          the click-the-icon popover. */}
+      <div style={{ marginBottom: 14 }}>
+        <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>
+          Icon Color
+          <span style={{ marginLeft: 8, textTransform: "none", letterSpacing: 0, fontWeight: 500, color: "var(--muted-2)" }}>
+            also available by clicking the icon on the itinerary
+          </span>
+        </label>
+        <IconColorRow
+          type={form.type}
+          travelMethod={form.travel_methods[0] ?? null}
+          subtype={form.activity_subtypes[0] ?? null}
+          value={form.icon_color}
+          onChange={hex => f({ icon_color: hex })}
+        />
+      </div>
+
       {/* Who can see this item: one toggle chip per persona, colored with the
           persona's own color when on. The Tour Host always sees everything. */}
       <div style={{ marginBottom: 14 }}>
@@ -770,20 +789,7 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
           <TimePicker value={form.end_time} onChange={v => f({ end_time: v })} placeholder="Add end time" />
         </Field>
         <Field label="Title">
-          {/* The icon doubles as the color picker: click it to color THIS item
-              (any type), rather than a separate color section further down. */}
-          <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-            <IconColorButton
-              type={form.type}
-              travelMethod={form.travel_methods[0] ?? null}
-              subtype={form.activity_subtypes[0] ?? null}
-              value={form.icon_color}
-              onChange={hex => f({ icon_color: hex })}
-              size={34}
-            />
-            <Inp value={form.title} onChange={e => f({ title: e.target.value })} placeholder="Museum, flight, restaurant..." autoFocus={!isEdit} />
-          </div>
-          <div style={{ fontSize: 11, color: "var(--muted-2)", marginTop: 4 }}>Click the icon to change its color.</div>
+          <Inp value={form.title} onChange={e => f({ title: e.target.value })} placeholder="Museum, flight, restaurant..." autoFocus={!isEdit} />
         </Field>
         <Field label="Address">
           <Inp value={form.address} onChange={e => f({ address: e.target.value })} placeholder="Full street address" />

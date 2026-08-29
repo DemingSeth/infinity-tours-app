@@ -113,18 +113,13 @@ body {
    same color. In dark mode the tint is stronger and the glyph is lightened, so
    a dark choice such as brand navy stays readable on a dark surface. The base
    rule is a neutral chip for browsers without color-mix. */
-.type-dot {
-  background: color-mix(in srgb, var(--type-dot-color) 12%, transparent);
-  color: var(--type-dot-color);
-}
-@supports not (background: color-mix(in srgb, red 10%, transparent)) {
-  .type-dot {
-    background: var(--surface-3);
-  }
-}
+/* The chip tint and glyph color are set inline by TypeDot (plain rgba, so they
+   work everywhere). Dark mode refines them: a stronger tint and a lightened
+   glyph, so a dark choice such as brand navy stays readable on a dark surface.
+   !important because the base values are inline styles. */
 [data-theme="dark"] .type-dot {
-  background: color-mix(in srgb, var(--type-dot-color) 26%, transparent);
-  color: color-mix(in srgb, var(--type-dot-color) 55%, white);
+  background: color-mix(in srgb, var(--type-dot-color) 26%, transparent) !important;
+  color: color-mix(in srgb, var(--type-dot-color) 55%, white) !important;
 }
 
 /* Swap an element per theme (e.g. the navy vs light brand mark on a card). */

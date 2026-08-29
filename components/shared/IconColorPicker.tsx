@@ -116,3 +116,59 @@ export default function IconColorButton({
     </div>
   );
 }
+
+// The same choices as a plain inline row, for the item editor. No popover: in a
+// modal a popover can end up clipped or hidden depending on the browser, and
+// this needs to be impossible to miss (August 2026: the click-the-icon version
+// worked in the itinerary list but was not discoverable in the editor).
+export function IconColorRow({
+  type, travelMethod, subtype, value, onChange,
+}: {
+  type: string;
+  travelMethod?: string | null;
+  subtype?: string | null;
+  value: string | null;
+  onChange: (hex: string | null) => void;
+}) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "9px 12px", background: "var(--surface)", border: "1px solid var(--border-soft)", borderRadius: 9 }}>
+      {/* Live preview of the item icon as it will appear on the itinerary. */}
+      <TypeDot type={type} travelMethod={travelMethod} subtype={subtype} size={34} color={value} />
+      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+        {ICON_COLOR_CHOICES.map(c => {
+          const selected = (value || "").toUpperCase() === c.value.toUpperCase();
+          return (
+            <button
+              key={c.value}
+              type="button"
+              title={c.label}
+              aria-label={c.label}
+              aria-pressed={selected}
+              onClick={() => onChange(c.value)}
+              style={{
+                width: 26, height: 26, borderRadius: 7, cursor: "pointer", padding: 0,
+                background: c.value,
+                border: selected ? "2px solid var(--text)" : "1px solid var(--border)",
+                boxShadow: selected ? "0 0 0 2px var(--surface-3)" : "none",
+                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+              }}
+            >
+              {selected && <Check size={12} strokeWidth={3} color="#fff" />}
+            </button>
+          );
+        })}
+        <button
+          type="button"
+          onClick={() => onChange(null)}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 5, background: value ? "var(--surface-3)" : "var(--sky-bg)",
+            border: "none", borderRadius: 7, padding: "6px 11px", fontSize: 11.5, fontWeight: 700,
+            color: value ? "var(--muted)" : "var(--sky-text)", cursor: "pointer", fontFamily: "inherit", flexShrink: 0,
+          }}
+        >
+          {!value && <Check size={12} strokeWidth={3} />}Default
+        </button>
+      </div>
+    </div>
+  );
+}
