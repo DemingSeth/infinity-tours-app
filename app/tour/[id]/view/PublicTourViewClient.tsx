@@ -4,7 +4,7 @@ import { useState } from "react";
 import AgendaRoleView from "@/components/tour/AgendaRoleView";
 import InfinityLogoImg from "@/components/shared/InfinityLogoImg";
 import { BRAND, expandStateName, activePersonaKeys, personaLabel, personaColors, getPersona } from "@/lib/helpers";
-import type { AgendaDayWithItems, Role, TripInfo } from "@/lib/types";
+import type { AgendaDayWithItems, Role, TripInfo, TourGroup } from "@/lib/types";
 
 interface Props {
   tourId: string;
@@ -23,6 +23,9 @@ interface Props {
   days: AgendaDayWithItems[];
   generalFeedbackEnabled: boolean;
   tourEndDate: string | null;
+  groups: TourGroup[];
+  // ?group= from the share link (pre-selects that group's schedule).
+  initialGroup: string | null;
 }
 
 const PERSONA_DESC: Record<string, string> = {
@@ -33,7 +36,7 @@ const PERSONA_DESC: Record<string, string> = {
   bus_driver: "Addresses and driving notes",
 };
 
-export default function PublicTourViewClient({ tourId, tourName, tourDestination, tourDates, tourBannerUrl, tourBannerFocusX, tourBannerFocusY, tripInfo, initialUnlocked, activePersonas, personaLabels, days, generalFeedbackEnabled, tourEndDate }: Props) {
+export default function PublicTourViewClient({ tourId, tourName, tourDestination, tourDates, tourBannerUrl, tourBannerFocusX, tourBannerFocusY, tripInfo, initialUnlocked, activePersonas, personaLabels, days, generalFeedbackEnabled, tourEndDate, groups, initialGroup }: Props) {
   const [selectedPersona, setSelectedPersona] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -96,6 +99,8 @@ export default function PublicTourViewClient({ tourId, tourName, tourDestination
           tourId={tourId}
           generalFeedbackEnabled={generalFeedbackEnabled}
           tourEndDate={tourEndDate}
+          groups={groups}
+          initialGroup={initialGroup}
         />
       </div>
     );

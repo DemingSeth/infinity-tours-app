@@ -60,17 +60,24 @@ export const TRAVEL_SUBTYPES = [
 ] as const;
 
 // Activity sub-types — stored in the item's `activity_subtype` field.
+// August 2026 (Amy): Beach -> Beach / Park, Clinic -> Clinic / Workshop, plus
+// Game / Tournament (sports teams), Performance (distinct from a clinic) and
+// Delivered Meal. "Other" is the write-in option: it keeps the generic icon and
+// uses the item title as its label.
 export const ACTIVITY_SUBTYPES = [
   { value: "theme_park",     label: "Theme Park" },
   { value: "disney",         label: "Disney" },
   { value: "medieval_times", label: "Medieval Times" },
-  { value: "beach",          label: "Beach" },
-  { value: "clinic",         label: "Clinic" },
+  { value: "beach",          label: "Beach / Park" },
+  { value: "clinic",         label: "Clinic / Workshop" },
+  { value: "performance",    label: "Performance" },
+  { value: "game",           label: "Game / Tournament" },
   { value: "concert",        label: "Concert" },
   { value: "broadway",       label: "Broadway" },
   { value: "play_show",      label: "Play / Show" },
   { value: "museum",         label: "Museum" },
-  { value: "other",          label: "Other" },
+  { value: "delivered_meal", label: "Delivered Meal" },
+  { value: "other",          label: "Other (write in)" },
 ] as const;
 
 // City-aware activity suggestions: when the tour destination matches a keyword,
@@ -86,6 +93,37 @@ const CITY_ACTIVITY_SUGGESTIONS: { match: RegExp; subtypes: string[] }[] = [
   { match: /san diego|florida|hawaii|miami/i,    subtypes: ["beach", "theme_park"] },
   { match: /nashville|branson/i,                 subtypes: ["concert", "play_show"] },
 ];
+
+// ─── Multi-group tours ─────────────────────────────────────────────────────────
+
+// Whether an item applies to a viewer filtering by `groupId`. Untagged items
+// apply to every group; a null/empty filter shows everything.
+export function itemMatchesGroup(
+  item: { group_tags?: string[] | null },
+  groupId: string | null | undefined,
+): boolean {
+  if (!groupId) return true;
+  const tags = item.group_tags ?? [];
+  return tags.length === 0 || tags.includes(groupId);
+}
+
+// Resolve a group id to its display name (falls back to the id).
+export function groupName(groups: { id: string; name: string }[] | null | undefined, id: string): string {
+  return groups?.find(g => g.id === id)?.name ?? id;
+}
+
+// Whether a custom Trip Information row is visible to a persona. A missing or
+// all-false visibility map means the row is visible to everyone. Tour hosts
+// always see every row.
+export function customRowVisibleTo(
+  row: { visibility?: Record<string, boolean> | null },
+  personaKey: string | null | undefined,
+): boolean {
+  if (!personaKey || personaKey === "tour_host") return true;
+  const vis = row.visibility ?? null;
+  if (!vis || !Object.values(vis).some(Boolean)) return true;
+  return vis[personaKey] === true;
+}
 
 // Suggested activity sub-types for a destination (empty when no match).
 export function suggestedActivitySubtypes(destination: string | null | undefined): string[] {
@@ -443,10 +481,13 @@ export function buildTripInfo({ tour, members, days, hostName, hostPhone, confir
         ? [{ name: (tour!.planning_tour_host as string).trim(), contact: null }]
         : []);
 
-  const infoOverrides = (tour?.trip_info_overrides as { flight?: string | null; hotel?: string | null; bus?: string | null } | null) || {};
-  const customRows = ((tour?.custom_trip_rows as { id?: string; label?: string; value?: string | null; url?: string | null }[] | null) || [])
+  const infoOverrides = (tour?.trip_info_overrides as TripInfo["overrides"] | null) || {};
+  const customRows = ((tour?.custom_trip_rows as { id?: string; label?: string; value?: string | null; url?: string | null; visibility?: Record<string, boolean> | null }[] | null) || [])
     .filter(r => (r?.label ?? "").trim() || (r?.value ?? "").trim() || (r?.url ?? "").trim())
-    .map((r, i) => ({ id: r.id || `row-${i}`, label: (r.label ?? "").trim(), value: (r.value ?? "").trim() || null, url: (r.url ?? "").trim() || null }));
+    .map((r, i) => ({ id: r.id || `row-${i}`, label: (r.label ?? "").trim(), value: (r.value ?? "").trim() || null, url: (r.url ?? "").trim() || null, visibility: r.visibility ?? null }));
+  const groups = ((tour?.groups as { id?: string; name?: string }[] | null) || [])
+    .filter(g => g && g.id && (g.name ?? "").trim())
+    .map(g => ({ id: g.id as string, name: (g.name as string).trim() }));
 
   return {
     teacherName: tour?.contact_name || null,
@@ -465,6 +506,10 @@ export function buildTripInfo({ tour, members, days, hostName, hostPhone, confir
     participantsOverride: tour?.participants_display_override ?? null,
     departure: tour?.start_date || null,
     returnDate: tour?.end_date || null,
+    groups,
+    activePersonas: active,
+    personaLabels: labels ?? {},
+    confirmationsTeacherVisible: tour?.confirmations_teacher_visible === true,
     flightName: flightName || null,
     flightAddress: flight?.address || null,
     hasFlight: flightItems.length > 0,
@@ -663,9 +708,31 @@ export function initialCollapsedDays(days: { id: string; date: string }[]): Reco
   if (days.length === 0) return {};
   const past = days.map(d => isDayInPast(d.date));
   const allPast = past.every(Boolean);
+  // WHILE ON TOUR (today falls on one of the itinerary days) everything except
+  // the current day starts collapsed (August 2026 request): past days AND the
+  // days still ahead, so the viewer lands straight on today's schedule.
+  const todayIdx = days.findIndex(d => isDayToday(d.date));
+  if (todayIdx !== -1) {
+    return Object.fromEntries(days.map((d, i) => [d.id, i !== todayIdx]));
+  }
   return Object.fromEntries(
     days.map((d, i) => [d.id, allPast ? i !== days.length - 1 : past[i]]),
   );
+}
+
+// True when the itinerary day is the device-local calendar day.
+export function isDayToday(dateStr: string): boolean {
+  const parsed = parseAgendaDate(dateStr);
+  if (!parsed) return false;
+  return sameDay(parsed, new Date());
+}
+
+// "On tour" = today is one of the itinerary days. From the SECOND day onward the
+// Trip Information card starts minimized so the current day is what the viewer
+// sees first (August 2026 request); on day one it stays open.
+export function tripInfoStartsCollapsed(days: { date: string }[]): boolean {
+  const idx = days.findIndex(d => isDayToday(d.date));
+  return idx > 0;
 }
 
 // ─── Map URL ──────────────────────────────────────────────────────────────────

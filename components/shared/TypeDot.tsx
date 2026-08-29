@@ -1,9 +1,14 @@
 "use client";
 
-import { BRAND, getAgendaType } from "@/lib/helpers";
+import { getAgendaType } from "@/lib/helpers";
 import { getItemIcon, getAgendaTypeColor } from "@/components/shared/agendaIcons";
 
-export default function TypeDot({ type, travelMethod, subtype, size = 28, flightColor, busColor }: {
+// A stored white icon color predates the tinted-chip rendering (the icon used
+// to sit on a navy chip). White on a white tint is invisible, so it now means
+// "default rendering".
+const isUsableColor = (c?: string | null) => !!c && c.trim().toUpperCase() !== "#FFFFFF";
+
+export default function TypeDot({ type, travelMethod, subtype, size = 28, flightColor, busColor, meetingColor }: {
   type: string;
   travelMethod?: string | null;
   subtype?: string | null;
@@ -14,16 +19,20 @@ export default function TypeDot({ type, travelMethod, subtype, size = 28, flight
   // Host-chosen bus icon color (hex). Applied only to the bus icon; null /
   // undefined keeps the default rendering.
   busColor?: string | null;
+  // Host-chosen meeting point pin color (hex). Null / undefined keeps the default.
+  meetingColor?: string | null;
 }) {
   const t = getAgendaType(type);
   const Icon = getItemIcon(type, travelMethod, subtype);
   const typeColor = getAgendaTypeColor(type);
-  // A colored flight/bus renders the icon in the chosen color on a navy chip so
-  // even light/neutral colors stay legible; everything else keeps the tinted style.
-  const isColoredFlight = type === "travel" && travelMethod === "flight" && !!flightColor;
-  const isColoredBus = type === "travel" && travelMethod === "bus" && !!busColor;
-  const color = isColoredFlight ? flightColor! : isColoredBus ? busColor! : typeColor;
-  const background = isColoredFlight || isColoredBus ? BRAND.navy : typeColor + "1a";
+  // A host-chosen color renders exactly like every other item: the icon in that
+  // color on a light tint of the same color (August 2026 request; previously a
+  // navy chip).
+  const isColoredFlight = type === "travel" && travelMethod === "flight" && isUsableColor(flightColor);
+  const isColoredBus = type === "travel" && travelMethod === "bus" && isUsableColor(busColor);
+  const isColoredMeeting = type === "meeting" && isUsableColor(meetingColor);
+  const color = isColoredFlight ? flightColor! : isColoredBus ? busColor! : isColoredMeeting ? meetingColor! : typeColor;
+  const background = color + "1a";
   return (
     <div
       title={t.label}

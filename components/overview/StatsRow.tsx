@@ -42,7 +42,9 @@ function computeRevenue(tours: TourWithHostAndMembers[]) {
 const usd = (n: number) =>
   n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
-export default function StatsRow({ tours }: { tours: TourWithHostAndMembers[] }) {
+// `showRevenue` gates the second row (revenue split, integrations, coming-soon
+// money tiles) to admins; every team member sees the status counts.
+export default function StatsRow({ tours, showRevenue = true }: { tours: TourWithHostAndMembers[]; showRevenue?: boolean }) {
   const counts: Record<string, number> = {};
   for (const s of STATUSES) counts[s.id] = 0;
   for (const t of tours) if (counts[t.status] !== undefined) counts[t.status] += 1;
@@ -52,7 +54,7 @@ export default function StatsRow({ tours }: { tours: TourWithHostAndMembers[] })
   return (
     <section style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       {/* Primary status tiles */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+      <div className="stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12 }}>
         {STATUSES.map(st => (
           <div
             key={st.id}
@@ -79,7 +81,8 @@ export default function StatsRow({ tours }: { tours: TourWithHostAndMembers[] })
         ))}
       </div>
 
-      {/* Secondary metric row: two coming-soon placeholders + live revenue + integrations */}
+      {/* Secondary metric row (admin only): two coming-soon placeholders + live revenue + integrations */}
+      {showRevenue && (
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
         {COMING_SOON.map(m => (
           <ComingSoonTile key={m.label} label={m.label} hint={m.hint} />
@@ -130,6 +133,7 @@ export default function StatsRow({ tours }: { tours: TourWithHostAndMembers[] })
           </div>
         </div>
       </div>
+      )}
     </section>
   );
 }

@@ -1,9 +1,9 @@
 "use client";
 
 import { Fragment, useEffect, useRef, useState } from "react";
-import { ChevronDown, ChevronRight, Pencil, Paperclip, Upload, X, Link as LinkIcon, Plus, ImagePlus, Map } from "lucide-react";
+import { ChevronDown, ChevronRight, Pencil, Paperclip, Upload, X, Link as LinkIcon, Plus, ImagePlus, Map, ArrowUp, ArrowDown } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { BRAND, formatFullDate, showTripSection } from "@/lib/helpers";
+import { BRAND, formatFullDate, showTripSection, customRowVisibleTo, activePersonaKeys, personaLabel } from "@/lib/helpers";
 import type { TripInfo, Role, PersonnelRow } from "@/lib/types";
 
 // Tour-level confirmations reuse the existing public storage bucket.
@@ -11,8 +11,9 @@ const STORAGE_BUCKET = "agenda-images";
 
 type ConfItem = { id?: string; type: string; label: string | null; file_url: string };
 
-type PersonForm = { name: string; contact: string };
-type CustomRowForm = { id: string; label: string; value: string; url: string };
+// `id` = tour_hosts.id when picked from the staff dropdown (grants edit access).
+type PersonForm = { name: string; contact: string; id?: string | null };
+type CustomRowForm = { id: string; label: string; value: string; url: string; visibility: Record<string, boolean> };
 
 type TripForm = {
   // Multiple teachers ({ name, contact: email }) and tour hosts ({ name, contact: phone }).
@@ -29,6 +30,10 @@ type TripForm = {
   flightOverride: string;
   hotelOverride: string;
   busOverride: string;
+  // Extra text under (or in place of) the Departure / Return dates: bus or
+  // flight times, meeting instructions, etc.
+  departureOverride: string;
+  returnOverride: string;
   // Host-named extra rows (text or link).
   customRows: CustomRowForm[];
 };
@@ -82,6 +87,11 @@ interface TripInformationProps {
   tourId?: string;
   /** The viewing role for role-gated rows (the bus-driver map shows for "driver"). */
   viewerRole?: Role;
+  /** The viewing persona key (teacher / student / chaperone / bus_driver / tour_host)
+   *  for persona-gated custom rows and the confirmation-link gate. */
+  viewerPersona?: string | null;
+  /** Start minimized (used from the second tour day onward). */
+  initiallyCollapsed?: boolean;
   /** Persists tour-record fields. */
   onSaveTour?: (patch: Record<string, any>) => void | Promise<void>;
   /** Persists the tour host phone to the logged-in user's tour_hosts record (legacy sync). */
@@ -112,7 +122,7 @@ function PersonListEditor({ people, onChange, namePlaceholder, contactPlaceholde
   teacherRefs?: PersonForm[];
   contactKind?: "phone" | "email";
 }) {
-  const rows = people.length ? people : [{ name: "", contact: "" }];
+  const rows = people.length ? people : [{ name: "", contact: "", id: null }];
   const set = (i: number, patch: Partial<PersonForm>) =>
     onChange(rows.map((p, idx) => (idx === i ? { ...p, ...patch } : p)));
   const hasDropdown = personnel.length > 0 || teacherRefs.some(t => t.name.trim());
@@ -124,10 +134,11 @@ function PersonListEditor({ people, onChange, namePlaceholder, contactPlaceholde
     const key = val.slice(sep + 1);
     if (src === "staff") {
       const p = personnel.find(x => x.id === key);
-      if (p) set(i, { name: p.name ?? "", contact: (contactKind === "phone" ? p.phone : p.email) ?? "" });
+      // Keep the account id: a staff member listed here gets edit access to the tour.
+      if (p) set(i, { name: p.name ?? "", contact: (contactKind === "phone" ? p.phone : p.email) ?? "", id: p.id });
     } else if (src === "teacher") {
       const t = teacherRefs[parseInt(key, 10)];
-      if (t) set(i, { name: t.name, contact: t.contact ?? "" });
+      if (t) set(i, { name: t.name, contact: t.contact ?? "", id: null });
     }
   }
 
@@ -153,7 +164,7 @@ function PersonListEditor({ people, onChange, namePlaceholder, contactPlaceholde
           )}
           <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
             <input style={{ ...inputStyle, flex: 1 }} value={p.name} placeholder={namePlaceholder}
-              onChange={e => set(i, { name: e.target.value })} />
+              onChange={e => set(i, { name: e.target.value, id: null })} />
             <input style={{ ...inputStyle, flex: 1 }} value={p.contact} placeholder={contactPlaceholder}
               onChange={e => set(i, { contact: e.target.value })} />
             <button type="button" title="Remove" onClick={() => onChange(rows.filter((_, idx) => idx !== i))}
@@ -163,21 +174,25 @@ function PersonListEditor({ people, onChange, namePlaceholder, contactPlaceholde
           </div>
         </div>
       ))}
-      <button type="button" style={smallAddBtn} onClick={() => onChange([...rows, { name: "", contact: "" }])}>
+      <button type="button" style={smallAddBtn} onClick={() => onChange([...rows, { name: "", contact: "", id: null }])}>
         <Plus size={11} /> {addLabel}
       </button>
     </div>
   );
 }
 
-export default function TripInformation({ info, isHost = false, tourId, viewerRole, onSaveTour, onSaveHostPhone, onEditFlight, onEditHotel, onEditBus, print = false }: TripInformationProps) {
-  const [open, setOpen] = useState(true); // expanded by default
+export default function TripInformation({ info, isHost = false, tourId, viewerRole, viewerPersona, initiallyCollapsed = false, onSaveTour, onSaveHostPhone, onEditFlight, onEditHotel, onEditBus, print = false }: TripInformationProps) {
+  // Expanded by default; minimized from the second tour day onward (never in print).
+  const [open, setOpen] = useState(print ? true : !initiallyCollapsed);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<TripForm>({
     teachers: [], hosts: [], consultants: [], busCapacity: "", participantsOverride: "",
-    flightOverride: "", hotelOverride: "", busOverride: "", customRows: [],
+    flightOverride: "", hotelOverride: "", busOverride: "", departureOverride: "", returnOverride: "", customRows: [],
   });
+  // Personas that a custom row can be limited to (everyone but the tour host,
+  // who always sees every row).
+  const rowPersonas = activePersonaKeys(info.activePersonas).filter(k => k !== "tour_host");
 
   // Personnel directory for the host/consultant/teacher dropdowns (staff
   // accounts). Fetched once for host views via the SECURITY DEFINER RPC.
@@ -198,15 +213,17 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
 
   function startEdit() {
     setForm({
-      teachers: (info.teachers ?? []).map(t => ({ name: t.name ?? "", contact: t.contact ?? "" })),
-      hosts: (info.tourHosts ?? []).map(h => ({ name: h.name ?? "", contact: h.contact ?? "" })),
-      consultants: (info.consultants ?? []).map(c => ({ name: c.name ?? "", contact: c.contact ?? "" })),
+      teachers: (info.teachers ?? []).map(t => ({ name: t.name ?? "", contact: t.contact ?? "", id: t.id ?? null })),
+      hosts: (info.tourHosts ?? []).map(h => ({ name: h.name ?? "", contact: h.contact ?? "", id: h.id ?? null })),
+      consultants: (info.consultants ?? []).map(c => ({ name: c.name ?? "", contact: c.contact ?? "", id: c.id ?? null })),
       busCapacity: info.busCapacity != null ? String(info.busCapacity) : "",
       participantsOverride: info.participantsOverride ?? "",
       flightOverride: info.overrides?.flight ?? "",
       hotelOverride: info.overrides?.hotel ?? "",
       busOverride: info.overrides?.bus ?? "",
-      customRows: (info.customRows ?? []).map(r => ({ id: r.id, label: r.label ?? "", value: r.value ?? "", url: r.url ?? "" })),
+      departureOverride: info.overrides?.departure ?? "",
+      returnOverride: info.overrides?.return ?? "",
+      customRows: (info.customRows ?? []).map(r => ({ id: r.id, label: r.label ?? "", value: r.value ?? "", url: r.url ?? "", visibility: { ...(r.visibility ?? {}) } })),
     });
     setOpen(true);
     setEditing(true);
@@ -216,16 +233,20 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
     setSaving(true);
     try {
       const teachers = form.teachers
-        .map(t => ({ name: t.name.trim(), contact: t.contact.trim() || null }))
+        .map(t => ({ name: t.name.trim(), contact: t.contact.trim() || null, id: t.id ?? null }))
         .filter(t => t.name || t.contact);
       const hosts = form.hosts
-        .map(h => ({ name: h.name.trim(), contact: h.contact.trim() || null }))
+        .map(h => ({ name: h.name.trim(), contact: h.contact.trim() || null, id: h.id ?? null }))
         .filter(h => h.name || h.contact);
       const consultants = form.consultants
-        .map(c => ({ name: c.name.trim(), contact: c.contact.trim() || null }))
+        .map(c => ({ name: c.name.trim(), contact: c.contact.trim() || null, id: c.id ?? null }))
         .filter(c => c.name || c.contact);
       const customRows = form.customRows
-        .map(r => ({ id: r.id, label: r.label.trim(), value: r.value.trim() || null, url: r.url.trim() || null }))
+        .map(r => {
+          // Drop false entries; an empty map means "everyone".
+          const visibility = Object.fromEntries(Object.entries(r.visibility ?? {}).filter(([, v]) => v));
+          return { id: r.id, label: r.label.trim(), value: r.value.trim() || null, url: r.url.trim() || null, visibility: Object.keys(visibility).length ? visibility : null };
+        })
         .filter(r => r.label || r.value || r.url);
       await Promise.all([
         onSaveTour?.({
@@ -243,6 +264,8 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
             flight: form.flightOverride.trim() || null,
             hotel: form.hotelOverride.trim() || null,
             bus: form.busOverride.trim() || null,
+            departure: form.departureOverride.trim() || null,
+            return: form.returnOverride.trim() || null,
           },
           custom_trip_rows: customRows,
         }),
@@ -388,7 +411,13 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
     const c = confByType(type);
     const isExternal = !!c && !c.file_url.includes(`/${STORAGE_BUCKET}/`);
     if (!isHost) {
-      // Participant view: a single view link, only when a file/link exists.
+      // Participant view: confirmation links are for the Tour Host, and for the
+      // Teacher view only when the host has turned that on (August 2026
+      // request). Students, chaperones and bus drivers never see them.
+      const persona = viewerPersona ?? (viewerRole === "coordinator" ? "tour_host" : viewerRole);
+      const allowed = persona === "tour_host" || (persona === "teacher" && info.confirmationsTeacherVisible);
+      if (!allowed) return null;
+      // A single view link, only when a file/link exists.
       if (!c) return null;
       return (
         <a href={c.file_url} target="_blank" rel="noreferrer"
@@ -544,8 +573,42 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
         </>
       ),
     },
-    { label: "Departure", content: formatFullDate(info.departure) },
-    { label: "Return", content: formatFullDate(info.returnDate) },
+    // Departure / Return: the tour dates, plus host-entered text (bus or flight
+    // times, where to meet). Text replaces the dash when no date is set.
+    {
+      label: "Departure",
+      content: editing ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ fontSize: 12, color: "#475569" }}>{formatFullDate(info.departure)}</div>
+          <textarea style={textareaStyle} value={form.departureOverride}
+            placeholder={"e.g.\nBus loads 5:30 AM at the school\nDelta 1642 departs SLC 8:05 AM"}
+            onChange={e => setForm(f => ({ ...f, departureOverride: e.target.value }))} />
+          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>Shown under the departure date (bus or flight times, meeting place). The date itself comes from Trip Details.</div>
+        </div>
+      ) : (
+        <>
+          {(info.departure || !(info.overrides?.departure ?? "").trim()) && <div>{formatFullDate(info.departure)}</div>}
+          {(info.overrides?.departure ?? "").trim() && <div style={{ whiteSpace: "pre-wrap", color: info.departure ? "#475569" : "#1e293b" }}>{info.overrides!.departure}</div>}
+        </>
+      ),
+    },
+    {
+      label: "Return",
+      content: editing ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ fontSize: 12, color: "#475569" }}>{formatFullDate(info.returnDate)}</div>
+          <textarea style={textareaStyle} value={form.returnOverride}
+            placeholder={"e.g.\nDelta 2210 departs JFK 6:40 PM\nBus arrives at the school about 11:30 PM"}
+            onChange={e => setForm(f => ({ ...f, returnOverride: e.target.value }))} />
+          <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>Shown under the return date.</div>
+        </div>
+      ) : (
+        <>
+          {(info.returnDate || !(info.overrides?.return ?? "").trim()) && <div>{formatFullDate(info.returnDate)}</div>}
+          {(info.overrides?.return ?? "").trim() && <div style={{ whiteSpace: "pre-wrap", color: info.returnDate ? "#475569" : "#1e293b" }}>{info.overrides!.return}</div>}
+        </>
+      ),
+    },
     {
       id: "flight",
       label: "Flight",
@@ -686,11 +749,17 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
         </div>
       ),
     }] : []),
-    // Host-named custom rows (extra info or links) — rendered for everyone.
-    ...(!editing ? (info.customRows ?? []).map(r => ({
+    // Host-named custom rows (extra info or links). Each row may be limited to
+    // specific personas; the tour host always sees every row.
+    ...(!editing ? (info.customRows ?? []).filter(r => isHost || customRowVisibleTo(r, viewerPersona ?? (viewerRole === "coordinator" ? "tour_host" : viewerRole))).map(r => ({
       label: r.label || "Info",
       content: (
         <div>
+          {isHost && r.visibility && Object.values(r.visibility).some(Boolean) && (
+            <div style={{ fontSize: 10.5, color: "#94a3b8", marginBottom: 3 }}>
+              Only shown to: {Object.entries(r.visibility).filter(([, v]) => v).map(([k]) => personaLabel(k, info.personaLabels)).join(", ")}
+            </div>
+          )}
           {r.url ? (
             print ? (
               <span>{r.value || r.label || r.url}</span>
@@ -715,6 +784,16 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
               <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                 <input style={{ ...inputStyle, flex: 1 }} value={r.label} placeholder="Row name (e.g. Packing List)"
                   onChange={e => setForm(f => ({ ...f, customRows: f.customRows.map((x, idx) => idx === i ? { ...x, label: e.target.value } : x) }))} />
+                <button type="button" title="Move row up" disabled={i === 0}
+                  onClick={() => setForm(f => { const rows = [...f.customRows]; [rows[i - 1], rows[i]] = [rows[i], rows[i - 1]]; return { ...f, customRows: rows }; })}
+                  style={{ background: "none", border: "none", cursor: i === 0 ? "default" : "pointer", color: i === 0 ? "#e2e8f0" : "#64748b", padding: 2, display: "flex", flexShrink: 0 }}>
+                  <ArrowUp size={13} />
+                </button>
+                <button type="button" title="Move row down" disabled={i === form.customRows.length - 1}
+                  onClick={() => setForm(f => { const rows = [...f.customRows]; [rows[i], rows[i + 1]] = [rows[i + 1], rows[i]]; return { ...f, customRows: rows }; })}
+                  style={{ background: "none", border: "none", cursor: i === form.customRows.length - 1 ? "default" : "pointer", color: i === form.customRows.length - 1 ? "#e2e8f0" : "#64748b", padding: 2, display: "flex", flexShrink: 0 }}>
+                  <ArrowDown size={13} />
+                </button>
                 <button type="button" title="Remove row"
                   onClick={() => setForm(f => ({ ...f, customRows: f.customRows.filter((_, idx) => idx !== i) }))}
                   style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 2, display: "flex", flexShrink: 0 }}>
@@ -725,10 +804,26 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
                 onChange={e => setForm(f => ({ ...f, customRows: f.customRows.map((x, idx) => idx === i ? { ...x, value: e.target.value } : x) }))} />
               <input style={inputStyle} value={r.url} placeholder="Link URL (optional — makes the row a link)"
                 onChange={e => setForm(f => ({ ...f, customRows: f.customRows.map((x, idx) => idx === i ? { ...x, url: e.target.value } : x) }))} />
+              {/* Who sees this row. Nothing checked = everyone. */}
+              <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, marginTop: 2 }}>
+                <span style={{ fontSize: 10.5, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.5 }}>Show to</span>
+                {rowPersonas.map(k => {
+                  const on = r.visibility?.[k] === true;
+                  return (
+                    <label key={k} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, color: on ? "#1e293b" : "#64748b", cursor: "pointer" }}>
+                      <input type="checkbox" checked={on}
+                        onChange={() => setForm(f => ({ ...f, customRows: f.customRows.map((x, idx) => idx === i ? { ...x, visibility: { ...(x.visibility ?? {}), [k]: !on } } : x) }))}
+                        style={{ accentColor: BRAND.navy, width: 13, height: 13 }} />
+                      {personaLabel(k, info.personaLabels)}
+                    </label>
+                  );
+                })}
+                <span style={{ fontSize: 10.5, color: "#94a3b8" }}>{Object.values(r.visibility ?? {}).some(Boolean) ? "" : "Everyone (nothing checked)"}</span>
+              </div>
             </div>
           ))}
           <button type="button" style={smallAddBtn}
-            onClick={() => setForm(f => ({ ...f, customRows: [...f.customRows, { id: crypto.randomUUID(), label: "", value: "", url: "" }] }))}>
+            onClick={() => setForm(f => ({ ...f, customRows: [...f.customRows, { id: crypto.randomUUID(), label: "", value: "", url: "", visibility: {} }] }))}>
             <Plus size={11} /> Add row
           </button>
         </div>

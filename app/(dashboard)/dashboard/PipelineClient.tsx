@@ -6,14 +6,16 @@ import { createClient } from "@/lib/supabase/client";
 import { BRAND } from "@/lib/helpers";
 import PipelineView from "@/components/pipeline/PipelineView";
 import NewTourModal from "@/components/pipeline/NewTourModal";
+import type { EditorViewer } from "@/lib/roles";
 
 interface Props {
   initialTours: any[];
   currentHostId: string;
   currentHostName: string;
+  viewer: EditorViewer;
 }
 
-export default function PipelineClient({ initialTours, currentHostId, currentHostName }: Props) {
+export default function PipelineClient({ initialTours, currentHostId, currentHostName, viewer }: Props) {
   const router = useRouter();
   const [tours, setTours] = useState(initialTours);
   const [showNewTour, setShowNewTour] = useState(false);
@@ -32,7 +34,7 @@ export default function PipelineClient({ initialTours, currentHostId, currentHos
     const { data, error } = await supabase.from("tours").delete().eq("id", deleteTarget.id).select("id");
     setDeleting(false);
     if (error || !data || data.length === 0) {
-      window.alert(`Could not delete tour: ${error?.message ?? "only the tour's owner can delete it"}`);
+      window.alert(`Could not delete tour: ${error?.message ?? "only the tour's owner or an admin can delete it"}`);
       return;
     }
     setTours(prev => prev.filter(t => t.id !== deleteTarget.id));
@@ -125,6 +127,8 @@ export default function PipelineClient({ initialTours, currentHostId, currentHos
         banner_image_url: source.banner_image_url,
         banner_focus_x: source.banner_focus_x,
         banner_focus_y: source.banner_focus_y,
+        groups: source.groups,
+        confirmations_teacher_visible: source.confirmations_teacher_visible,
       })
       .select("*, tour_hosts(id, name, initials), tour_members(id, type, waiver)")
       .single();
@@ -172,6 +176,9 @@ export default function PipelineClient({ initialTours, currentHostId, currentHos
             activity_subtype: item.activity_subtype,
             flight_icon_color: item.flight_icon_color,
             bus_icon_color: item.bus_icon_color,
+            meeting_icon_color: item.meeting_icon_color,
+            elevate_url: item.elevate_url,
+            group_tags: item.group_tags,
             contact_name: item.contact_name,
             contact_phone: item.contact_phone,
             contact_email: item.contact_email,
@@ -205,6 +212,7 @@ export default function PipelineClient({ initialTours, currentHostId, currentHos
         tours={tours}
         currentHostId={currentHostId}
         currentHostName={currentHostName}
+        viewer={viewer}
         duplicatingId={duplicating}
         onSelectTour={(id) => router.push(`/tour/${id}`)}
         onNewTour={() => setShowNewTour(true)}

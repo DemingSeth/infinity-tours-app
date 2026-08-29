@@ -143,23 +143,40 @@ export interface AccessCodes {
 export interface PersonRef {
   name: string;
   contact?: string | null;
+  // tour_hosts.id when the person was picked from the staff dropdown. This is
+  // what grants a listed consultant / tour host edit access to the tour (see
+  // can_edit_tour() in the database and canEditTour() in lib/roles.ts).
+  id?: string | null;
 }
 
 // Host-named extra Trip Information row: plain text, or a link when `url` is set.
+// `visibility` restricts the row to specific personas (persona key -> bool);
+// missing/empty means everyone sees it.
 export interface CustomTripRow {
   id: string;
   label: string;
   value?: string | null;
   url?: string | null;
+  visibility?: Record<string, boolean> | null;
 }
 
 // Free-text overrides for the derived Flight / Hotel / Bus Trip Information
 // rows. Non-empty text replaces the itinerary-derived summary (supports tours
-// with multiple flights, hotels, or buses).
+// with multiple flights, hotels, or buses). Departure / Return let the host add
+// bus or flight times beneath the date (or replace it entirely).
 export interface TripInfoOverrides {
   flight?: string | null;
   hotel?: string | null;
   bus?: string | null;
+  departure?: string | null;
+  return?: string | null;
+}
+
+// A tour-defined participant group for multi-group tours (band, choir, drama).
+// Items can be tagged with group ids; untagged items apply to everyone.
+export interface TourGroup {
+  id: string;
+  name: string;
 }
 
 export interface TourRow {
@@ -227,6 +244,12 @@ export interface TourRow {
   consultants: PersonRef[];
   // Tour-level map images for bus drivers (visible to hosts + bus drivers only).
   driver_map_urls: string[];
+  // Multi-group tours: the groups travelers belong to (band, choir, ...).
+  groups: TourGroup[];
+  // When true, Trip Information confirmation links (flight / hotel / bus) are
+  // also shown on the Teacher view. Tour hosts always see them; students,
+  // chaperones and bus drivers never do.
+  confirmations_teacher_visible: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -291,6 +314,13 @@ export interface AgendaItemRow {
   flight_icon_color: string | null;
   // Optional host-chosen color for the bus icon (hex). Null = default rendering.
   bus_icon_color: string | null;
+  // Optional host-chosen color for the meeting point pin (hex). Null = default.
+  meeting_icon_color: string | null;
+  // "Elevate Your Experience" link (Infinity travel assets / social). Separate
+  // from `website`, which stays the venue link.
+  elevate_url: string | null;
+  // Group ids (tours.groups) this item applies to. Empty = everyone.
+  group_tags: string[];
   // Bus-driver map images for THIS item (host + driver only), e.g. a parking
   // or drop-off map for the stop. Separate from image_urls (visible to all).
   driver_map_urls: string[];
@@ -478,6 +508,13 @@ export interface TripInfo {
   participantsOverride: string | null;
   departure: string | null; // raw start date
   returnDate: string | null; // raw end date
+  // Tour groups (for the custom-row / item group filters on shared views).
+  groups: TourGroup[];
+  // Active persona keys + label overrides (for per-persona custom rows).
+  activePersonas: string[];
+  personaLabels: Record<string, string>;
+  // Whether teachers may see the confirmation links.
+  confirmationsTeacherVisible: boolean;
   flightName: string | null;
   flightAddress: string | null;
   hasFlight: boolean; // whether a flight travel item exists on the itinerary
@@ -521,6 +558,12 @@ export interface TourWithRelations extends TourRow {
 export interface TourWithHostAndMembers extends TourRow {
   tour_hosts: Pick<TourHostRow, "id" | "name" | "initials"> | null;
   tour_members: Pick<TourMemberRow, "id" | "type" | "waiver">[];
+}
+
+// Overview page shape: the pipeline shape plus the item fields the
+// confirmation-completeness bars need.
+export interface OverviewTour extends TourWithHostAndMembers {
+  agenda_items: Pick<AgendaItemRow, "id" | "confirmation_urls" | "confirmation_not_required">[];
 }
 
 export interface AgendaDayWithItems extends AgendaDayRow {

@@ -20,10 +20,10 @@ export default async function ItineraryPrintPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ persona?: string }>;
+  searchParams: Promise<{ persona?: string; group?: string }>;
 }) {
   const { id } = await params;
-  const { persona: personaParam } = await searchParams;
+  const { persona: personaParam, group: groupParam } = await searchParams;
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -107,6 +107,8 @@ export default async function ItineraryPrintPage({
           role={role}
           roleLabel={roleLabel}
           personaKey={personaKey}
+          groups={Array.isArray(tour.groups) ? tour.groups : []}
+          initialGroup={groupParam ?? null}
           print
         />
       </div>

@@ -11,10 +11,10 @@ export default async function PublicTourViewPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ c?: string }>;
+  searchParams: Promise<{ c?: string; group?: string }>;
 }) {
   const { id } = await params;
-  const { c: linkCode } = await searchParams;
+  const { c: linkCode, group: linkGroup } = await searchParams;
   const supabase = await createClient();
 
   // The shared view is public (no login). RLS restricts the underlying tables to
@@ -97,6 +97,8 @@ export default async function PublicTourViewPage({
       days={days}
       generalFeedbackEnabled={tour.general_feedback_enabled ?? true}
       tourEndDate={tour.end_date ?? null}
+      groups={Array.isArray(tour.groups) ? tour.groups : []}
+      initialGroup={linkGroup ?? null}
     />
   );
 }

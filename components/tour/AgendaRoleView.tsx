@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ChevronDown, ChevronRight, Bus } from "lucide-react";
+import { ChevronDown, ChevronRight, Bus, Sparkles, Tag } from "lucide-react";
 import TypeDot from "@/components/shared/TypeDot";
 import AgendaImages from "@/components/shared/AgendaImages";
 import ItemFeedback from "@/components/tour/ItemFeedback";
@@ -9,8 +9,8 @@ import GeneralFeedback from "@/components/tour/GeneralFeedback";
 import TripInformation from "@/components/tour/TripInformation";
 import ItineraryHeaderTile from "@/components/tour/ItineraryHeaderTile";
 import GoogleMapsLink from "@/components/shared/GoogleMapsLink";
-import { BRAND, ROLES, DEFAULT_VISIBILITY, isItemVisibleTo, personaColors, orderAgendaItems, parseAgendaDate, initialCollapsedDays } from "@/lib/helpers";
-import type { AgendaDayWithItems, Role, TripInfo } from "@/lib/types";
+import { BRAND, ROLES, DEFAULT_VISIBILITY, isItemVisibleTo, personaColors, orderAgendaItems, parseAgendaDate, initialCollapsedDays, tripInfoStartsCollapsed, itemMatchesGroup } from "@/lib/helpers";
+import type { AgendaDayWithItems, Role, TripInfo, TourGroup } from "@/lib/types";
 
 interface Props {
   tourName: string;
@@ -37,9 +37,17 @@ interface Props {
   tourId?: string;
   generalFeedbackEnabled?: boolean;
   tourEndDate?: string | null;
+  // Multi-group tours: the tour's groups (filter chips) and the group a
+  // shared link pre-selected (?group=). Items with no group always show.
+  groups?: TourGroup[];
+  initialGroup?: string | null;
 }
 
-export default function AgendaRoleView({ tourName, tourDestination, tourDates, bannerUrl, bannerFocusX = 50, bannerFocusY = 50, tripInfo, days, confTourId, role, roleLabel, personaKey, onClose, embedded, print = false, tourId, generalFeedbackEnabled = false, tourEndDate }: Props) {
+export default function AgendaRoleView({ tourName, tourDestination, tourDates, bannerUrl, bannerFocusX = 50, bannerFocusY = 50, tripInfo, days, confTourId, role, roleLabel, personaKey, onClose, embedded, print = false, tourId, generalFeedbackEnabled = false, tourEndDate, groups = [], initialGroup = null }: Props) {
+  const tourGroups = groups.filter(g => g && g.id && (g.name ?? "").trim());
+  const [groupFilter, setGroupFilter] = useState<string | null>(
+    () => (initialGroup && tourGroups.some(g => g.id === initialGroup) ? initialGroup : null),
+  );
   const vis = DEFAULT_VISIBILITY[role] as Record<string, boolean>;
   const roleInfo = ROLES[role];
   const label = roleLabel || roleInfo.label; // persona label override
@@ -163,7 +171,29 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
       {/* Trip Information — shown to all roles, expanded by default, above Day 1.
           viewerRole lets role-gated rows (e.g. the bus-driver map) render for the
           right audience. */}
-      {tripInfo && <TripInformation info={tripInfo} tourId={confTourId} print={print} viewerRole={role} />}
+      {tripInfo && <TripInformation info={tripInfo} tourId={confTourId} print={print} viewerRole={role} viewerPersona={personaKey ?? null} initiallyCollapsed={tripInfoStartsCollapsed(days)} />}
+
+      {/* Multi-group tours: pick a group to see just its schedule. Items that
+          apply to everyone always show. Printing honors the selection. */}
+      {tourGroups.length > 0 && !print && (
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: .6, display: "inline-flex", alignItems: "center", gap: 4 }}><Tag size={11} />Group</span>
+          {[{ id: null as string | null, name: "Everyone" }, ...tourGroups].map(g => {
+            const on = groupFilter === g.id;
+            return (
+              <button key={g.id ?? "all"} type="button" onClick={() => setGroupFilter(g.id)}
+                style={{ padding: "5px 12px", borderRadius: 20, border: `1.5px solid ${on ? BRAND.blue : "#e2e8f0"}`, background: on ? BRAND.blue + "18" : "#fff", color: on ? BRAND.blue : "#64748b", fontSize: 12, fontWeight: on ? 700 : 500, cursor: "pointer", fontFamily: "inherit" }}>
+                {g.name}
+              </button>
+            );
+          })}
+        </div>
+      )}
+      {tourGroups.length > 0 && print && groupFilter && (
+        <div style={{ fontSize: 12, fontWeight: 700, color: BRAND.navy, marginBottom: 8 }}>
+          Group: {tourGroups.find(g => g.id === groupFilter)?.name}
+        </div>
+      )}
 
       {days.length === 0 && (
         <div style={{ background: "#f8fafc", border: "2px dashed #e2e8f0", borderRadius: 12, padding: "40px 20px", textAlign: "center", color: "#94a3b8", fontSize: 13 }}>
@@ -176,7 +206,8 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
           // Strict per-persona filtering: only items where visibility[persona] === true.
           // Then the host-controlled display order (sort_order; drag & drop aware).
           const items = orderAgendaItems(
-            personaKey ? day.agenda_items.filter(i => isItemVisibleTo(i, personaKey)) : day.agenda_items,
+            (personaKey ? day.agenda_items.filter(i => isItemVisibleTo(i, personaKey)) : day.agenda_items)
+              .filter(i => itemMatchesGroup(i, groupFilter)),
           );
           if (items.length === 0) return null; // hide days with nothing visible to this persona
           const collapsed = print ? false : !!collapsedDays[day.id];
@@ -201,13 +232,15 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
               {items.map((item, idx) => (
                 <div key={item.id} className={print ? "print-item" : undefined} style={{ padding: print ? "6px 14px" : "12px 16px", borderTop: idx > 0 ? "1px solid #f1f5f9" : undefined, breakInside: print ? "avoid" : undefined }}>
                   <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                    {/* Times: bold, navy like the title, one step larger so they
+                        pull the eye first (August 2026 request). */}
                     {(item.time || item.end_time) && (
-                      <span style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", minWidth: 52, paddingTop: 4, flexShrink: 0, lineHeight: 1.4 }}>
+                      <span style={{ fontSize: print ? 12 : 13, fontWeight: 700, color: BRAND.navy, minWidth: 60, paddingTop: 3, flexShrink: 0, lineHeight: 1.35 }}>
                         {item.time}
-                        {item.end_time && <span style={{ display: "block", fontWeight: 600 }}>– {item.end_time}</span>}
+                        {item.end_time && <span style={{ display: "block", fontSize: print ? 11 : 12 }}>– {item.end_time}</span>}
                       </span>
                     )}
-                    <TypeDot type={item.type} travelMethod={(item.travel_methods ?? [])[0] ?? null} subtype={(item.activity_subtypes ?? [])[0] ?? null} size={24} flightColor={item.flight_icon_color} busColor={item.bus_icon_color} />
+                    <TypeDot type={item.type} travelMethod={(item.travel_methods ?? [])[0] ?? null} subtype={(item.activity_subtypes ?? [])[0] ?? null} size={24} flightColor={item.flight_icon_color} busColor={item.bus_icon_color} meetingColor={item.meeting_icon_color} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
                         <span style={{ fontSize: 14, fontWeight: 700, color: BRAND.navy }}>{item.title}</span>
@@ -216,15 +249,9 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                         {/* Meal money — one chip per entry; "group" shows no dollar figure. */}
                         {item.type === "food" && (item.meal_money ?? []).map((mm, i) => {
                           const amt = typeof mm.amount === "number" ? mm.amount : null;
-                          const style = mm.type === "disney_dining"
-                            ? { color: "#4338ca", background: "#eef2ff" }
-                            : mm.type === "cash"
-                            ? { color: "#15803d", background: "#dcfce7" }
-                            : mm.type === "hotel_breakfast"
-                            ? { color: "#0369a1", background: "#e0f2fe" }
-                            : mm.type === "delivered"
-                            ? { color: "#9f1239", background: "#ffe4e6" }
-                            : { color: BRAND.blue, background: "#f0fdfa" };
+                          // Every meal chip is the Dining yellow (matches the meal
+                          // icon); no per-option colors (August 2026 request).
+                          const style = { color: "#92400e", background: "#fef3c7" };
                           const label = mm.type === "disney_dining"
                             ? `Disney Dining Dollars${amt != null ? ` $${amt}` : ""}`
                             : mm.type === "cash"
@@ -268,16 +295,29 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                       <AgendaImages urls={item.image_urls} fullWidth print={print} />
 
                       {/* A bare "Website" link does nothing on paper — omit in print. */}
-                      {!print && item.website && (
-                        <div style={{ fontSize: 12, marginTop: mt(3) }}>
-                          <a
-                            href={item.website}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ color: BRAND.blue, textDecoration: "none", fontWeight: 600 }}
-                          >
-                            Website
-                          </a>
+                      {!print && (item.website || item.elevate_url?.trim()) && (
+                        <div style={{ fontSize: 12, marginTop: mt(3), display: "flex", gap: 14, flexWrap: "wrap", alignItems: "center" }}>
+                          {item.website && (
+                            <a
+                              href={item.website}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{ color: BRAND.blue, textDecoration: "none", fontWeight: 600 }}
+                            >
+                              Website
+                            </a>
+                          )}
+                          {/* "Elevate Your Experience": Infinity travel assets and social links. */}
+                          {item.elevate_url?.trim() && (
+                            <a
+                              href={/^https?:\/\//i.test(item.elevate_url.trim()) ? item.elevate_url.trim() : `https://${item.elevate_url.trim()}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{ color: BRAND.blue, textDecoration: "none", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: 4 }}
+                            >
+                              <Sparkles size={12} />Elevate Your Experience
+                            </a>
+                          )}
                         </div>
                       )}
 

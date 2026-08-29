@@ -29,13 +29,15 @@ export default function DashboardShell({ children, user, tourHost }: Props) {
   const initials = tourHost?.initials ||
     (tourHost?.name || user.email || "TH").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
 
-  // Overview, Quote Builder and Team Access are admin-only (role already arrives
-  // via tourHost.role). isAdmin() rather than an inline role comparison, so a
+  // Quote Builder and Team Access are admin-only (role already arrives via
+  // tourHost.role). isAdmin() rather than an inline role comparison, so a
   // super_admin keeps every link. Each route enforces admin server-side as well;
   // hiding the links just keeps the nav honest about what a host can open.
+  // Overview is open to everyone (its revenue row and banner library are gated
+  // inside the page).
   const admin = isAdmin(tourHost?.role);
   const navLinks = [
-    ...(admin ? [{ href: "/overview", label: "Overview", Icon: LayoutGrid }] : []),
+    { href: "/overview", label: "Overview", Icon: LayoutGrid },
     ...BASE_NAV_LINKS,
     ...(SHOW_QUOTE_BUILDER_NAV && admin
       ? [{ href: "/quote-builder", label: "Quote Builder", Icon: FileText }]
@@ -53,17 +55,21 @@ export default function DashboardShell({ children, user, tourHost }: Props) {
   return (
     <div style={{ minHeight: "100vh", background: "#f8fafc", display: "flex", flexDirection: "column" }}>
       {/* Top nav */}
-      <header style={{ background: BRAND.navy, padding: "0 24px", height: 72, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+      {/* Responsive: the lockup shrinks and the nav drops to its own scrolling
+          row at narrow widths (see .app-header rules in globals.css), so the
+          logo never overlaps the menu at half-screen or phone sizes. */}
+      <header className="app-header" style={{ background: BRAND.navy, padding: "0 24px", minHeight: 72, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0, gap: 12 }}>
         <div
+          className="app-brand"
           onClick={() => router.push("/dashboard")}
-          style={{ cursor: "pointer", display: "flex", alignItems: "center" }}
+          style={{ cursor: "pointer", display: "flex", alignItems: "center", flexShrink: 0 }}
         >
           {/* Brand lockup: crisp mark PNG + live Fjalla One wordmark. Light on navy. */}
-          <BrandLockup height={52} variant="light" />
+          <BrandLockup height={52} variant="light" className="brand-lockup--nav" />
         </div>
 
         {/* Primary nav */}
-        <nav style={{ display: "flex", alignItems: "center", gap: 4, marginRight: "auto", marginLeft: 28 }}>
+        <nav className="app-nav" style={{ display: "flex", alignItems: "center", gap: 4, marginRight: "auto", marginLeft: 28, minWidth: 0 }}>
           {navLinks.map(({ href, label, Icon }) => {
             const active = pathname === href || (href === "/dashboard" && pathname.startsWith("/tour"));
             return (
@@ -73,7 +79,7 @@ export default function DashboardShell({ children, user, tourHost }: Props) {
                 style={{
                   display: "inline-flex", alignItems: "center", gap: 7, padding: "6px 13px",
                   borderRadius: 8, border: "none", cursor: "pointer", fontFamily: "inherit",
-                  fontSize: 13, fontWeight: 600,
+                  fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0,
                   background: active ? "rgba(255,255,255,0.12)" : "transparent",
                   color: active ? "#fff" : "rgba(255,255,255,0.6)",
                 }}
@@ -85,7 +91,7 @@ export default function DashboardShell({ children, user, tourHost }: Props) {
           })}
         </nav>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div className="app-user" style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{
               width: 30,
@@ -101,7 +107,7 @@ export default function DashboardShell({ children, user, tourHost }: Props) {
             }}>
               {initials}
             </div>
-            <span style={{ color: "rgba(255,255,255,0.8)", fontSize: 13 }}>
+            <span className="app-user-name" style={{ color: "rgba(255,255,255,0.8)", fontSize: 13 }}>
               {tourHost?.name || user.email}
             </span>
           </div>
@@ -139,7 +145,7 @@ export default function DashboardShell({ children, user, tourHost }: Props) {
       </header>
 
       {/* Page content */}
-      <main style={{ flex: 1, padding: 24, maxWidth: 1400, width: "100%", margin: "0 auto" }}>
+      <main className="app-main" style={{ flex: 1, padding: 24, maxWidth: 1400, width: "100%", margin: "0 auto", minWidth: 0 }}>
         {children}
       </main>
     </div>

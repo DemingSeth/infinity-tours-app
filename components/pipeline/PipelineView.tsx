@@ -1,13 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { STATUSES, BRAND, parseISODate, parseAgendaDate, expandDateRange } from "@/lib/helpers";
+import { canEditTour, type EditorViewer } from "@/lib/roles";
 import TripCard from "./TripCard";
 
 interface Props {
   tours: any[];
   currentHostId: string;
   currentHostName: string;
+  viewer: EditorViewer;
   duplicatingId: string | null;
   onSelectTour: (id: string) => void;
   onNewTour: () => void;
@@ -33,15 +36,23 @@ function departureMs(tour: any): number | null {
 }
 
 export default function PipelineView({
-  tours, currentHostId, currentHostName, duplicatingId, onSelectTour, onNewTour, onDuplicate, onDelete,
+  tours, currentHostId, currentHostName, viewer, duplicatingId, onSelectTour, onNewTour, onDuplicate, onDelete,
 }: Props) {
   const [hostFilter, setHostFilter] = useState<"mine" | "all">("mine");
   // Sort order: departure date (soonest first, undated last) — the default per
   // the July 2026 request — or most recently created.
   const [sortMode, setSortMode] = useState<"departure" | "recent">("departure");
+  // Per-status column collapse (August 2026 request): a collapsed column shows
+  // just its header + count so a busy board can be narrowed to what matters.
+  const [collapsedCols, setCollapsedCols] = useState<Record<string, boolean>>({});
+  const toggleCol = (id: string) => setCollapsedCols(c => ({ ...c, [id]: !c[id] }));
 
+  // "My Tours" = tours I created PLUS tours I am listed on as a Tour Host or
+  // Tour Consultant (August 2026 request). Admin rights are deliberately left
+  // out of this filter, otherwise an admin's "My Tours" would be every tour.
+  const listedViewer: EditorViewer = { ...viewer, role: null };
   const filtered = hostFilter === "mine"
-    ? tours.filter(t => t.tour_host_id === currentHostId)
+    ? tours.filter(t => canEditTour(t, listedViewer))
     : tours;
 
   const sorted = [...filtered].sort((a, b) => {
@@ -118,22 +129,31 @@ export default function PipelineView({
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, alignItems: "start" }}>
+      <div className="pipeline-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 14, alignItems: "start" }}>
         {STATUSES.map(st => {
           const col = sorted.filter(t => t.status === st.id);
+          const collapsed = !!collapsedCols[st.id];
           return (
-            <div key={st.id}>
-              <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10 }}>
+            <div key={st.id} style={{ minWidth: 0 }}>
+              <button
+                type="button"
+                onClick={() => toggleCol(st.id)}
+                aria-expanded={!collapsed}
+                title={collapsed ? `Show ${st.label} tours` : `Hide ${st.label} tours`}
+                style={{ width: "100%", display: "flex", alignItems: "center", gap: 7, marginBottom: 10, background: "none", border: "none", padding: "4px 0", cursor: "pointer", fontFamily: "inherit", textAlign: "left" }}
+              >
+                {collapsed ? <ChevronRight size={13} color="#94a3b8" /> : <ChevronDown size={13} color="#94a3b8" />}
                 <span style={{ width: 8, height: 8, borderRadius: "50%", background: st.dot, display: "inline-block" }} />
                 <span style={{ fontSize: 11, fontWeight: 700, color: st.color, textTransform: "uppercase", letterSpacing: 0.8 }}>{st.label}</span>
                 <span style={{ fontSize: 11, color: "#94a3b8", marginLeft: "auto" }}>{col.length}</span>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              </button>
+              <div style={{ display: collapsed ? "none" : "flex", flexDirection: "column", gap: 8 }}>
                 {col.map(t => (
                   <TripCard
                     key={t.id}
                     tour={t}
                     currentHostId={currentHostId}
+                    canEdit={canEditTour(t, viewer)}
                     isDuplicating={duplicatingId === t.id}
                     onClick={() => onSelectTour(t.id)}
                     onDuplicate={() => onDuplicate(t.id)}

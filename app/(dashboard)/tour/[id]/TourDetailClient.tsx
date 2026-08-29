@@ -11,6 +11,7 @@ import RosterTab from "@/components/tour/RosterTab";
 import ConfirmationsTab from "@/components/tour/ConfirmationsTab";
 import PostTripTab from "@/components/tour/PostTripTab";
 import SettingsTab from "@/components/tour/SettingsTab";
+import { canEditTour, type EditorViewer } from "@/lib/roles";
 
 // Icon paths (subset used in tabs)
 const ICONS: Record<string, string> = {
@@ -47,9 +48,10 @@ interface Props {
   initialGeneralFeedback: any[];
   currentUserId: string;
   viewerIsAdmin: boolean;
+  viewer: EditorViewer;
 }
 
-export default function TourDetailClient({ tour: initialTour, initialMembers, initialDays, initialPostTrip, initialPostTripReview, initialGeneralFeedback, currentUserId, viewerIsAdmin }: Props) {
+export default function TourDetailClient({ tour: initialTour, initialMembers, initialDays, initialPostTrip, initialPostTripReview, initialGeneralFeedback, currentUserId, viewerIsAdmin, viewer }: Props) {
   const router = useRouter();
   const [tour, setTour] = useState(initialTour);
   const [members, setMembers] = useState(initialMembers);
@@ -60,7 +62,10 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
   const [editingName, setEditingName] = useState(false);
   const [nameVal, setNameVal] = useState("");
 
-  const isOwner = tour.tour_host_id === currentUserId;
+  // "Owner" here means "may edit": the creator, an admin, or a staff member
+  // listed on the tour as a Tour Host / Consultant (mirrors the RLS policies).
+  // Every child still receives it as isOwner, which is the edit gate they use.
+  const isOwner = canEditTour(tour, viewer);
   // Set when a persona is newly activated in Settings → shows a review banner on Itinerary.
   const [addedPersona, setAddedPersona] = useState<string | null>(null);
 

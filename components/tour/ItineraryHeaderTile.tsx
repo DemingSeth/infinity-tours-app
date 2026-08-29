@@ -25,7 +25,7 @@ export default function ItineraryHeaderTile({
 }) {
   const textShadow = bannerUrl ? BANNER_TEXT_SHADOW : undefined;
   return (
-    <div style={{ position: "relative", background: BRAND.navy, borderRadius: 12, padding: "20px 24px", marginBottom: 18, overflow: "hidden" }}>
+    <div className="hero-tile" style={{ position: "relative", background: BRAND.navy, borderRadius: 12, padding: "20px 24px", marginBottom: 18, overflow: "hidden" }}>
       {/* Banner background photo + dark gradient overlay for text legibility */}
       {bannerUrl && (
         <>
@@ -44,8 +44,11 @@ export default function ItineraryHeaderTile({
           The info block uses minWidth:0 + flex:1 so a long tour name wraps
           cleanly (at spaces, overflow-wrap as a fallback) beside the lockup
           instead of overflowing or forcing the lockup to shrink. */}
+      {/* Phones (see .hero-tile rules in globals.css): the mark + big wordmark
+          is replaced by a small one-line "Infinity Tours + Events" text above
+          the tour name, so the header stays a short, tidy band. */}
       <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16, minWidth: 0, flex: 1 }}>
+        <div className="hero-tile-body" style={{ display: "flex", alignItems: "center", gap: 16, minWidth: 0, flex: 1 }}>
           {print ? (
             // Print/PDF: keep the full lockup raster — live web fonts are unreliable
             // in Safari's window.print(), and raster sharpness is fine on paper.
@@ -53,10 +56,15 @@ export default function ItineraryHeaderTile({
             <img src="/infinity-lockup-light.png" alt="Infinity Tours + Events" style={{ height: 64, width: "auto", flexShrink: 0 }} />
           ) : (
             // On-screen: crisp mark PNG + live Fjalla One wordmark.
-            <BrandLockup height={64} variant="light" />
+            <BrandLockup height={64} variant="light" className="brand-lockup--hero" />
+          )}
+          {!print && (
+            <div className="hero-wordmark-mobile" style={{ display: "none", fontFamily: "'Fjalla One',Georgia,sans-serif", color: "rgba(255,255,255,0.85)", fontSize: 12, letterSpacing: "0.14em", textTransform: "uppercase", textShadow }}>
+              Infinity Tours + Events
+            </div>
           )}
           <div style={{ minWidth: 0 }}>
-            <h1 style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", color: "#fff", fontSize: 22, fontWeight: 400, lineHeight: 1.12, margin: "0 0 4px", overflowWrap: "break-word", textShadow }}>
+            <h1 className="hero-title" style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", color: "#fff", fontSize: 22, fontWeight: 400, lineHeight: 1.12, margin: "0 0 4px", overflowWrap: "break-word", textShadow }}>
               {tourName}
             </h1>
             {(tourDestination || tourDates) && (

@@ -8,9 +8,77 @@ import { I, Field, Inp, Btn } from "@/components/tour/ui";
 import FocalPointPicker from "@/components/tour/FocalPointPicker";
 import BannerLibraryPicker from "@/components/tour/BannerLibraryPicker";
 import BannerLibraryManager from "@/components/tour/BannerLibraryManager";
-import type { TourRow } from "@/lib/types";
+import type { TourRow, TourGroup } from "@/lib/types";
+import { Tag, X, Plus } from "lucide-react";
 
 const ROLES_TYPED = ROLES as Record<string, { label: string; color: string; bg: string }>;
+
+// Multi-group tours (band, choir, drama, orchestra ...): define the groups
+// here, then tag itinerary items with them. Untagged items apply to everyone;
+// shared views get a group filter and share links can open to one group.
+function GroupsConfig({ tour, isOwner, onTourChange }: {
+  tour: TourRow; isOwner: boolean; onTourChange: (patch: Record<string, any>) => void;
+}) {
+  const groups: TourGroup[] = (tour.groups ?? []).filter(g => g && g.id);
+  const [draft, setDraft] = useState("");
+  const [renaming, setRenaming] = useState<string | null>(null);
+  const [renameVal, setRenameVal] = useState("");
+
+  function add() {
+    const name = draft.trim();
+    if (!name || !isOwner) return;
+    if (groups.some(g => g.name.toLowerCase() === name.toLowerCase())) { setDraft(""); return; }
+    onTourChange({ groups: [...groups, { id: crypto.randomUUID(), name }] });
+    setDraft("");
+  }
+  function remove(id: string) {
+    if (!isOwner) return;
+    onTourChange({ groups: groups.filter(g => g.id !== id) });
+  }
+  function commitRename(id: string) {
+    const name = renameVal.trim();
+    if (name) onTourChange({ groups: groups.map(g => g.id === id ? { ...g, name } : g) });
+    setRenaming(null);
+  }
+
+  return (
+    <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 14, padding: 20 }}>
+      <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 15, fontWeight: 400, color: BRAND.navy, marginBottom: 6 }}>Groups (multi-group tours)</div>
+      <p style={{ fontSize: 12, color: "#64748b", margin: "0 0 14px", lineHeight: 1.6 }}>
+        For tours with several departments traveling together (band, choir, drama, orchestra). Add the groups here, then mark any itinerary item with the group it applies to. Items with no group show for everyone. Viewers get a group filter on the shared itinerary, and Share Links can open to one group.
+      </p>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+        {groups.length === 0 && <span style={{ fontSize: 12, color: "#94a3b8" }}>No groups yet. Single-group tours do not need any.</span>}
+        {groups.map(g => (
+          <span key={g.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: BRAND.blue + "18", color: BRAND.blue, border: `1.5px solid ${BRAND.blue}55`, borderRadius: 20, padding: "5px 6px 5px 12px", fontSize: 12, fontWeight: 700 }}>
+            <Tag size={12} />
+            {renaming === g.id ? (
+              <input autoFocus value={renameVal} onChange={e => setRenameVal(e.target.value)}
+                onBlur={() => commitRename(g.id)}
+                onKeyDown={e => { if (e.key === "Enter") commitRename(g.id); if (e.key === "Escape") setRenaming(null); }}
+                style={{ border: "none", outline: "none", background: "#fff", borderRadius: 6, padding: "1px 6px", fontSize: 12, fontFamily: "inherit", color: "#1e293b", width: 120 }} />
+            ) : (
+              <span onDoubleClick={() => { if (isOwner) { setRenaming(g.id); setRenameVal(g.name); } }} title={isOwner ? "Double-click to rename" : undefined}>{g.name}</span>
+            )}
+            {isOwner && (
+              <button type="button" title={`Remove ${g.name}`} onClick={() => remove(g.id)}
+                style={{ background: "none", border: "none", cursor: "pointer", color: BRAND.blue, padding: 2, display: "flex" }}>
+                <X size={12} strokeWidth={3} />
+              </button>
+            )}
+          </span>
+        ))}
+      </div>
+      {isOwner && (
+        <div style={{ display: "flex", gap: 8, alignItems: "center", maxWidth: 420 }}>
+          <Inp value={draft} placeholder="Add a group (e.g. Band, Choir, Drama)" onChange={e => setDraft(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); add(); } }} />
+          <Btn onClick={add} disabled={!draft.trim()}><Plus size={13} /> Add</Btn>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function BannerUploader({ tour, isOwner, onTourChange }: {
   tour: TourRow; isOwner: boolean; onTourChange: (patch: Record<string, any>) => void;
@@ -224,15 +292,8 @@ interface Props {
 }
 
 export default function SettingsTab({ tour, isOwner, viewerIsAdmin, currentUserId, onTourChange, onPersonaAdded }: Props) {
-  const [vis, setVis] = useState<Record<string, Record<string, boolean>>>(
-    Object.fromEntries(VIS_ROLES.map(r => [r, { ...(DEFAULT_VISIBILITY as any)[r] }]))
-  );
-  const [visSaved, setVisSaved] = useState(false);
-
-  const toggleVis = (role: string, field: string) =>
-    setVis(v => ({ ...v, [role]: { ...v[role], [field]: !v[role][field] } }));
-
-  const saveVis = () => { setVisSaved(true); setTimeout(() => setVisSaved(false), 2500); };
+  // Read-only view of the fixed per-field defaults (lib/helpers DEFAULT_VISIBILITY).
+  const vis = Object.fromEntries(VIS_ROLES.map(r => [r, { ...(DEFAULT_VISIBILITY as any)[r] }])) as Record<string, Record<string, boolean>>;
 
   const roomConfig = tour.room_config || { boysPerRoom: 4, girlsPerRoom: 4 };
 
@@ -254,6 +315,32 @@ export default function SettingsTab({ tour, isOwner, viewerIsAdmin, currentUserI
 
       {/* Participant Personas */}
       <PersonaConfig tour={tour} isOwner={isOwner} onTourChange={onTourChange} onPersonaAdded={onPersonaAdded} />
+
+      {/* Groups for multi-group tours */}
+      <GroupsConfig tour={tour} isOwner={isOwner} onTourChange={onTourChange} />
+
+      {/* Confirmation links: tour host only by default, optionally the teacher view */}
+      <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 14, padding: 20 }}>
+        <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 15, fontWeight: 400, color: BRAND.navy, marginBottom: 12 }}>Confirmations</div>
+        <p style={{ fontSize: 12, color: "#64748b", margin: "0 0 12px", lineHeight: 1.6 }}>
+          Flight, hotel and bus confirmation links in Trip Information are shown to the Tour Host only. Students, chaperones and bus drivers never see them.
+        </p>
+        <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: isOwner ? "pointer" : "default" }}>
+          <input
+            type="checkbox"
+            checked={tour.confirmations_teacher_visible === true}
+            disabled={!isOwner}
+            onChange={() => onTourChange({ confirmations_teacher_visible: !(tour.confirmations_teacher_visible === true) })}
+            style={{ accentColor: BRAND.navy, width: 16, height: 16, marginTop: 1, cursor: isOwner ? "pointer" : "default", flexShrink: 0 }}
+          />
+          <span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "#1e293b" }}>Also show confirmation links on the Teacher view</span>
+            <span style={{ display: "block", fontSize: 12, color: "#64748b", marginTop: 2 }}>
+              Off by default. Turn on when the teacher or director should be able to open the booking confirmations.
+            </span>
+          </span>
+        </label>
+      </div>
 
       {/* Room & Bus Configuration */}
       <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 14, padding: 20 }}>
@@ -307,9 +394,9 @@ export default function SettingsTab({ tour, isOwner, viewerIsAdmin, currentUserI
 
       {/* Itinerary Visibility Matrix */}
       <div style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 14, padding: 20 }}>
-        <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 15, fontWeight: 400, color: BRAND.navy, marginBottom: 6 }}>Itinerary Item Visibility</div>
+        <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 15, fontWeight: 400, color: BRAND.navy, marginBottom: 6 }}>What Each Role Sees on an Item</div>
         <p style={{ fontSize: 12, color: "#64748b", margin: "0 0 12px", lineHeight: 1.6 }}>
-          Control which details each role sees on itinerary items. Tour Hosts always see everything.
+          Reference only: which details each role sees on an itinerary item. Tour Hosts always see everything. To show or hide a whole item for a role, use the &ldquo;Who sees this item&rdquo; chips on that item; to set a whole day at once, use the eye button on the day header.
         </p>
         <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 8, padding: "9px 14px", marginBottom: 14, fontSize: 12, color: "#0c4a6e" }}>
           <strong>Always visible to all roles:</strong> Item title, time, type, travel method, Public Notes, meal payment info, Google Maps link, and Website link.
@@ -335,8 +422,10 @@ export default function SettingsTab({ tour, isOwner, viewerIsAdmin, currentUserI
                       <input
                         type="checkbox"
                         checked={vis[r]?.[f.key] ?? false}
-                        onChange={() => toggleVis(r, f.key)}
-                        style={{ accentColor: ROLES_TYPED[r].color, width: 15, height: 15, cursor: "pointer" }}
+                        readOnly
+                        disabled
+                        title="Fixed for now"
+                        style={{ accentColor: ROLES_TYPED[r].color, width: 15, height: 15 }}
                       />
                     </td>
                   ))}
@@ -345,9 +434,8 @@ export default function SettingsTab({ tour, isOwner, viewerIsAdmin, currentUserI
             </tbody>
           </table>
         </div>
-        <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 10 }}>
-          <Btn onClick={saveVis}><I n="check" s={13} />{visSaved ? "Saved" : "Save Visibility Settings"}</Btn>
-          <span style={{ fontSize: 11, color: "#94a3b8" }}>Per-tour visibility storage coming in a future update</span>
+        <div style={{ marginTop: 12, fontSize: 11, color: "#94a3b8" }}>
+          These per-field rules are the same on every tour for now. Changing them per tour is a planned update.
         </div>
       </div>
     </div>

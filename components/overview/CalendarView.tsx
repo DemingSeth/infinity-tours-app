@@ -105,24 +105,30 @@ export default function CalendarView({ tours, onOpenTour }: {
 
   return (
     <section style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 14, overflow: "hidden" }}>
-      {/* Section header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 18px", borderBottom: "1px solid #f1f5f9", flexWrap: "wrap" }}>
+      {/* Section header: click anywhere on the row to expand or collapse
+          (August 2026 request). The month controls and mode toggle stop the
+          click from bubbling so they keep working on their own. */}
+      <div
+        role="button"
+        tabIndex={0}
+        aria-expanded={!collapsed}
+        onClick={toggleCollapsed}
+        onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleCollapsed(); } }}
+        style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 18px", borderBottom: collapsed ? "none" : "1px solid #f1f5f9", flexWrap: "wrap", cursor: "pointer", userSelect: "none" }}
+      >
         <CalendarDays size={18} color="#64748b" />
         <span style={{ fontSize: 16, fontWeight: 400, color: BRAND.navy, fontFamily: "'Fjalla One', Georgia, sans-serif", letterSpacing: "0.03em" }}>
           Calendar
         </span>
 
-        <button
-          type="button"
-          onClick={toggleCollapsed}
-          aria-expanded={!collapsed}
-          aria-label={collapsed ? "Expand calendar" : "Collapse calendar"}
+        <span
+          aria-hidden
           style={{ ...navBtn, width: 26, height: 26, color: "#64748b" }}
         >
           {collapsed ? <ChevronDown size={15} /> : <ChevronUp size={15} />}
-        </button>
+        </span>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: 10 }} onClick={e => e.stopPropagation()}>
           <button onClick={goPrev} aria-label="Previous month" style={navBtn}><ChevronLeft size={16} /></button>
           <span style={{ fontSize: 13.5, fontWeight: 700, color: BRAND.navy, minWidth: 132, textAlign: "center" }}>
             {MONTH_NAMES[month]} {cursor.getFullYear()}
@@ -132,7 +138,7 @@ export default function CalendarView({ tours, onOpenTour }: {
         </div>
 
         {/* Mode toggle */}
-        <div style={{ marginLeft: "auto", display: "flex", gap: 1, background: "#f1f5f9", borderRadius: 8, padding: 3 }}>
+        <div style={{ marginLeft: "auto", display: "flex", gap: 1, background: "#f1f5f9", borderRadius: 8, padding: 3 }} onClick={e => e.stopPropagation()}>
           {([{ value: "status", label: "By Status" }, { value: "host", label: "By Host" }] as const).map(opt => (
             <button
               key={opt.value}

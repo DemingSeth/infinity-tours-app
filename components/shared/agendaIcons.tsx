@@ -4,7 +4,7 @@ import {
   Plane, Bus, TrainFront, CarTaxiFront, TramFront, Sailboat, Ship, Fuel,
   RollerCoaster, Music, Drama, Hotel, MapPin, Smile,
   Sun, Moon, Star, Umbrella, Sparkles, ClipboardList,
-  Meh, Frown, Ticket, Landmark, type LucideIcon,
+  Meh, Frown, Ticket, Landmark, Trophy, MicVocal, PackageOpen, type LucideIcon,
 } from "lucide-react";
 
 // Icons accept the same prop subset Lucide does, so custom SVGs and Lucide
@@ -128,7 +128,7 @@ function ForkKnife(props: IconProps) {
 // ── Default icon + accent color per top-level type ─────────────────────────────
 export const AGENDA_TYPE_ICONS: Record<string, AgendaIcon> = {
   travel: Plane,             // overridden by the travel sub-type when set
-  activity: RollerCoaster,   // default Activity icon (theme park)
+  activity: Sparkles,        // default Activity icon (no sub-type picked) - August 2026 request
   food: ForkKnife,           // fork + knife
   hotel: Hotel,
   free: Smile,               // leisure / downtime
@@ -168,7 +168,10 @@ export const ACTIVITY_SUBTYPE_ICONS: Record<string, AgendaIcon> = {
   disney: FantasyCastle,
   medieval_times: MedievalJoust,
   beach: BeachUmbrella,
-  clinic: TrebleClef,
+  clinic: TrebleClef,        // Clinic / Workshop
+  performance: MicVocal,     // Performance (distinct from a clinic)
+  game: Trophy,              // Game / Tournament (sports teams)
+  delivered_meal: PackageOpen,
   concert: Music,
   broadway: Drama,
   play_show: Ticket,

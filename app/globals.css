@@ -21,6 +21,112 @@ body {
   box-sizing: border-box;
 }
 
+/* Never scroll sideways: any card that is wider than a phone clips inside its
+   own container instead of pushing the whole page. */
+html,
+body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+/* ── Responsive layout (August 2026: logo overlap, mobile header, no sideways
+   scrolling). Inline styles carry the desktop look; these rules only take over
+   at narrow widths. ───────────────────────────────────────────────────────── */
+
+/* Half-screen desktop windows and tablets: smaller lockup, tighter nav. */
+@media (max-width: 1100px) {
+  .brand-lockup--nav {
+    font-size: 40px !important;
+  }
+  .app-nav {
+    margin-left: 12px !important;
+  }
+  .app-nav button {
+    padding: 6px 9px !important;
+    font-size: 12px !important;
+  }
+}
+
+/* Narrow: nav drops onto its own row and scrolls sideways within the header,
+   the user's name is hidden (avatar stays), page padding shrinks. */
+@media (max-width: 820px) {
+  .app-header {
+    flex-wrap: wrap;
+    padding: 10px 14px !important;
+    row-gap: 6px;
+  }
+  .brand-lockup--nav {
+    font-size: 34px !important;
+  }
+  .app-user {
+    order: 2;
+    margin-left: auto;
+    gap: 8px !important;
+  }
+  .app-user-name {
+    display: none;
+  }
+  .app-nav {
+    order: 3;
+    width: 100%;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  .app-nav::-webkit-scrollbar {
+    display: none;
+  }
+  .app-main {
+    padding: 14px 12px !important;
+  }
+  /* Four-up grids (overview status tiles, pipeline columns) become two-up. */
+  .stats-grid,
+  .pipeline-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  .tour-stats-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+/* Phones: text-only wordmark in the itinerary header tile, one column grids. */
+@media (max-width: 560px) {
+  .hero-tile {
+    padding: 14px 16px !important;
+    margin-bottom: 14px !important;
+  }
+  .hero-tile-body {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 6px !important;
+  }
+  .brand-lockup--hero {
+    display: none !important;
+  }
+  .hero-wordmark-mobile {
+    display: block !important;
+  }
+  .hero-title {
+    font-size: 19px !important;
+  }
+  .stats-grid,
+  .pipeline-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .tour-stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  .trip-details-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .trip-details-grid > div {
+    grid-column: span 1 !important;
+  }
+}
+
 ::-webkit-scrollbar {
   width: 5px;
   height: 5px;

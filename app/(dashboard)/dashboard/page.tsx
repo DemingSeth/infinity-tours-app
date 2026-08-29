@@ -24,6 +24,7 @@ export default async function DashboardPage() {
       initialTours={tours ?? []}
       currentHostId={user.id}
       currentHostName={tourHost?.name ?? user.email ?? ""}
+      viewer={{ id: user.id, name: tourHost?.name ?? null, email: tourHost?.email ?? user.email ?? null, role: tourHost?.role ?? null }}
     />
   );
 }

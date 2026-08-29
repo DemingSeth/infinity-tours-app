@@ -6,6 +6,8 @@ import StatusPill from "@/components/shared/StatusPill";
 interface Props {
   tour: any;
   currentHostId: string;
+  /** Whether the viewer may edit this tour (owner, listed staff, or admin). */
+  canEdit?: boolean;
   isDuplicating: boolean;
   onClick: () => void;
   onDuplicate: () => void;
@@ -13,12 +15,13 @@ interface Props {
   onDelete?: () => void;
 }
 
-export default function TripCard({ tour, currentHostId, isDuplicating, onClick, onDuplicate, onDelete }: Props) {
+export default function TripCard({ tour, currentHostId, canEdit, isDuplicating, onClick, onDuplicate, onDelete }: Props) {
   const members: any[] = tour.tour_members ?? [];
   const memberCount = members.length;
   const waiverPending = members.filter((m: any) => m.type === "student" && !m.waiver).length;
   const host = tour.tour_hosts;
   const isOwn = tour.tour_host_id === currentHostId;
+  const editable = canEdit ?? isOwn;
 
   const initials = host?.initials ||
     (host?.name ?? "").split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase() ||
@@ -60,7 +63,7 @@ export default function TripCard({ tour, currentHostId, isDuplicating, onClick, 
               {initials}
             </div>
             {host.name}
-            {!isOwn && <span style={{ color: "#bfdbfe", fontSize: 9 }}> · view only</span>}
+            {!editable && <span style={{ color: "#bfdbfe", fontSize: 9 }}> · view only</span>}
           </div>
         )}
       </div>

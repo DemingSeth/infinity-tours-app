@@ -37,7 +37,7 @@ export default async function TourDetailPage({ params }: { params: Promise<{ id:
       .maybeSingle(),
     supabase
       .from("tour_hosts")
-      .select("role")
+      .select("id, name, email, role")
       .eq("id", user.id)
       .single(),
     // Whole-tour ("general") feedback — rows with a null item_id.
@@ -61,6 +61,9 @@ export default async function TourDetailPage({ params }: { params: Promise<{ id:
       initialGeneralFeedback={generalFeedback ?? []}
       currentUserId={user.id}
       viewerIsAdmin={isAdmin(viewerHost?.role)}
+      // The client derives edit rights from live tour state (canEditTour), so
+      // a Trip Information save that lists a new consultant takes effect at once.
+      viewer={viewerHost ? { id: viewerHost.id, name: viewerHost.name, email: viewerHost.email, role: viewerHost.role } : { id: user.id, email: user.email ?? null }}
     />
   );
 }

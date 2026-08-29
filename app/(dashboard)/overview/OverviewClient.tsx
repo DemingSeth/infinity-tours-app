@@ -9,8 +9,9 @@ import { Modal, Btn } from "@/components/tour/ui";
 import BannerLibraryManager from "@/components/tour/BannerLibraryManager";
 import StatsRow from "@/components/overview/StatsRow";
 import CalendarView from "@/components/overview/CalendarView";
+import ConfirmationProgress from "@/components/overview/ConfirmationProgress";
 import VisibilitySettingsModal from "@/components/overview/VisibilitySettingsModal";
-import type { TourWithHostAndMembers, HostRole } from "@/lib/types";
+import type { OverviewTour, HostRole } from "@/lib/types";
 import { isAdmin } from "@/lib/roles";
 
 // Admin-only card: library image count + a button to manage the library.
@@ -54,10 +55,10 @@ function BannerLibraryCard({ currentHostId }: { currentHostId: string }) {
 }
 
 interface Props {
-  tours: TourWithHostAndMembers[];
+  tours: OverviewTour[];
   currentHostId: string;
-  // The page already redirects non-admins; kept here so admin-only cards stay
-  // gated as defense in depth.
+  // Every signed-in team member can open this page. The role gates the
+  // admin-only pieces: the revenue row, the banner library, and the settings gear.
   viewerRole: HostRole;
 }
 
@@ -65,6 +66,7 @@ export default function OverviewClient({ tours, currentHostId, viewerRole }: Pro
   const router = useRouter();
   const [showSettings, setShowSettings] = useState(false);
   const openTour = (id: string) => router.push(`/tour/${id}`);
+  const admin = isAdmin(viewerRole);
 
   return (
     <div data-viewer-role={viewerRole} style={{ display: "flex", flexDirection: "column", gap: 18 }}>
@@ -77,20 +79,23 @@ export default function OverviewClient({ tours, currentHostId, viewerRole }: Pro
             All tours across Infinity Tours · <strong>{tours.length}</strong> total
           </p>
         </div>
-        <button
-          onClick={() => setShowSettings(true)}
-          title="Visibility settings"
-          aria-label="Visibility settings"
-          style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: 9, border: "1.5px solid #e2e8f0", background: "#fff", color: "#64748b", cursor: "pointer" }}
-        >
-          <Settings size={17} />
-        </button>
+        {admin && (
+          <button
+            onClick={() => setShowSettings(true)}
+            title="Visibility settings"
+            aria-label="Visibility settings"
+            style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: 9, border: "1.5px solid #e2e8f0", background: "#fff", color: "#64748b", cursor: "pointer" }}
+          >
+            <Settings size={17} />
+          </button>
+        )}
       </header>
 
-      {isAdmin(viewerRole) && <BannerLibraryCard currentHostId={currentHostId} />}
+      {admin && <BannerLibraryCard currentHostId={currentHostId} />}
 
-      <StatsRow tours={tours} />
+      <StatsRow tours={tours} showRevenue={admin} />
       <CalendarView tours={tours} onOpenTour={openTour} />
+      <ConfirmationProgress tours={tours} onOpenTour={openTour} />
 
       {showSettings && <VisibilitySettingsModal onClose={() => setShowSettings(false)} />}
     </div>

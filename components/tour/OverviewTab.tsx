@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Trash2, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { BRAND, calcRoster, calcRooms } from "@/lib/helpers";
 import type { TourMemberRow, TourNoteRow, NotePriority } from "@/lib/types";
@@ -62,6 +62,10 @@ function NotesLog({ tourId, isOwner }: { tourId: string; isOwner: boolean }) {
   const [draftPriority, setDraftPriority] = useState<NotePriority>("medium");
   const [adding, setAdding] = useState(false);
   const [saving, setSaving] = useState(false);
+  // Edit an existing note's text in place (August 2026 request).
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -105,6 +109,28 @@ function NotesLog({ tourId, isOwner }: { tourId: string; isOwner: boolean }) {
       console.error("[tour_notes.priority] failed", error.message);
       setNotes(prev); // roll back
     }
+  }
+
+  function startEdit(n: TourNoteRow) {
+    setEditingId(n.id);
+    setEditText(n.text);
+    setExpanded(prev => ({ ...prev, [n.id]: true }));
+  }
+
+  async function saveEdit(id: string) {
+    const text = editText.trim();
+    if (!text || editSaving) return;
+    setEditSaving(true);
+    const { data, error } = await createClient()
+      .from("tour_notes").update({ text, updated_at: new Date().toISOString() }).eq("id", id).select().single();
+    setEditSaving(false);
+    if (error || !data) {
+      console.error("[tour_notes.update] failed", error?.message);
+      if (typeof window !== "undefined") window.alert(`Could not save the note: ${error?.message ?? "permission denied"}`);
+      return;
+    }
+    setNotes(prev => prev.map(n => n.id === id ? { ...n, ...(data as TourNoteRow) } : n));
+    setEditingId(null);
   }
 
   async function deleteNote(id: string) {
@@ -197,11 +223,36 @@ function NotesLog({ tourId, isOwner }: { tourId: string; isOwner: boolean }) {
               </div>
               {isOpen && (
                 <div style={{ padding: "10px 14px" }}>
-                  <div style={{ fontSize: 13, color: "#1e293b", whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
-                    {n.text}
-                  </div>
-                  {isOwner && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10, paddingTop: 8, borderTop: "1px solid #f1f5f9" }}>
+                  {editingId === n.id ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      <textarea autoFocus value={editText} onChange={e => setEditText(e.target.value)}
+                        onKeyDown={e => { if (e.key === "Escape") setEditingId(null); }}
+                        style={{ ...inp, resize: "vertical", minHeight: 80 }} />
+                      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                        <button onClick={() => setEditingId(null)}
+                          style={{ background: "#f1f5f9", color: "#64748b", border: "1.5px solid #e2e8f0", borderRadius: 8, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                          Cancel
+                        </button>
+                        <button onClick={() => saveEdit(n.id)} disabled={editSaving || !editText.trim()}
+                          style={{ background: BRAND.navy, color: "#fff", border: "none", borderRadius: 8, padding: "5px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: editSaving || !editText.trim() ? 0.6 : 1 }}>
+                          {editSaving ? "Saving…" : "Save Changes"}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 13, color: "#1e293b", whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
+                      {n.text}
+                      {n.updated_at && n.created_at && new Date(n.updated_at).getTime() - new Date(n.created_at).getTime() > 60000 && (
+                        <div style={{ fontSize: 10.5, color: "#94a3b8", marginTop: 6 }}>Edited {noteDateLabel(n.updated_at)}</div>
+                      )}
+                    </div>
+                  )}
+                  {isOwner && editingId !== n.id && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10, paddingTop: 8, borderTop: "1px solid #f1f5f9", flexWrap: "wrap" }}>
+                      <button type="button" onClick={() => startEdit(n)} title="Edit this note"
+                        style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#fff", color: BRAND.navy, border: `1.5px solid ${BRAND.navy}`, borderRadius: 999, padding: "3px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", marginRight: 6 }}>
+                        <Pencil size={11} /> Edit
+                      </button>
                       <span style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.6 }}>Priority</span>
                       {PRIORITY_ORDER.map(p => {
                         const m = PRIORITY_META[p];
@@ -294,7 +345,7 @@ export default function OverviewTab({ tour, members, isOwner, onChange }: Props)
       <NotesLog tourId={tour.id} isOwner={isOwner} />
 
       {/* Stat cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 10 }}>
+      <div className="tour-stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 10 }}>
         {stats.map(s => (
           <div key={s.l} style={{ background: "#fff", border: "1.5px solid #e8eef4", borderRadius: 12, padding: "14px 12px", boxShadow: "0 1px 3px rgba(0,0,0,.04)" }}>
             <I n={s.icon} s={16} c={s.col} />
@@ -322,7 +373,7 @@ export default function OverviewTab({ tour, members, isOwner, onChange }: Props)
         </div>
 
         {!editing ? (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 28px", fontSize: 13 }}>
+          <div className="trip-details-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 28px", fontSize: 13 }}>
             {[
               ["Tour Name",        tour.name],
               ["School",           tour.school],
