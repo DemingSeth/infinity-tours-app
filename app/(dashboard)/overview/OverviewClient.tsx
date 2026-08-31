@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Settings, Image as ImageIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -10,8 +10,9 @@ import StatsRow from "@/components/overview/StatsRow";
 import CalendarView from "@/components/overview/CalendarView";
 import ConfirmationProgress from "@/components/overview/ConfirmationProgress";
 import VisibilitySettingsModal from "@/components/overview/VisibilitySettingsModal";
+import { parseISODate, startOfDay } from "@/lib/helpers";
 import type { OverviewTour, HostRole } from "@/lib/types";
-import { isAdmin } from "@/lib/roles";
+import { isAdmin, isViewerOnTour } from "@/lib/roles";
 
 // Admin-only card: library image count + a button to manage the library.
 function BannerLibraryCard({ currentHostId }: { currentHostId: string }) {
@@ -56,16 +57,39 @@ function BannerLibraryCard({ currentHostId }: { currentHostId: string }) {
 interface Props {
   tours: OverviewTour[];
   currentHostId: string;
+  currentHostEmail: string | null;
+  currentHostName: string | null;
   // Every signed-in team member can open this page. The role gates the
-  // admin-only pieces: the revenue row, the banner library, and the settings gear.
+  // admin-only pieces (revenue row, banner library, settings gear) AND how much
+  // of the tour list the page shows at all — see `visibleTours` below.
   viewerRole: HostRole;
 }
 
-export default function OverviewClient({ tours, currentHostId, viewerRole }: Props) {
+// A tour is still "upcoming" unless it has been closed out or its last day has
+// already passed. Undated tours count as upcoming: they are usually the ones
+// still being planned.
+function isUpcoming(tour: OverviewTour, today: Date): boolean {
+  if (tour.status === "closed") return false;
+  const end = parseISODate(tour.end_date) ?? parseISODate(tour.start_date);
+  return end ? startOfDay(end) >= today : true;
+}
+
+export default function OverviewClient({ tours, currentHostId, currentHostEmail, currentHostName, viewerRole }: Props) {
   const router = useRouter();
   const [showSettings, setShowSettings] = useState(false);
   const openTour = (id: string) => router.push(`/tour/${id}`);
   const admin = isAdmin(viewerRole);
+
+  // Role scoping (September 2026 request). Admins keep the all-tours command
+  // center. Everyone else sees only their own upcoming work, so the calendar and
+  // the confirmation list stop showing other people's trips. One filter feeds
+  // both sections, so the two can never disagree.
+  const visibleTours = useMemo(() => {
+    if (admin) return tours;
+    const viewer = { id: currentHostId, email: currentHostEmail, name: currentHostName, role: viewerRole };
+    const today = startOfDay(new Date());
+    return tours.filter(t => isViewerOnTour(t, viewer) && isUpcoming(t, today));
+  }, [tours, admin, currentHostId, currentHostEmail, currentHostName, viewerRole]);
 
   return (
     <div data-viewer-role={viewerRole} style={{ display: "flex", flexDirection: "column", gap: 18 }}>
@@ -75,7 +99,9 @@ export default function OverviewClient({ tours, currentHostId, viewerRole }: Pro
             Infinity Tours Dashboard
           </h2>
           <p style={{ color: "var(--muted)", fontSize: 13, marginTop: 4, marginBottom: 0 }}>
-            All tours across Infinity Tours · <strong>{tours.length}</strong> total
+            {admin
+              ? <>All tours across Infinity Tours · <strong>{tours.length}</strong> total</>
+              : <>Your upcoming tours · <strong>{visibleTours.length}</strong> total</>}
           </p>
         </div>
         {admin && (
@@ -92,9 +118,11 @@ export default function OverviewClient({ tours, currentHostId, viewerRole }: Pro
 
       {admin && <BannerLibraryCard currentHostId={currentHostId} />}
 
-      <StatsRow tours={tours} showRevenue={admin} />
-      <CalendarView tours={tours} onOpenTour={openTour} />
-      <ConfirmationProgress tours={tours} onOpenTour={openTour} />
+      <StatsRow tours={visibleTours} showRevenue={admin} />
+      {/* Confirmation Progress sits above the calendar (September 2026 request):
+          it is the list the team works from day to day. */}
+      <ConfirmationProgress tours={visibleTours} onOpenTour={openTour} allowAllScope={admin} />
+      <CalendarView tours={visibleTours} onOpenTour={openTour} />
 
       {showSettings && <VisibilitySettingsModal onClose={() => setShowSettings(false)} />}
     </div>

@@ -687,6 +687,29 @@ export function parseAgendaDate(str: string): Date | null {
   return null;
 }
 
+// Weekday for an agenda day's free-text date ("Nov. 11, 2026", "2026-11-11",
+// "Apr 14"). Derived from the same string the day header already renders, so
+// there is no new data field to maintain. Returns "" when the value is empty or
+// unparseable, and callers then fall back to showing the raw date alone.
+// Screens use "short" (Wed); print/PDF uses "long" (Wednesday).
+export function agendaWeekday(value: string | null | undefined, style: "short" | "long" = "short"): string {
+  if (!value) return "";
+  const d = parseAgendaDate(value);
+  if (!d || isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("en-US", { weekday: style });
+}
+
+// Full day-header date label: weekday + date. On screen the trailing year is
+// dropped (the tour header already carries it); in print the full date stays so
+// a printed page is unambiguous on its own.
+export function agendaDayDateLabel(value: string | null | undefined, print = false): string {
+  const date = (value ?? "").trim();
+  if (!date) return "";
+  const weekday = agendaWeekday(date, print ? "long" : "short");
+  if (!weekday) return date;
+  return print ? `${weekday}, ${date}` : `${weekday}, ${date.replace(/,\s*\d{4}$/, "")}`;
+}
+
 export function formatAgendaDate(d: Date): string {
   if (!d) return "";
   return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;

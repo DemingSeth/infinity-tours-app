@@ -6,6 +6,15 @@ import { buildTripInfo, getPersona, personaLabel, activePersonaKeys } from "@/li
 import { verifyTourSession, resolvePersonaFromCode, TOUR_SESSION_COOKIE } from "@/lib/tourSession";
 import type { AgendaDayWithItems, Role } from "@/lib/types";
 
+// Always render this route on the request, never from a cached render
+// (September 2026 fix). Without this the shared teacher/coordinator link could
+// be served from Next's full-route cache, so a host edit showed up on the
+// host's own print but the participant's link still returned the stale page.
+// The host-facing print route already opts out the same way.
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
+
 export default async function PublicTourViewPage({
   params,
   searchParams,

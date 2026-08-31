@@ -900,7 +900,9 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
   const reorderable = visibleRows.filter(r => r.key !== "add_custom").map(r => r.key);
 
   return (
-    <div style={{ background: "var(--surface)", border: "1.5px solid var(--border-soft)", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,.04)", marginBottom: 16 }}>
+    // `print-tripinfo` is the hook PrintLauncher measures and shrinks so the
+    // whole Trip Information card lands on page one of the PDF.
+    <div className={print ? "print-tripinfo" : undefined} style={{ background: "var(--surface)", border: "1.5px solid var(--border-soft)", borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,.04)", marginBottom: 16 }}>
       {/* Brand-blue header bar (Infinity footer periwinkle) */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px", background: INFINITY_BLUE }}>
         <button

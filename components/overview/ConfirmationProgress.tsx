@@ -49,19 +49,28 @@ const filterInput: React.CSSProperties = {
   fontFamily: "inherit", background: "var(--surface)", color: "var(--text)", outline: "none",
 };
 
-export default function ConfirmationProgress({ tours, onOpenTour }: {
+export default function ConfirmationProgress({ tours, onOpenTour, allowAllScope = true }: {
   tours: OverviewTour[];
   onOpenTour: (id: string) => void;
+  // Only an admin may widen the list to every tour including closed ones
+  // (September 2026 request). For everyone else the page has already scoped the
+  // list to their own upcoming work, so the toggle is hidden rather than shown
+  // and ignored.
+  allowAllScope?: boolean;
 }) {
   const [collapsed, setCollapsed] = useState(false);
   // Closed tours are finished business; hide them unless asked.
   const [scope, setScope] = useState<Scope>("upcoming");
-  // Filters: tour host (account), status, and a start-date range.
+  const effectiveScope: Scope = allowAllScope ? scope : "upcoming";
+  // Filters: tour host (account), tour consultant (planner), status, and a
+  // start-date range. Host and consultant are separate on purpose: the person
+  // who plans a tour is often not the person who travels with it.
   const [hostFilter, setHostFilter] = useState<string>("");
+  const [consultantFilter, setConsultantFilter] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
-  const filtersActive = !!(hostFilter || statusFilter || fromDate || toDate);
+  const filtersActive = !!(hostFilter || consultantFilter || statusFilter || fromDate || toDate);
 
   // Host choices come from the tours themselves (account owner, else the
   // free-text host name), so the list only offers people who have tours.
@@ -75,12 +84,39 @@ export default function ConfirmationProgress({ tours, onOpenTour }: {
   }, [tours]);
   const hostKeyOf = (t: OverviewTour) => t.tour_hosts?.id ?? `name:${hostNameOf(t)}`;
 
+  // Consultant choices come from the consultants actually listed on the tours,
+  // keyed by account id where the staff dropdown stored one and by name
+  // otherwise, so entries saved before ids existed still group correctly.
+  const consultantKeysOf = (t: OverviewTour): string[] => {
+    const out: string[] = [];
+    for (const c of t.consultants ?? []) {
+      const name = (c?.name ?? "").trim();
+      if (!name && !c?.id) continue;
+      out.push(c?.id ?? `name:${name}`);
+    }
+    return out;
+  };
+
+  const consultantOptions = useMemo(() => {
+    const seen: Record<string, string> = {};
+    for (const t of tours) {
+      for (const c of t.consultants ?? []) {
+        const name = (c?.name ?? "").trim();
+        if (!name && !c?.id) continue;
+        const key = c?.id ?? `name:${name}`;
+        if (!seen[key]) seen[key] = name || "Unnamed consultant";
+      }
+    }
+    return Object.entries(seen).sort((a, b) => a[1].localeCompare(b[1]));
+  }, [tours]);
+
   const visible = useMemo(() => {
     const from = parseISODate(fromDate);
     const to = parseISODate(toDate);
     const list = tours.filter(t => {
-      if (scope !== "all" && t.status === "closed") return false;
+      if (effectiveScope !== "all" && t.status === "closed") return false;
       if (hostFilter && hostKeyOf(t) !== hostFilter) return false;
+      if (consultantFilter && !consultantKeysOf(t).includes(consultantFilter)) return false;
       if (statusFilter && t.status !== statusFilter) return false;
       if (from || to) {
         const s = parseISODate(t.start_date);
@@ -96,7 +132,7 @@ export default function ConfirmationProgress({ tours, onOpenTour }: {
       const bm = parseISODate(b.start_date)?.getTime() ?? Infinity;
       return am - bm || a.name.localeCompare(b.name);
     });
-  }, [tours, scope, hostFilter, statusFilter, fromDate, toDate]);
+  }, [tours, effectiveScope, hostFilter, consultantFilter, statusFilter, fromDate, toDate]);
 
   // Totals across every listed tour, and per month (by start date).
   const overall = useMemo(() => {
@@ -137,6 +173,7 @@ export default function ConfirmationProgress({ tours, onOpenTour }: {
         <span style={{ fontSize: 12, color: "var(--muted-2)" }}>
           {visible.length} tour{visible.length !== 1 ? "s" : ""}
         </span>
+        {allowAllScope && (
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10 }} onClick={e => e.stopPropagation()}>
           <div style={{ display: "flex", gap: 1, background: "var(--surface-3)", borderRadius: 8, padding: 3 }}>
             {([{ value: "upcoming", label: "Upcoming" }, { value: "all", label: "All tours" }] as const).map(opt => (
@@ -157,6 +194,7 @@ export default function ConfirmationProgress({ tours, onOpenTour }: {
             ))}
           </div>
         </div>
+        )}
       </div>
 
       {!collapsed && (
@@ -169,6 +207,10 @@ export default function ConfirmationProgress({ tours, onOpenTour }: {
             <select value={hostFilter} onChange={e => setHostFilter(e.target.value)} aria-label="Tour host" style={filterInput}>
               <option value="">All tour hosts</option>
               {hostOptions.map(([key, name]) => <option key={key} value={key}>{name}</option>)}
+            </select>
+            <select value={consultantFilter} onChange={e => setConsultantFilter(e.target.value)} aria-label="Tour consultant" style={filterInput}>
+              <option value="">All tour consultants</option>
+              {consultantOptions.map(([key, name]) => <option key={key} value={key}>{name}</option>)}
             </select>
             <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} aria-label="Status" style={filterInput}>
               <option value="">Any status</option>
@@ -183,7 +225,7 @@ export default function ConfirmationProgress({ tours, onOpenTour }: {
               <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} style={filterInput} />
             </label>
             {filtersActive && (
-              <button type="button" onClick={() => { setHostFilter(""); setStatusFilter(""); setFromDate(""); setToDate(""); }}
+              <button type="button" onClick={() => { setHostFilter(""); setConsultantFilter(""); setStatusFilter(""); setFromDate(""); setToDate(""); }}
                 style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "var(--surface-3)", border: "none", borderRadius: 6, padding: "5px 10px", fontSize: 11, fontWeight: 600, color: "var(--muted)", cursor: "pointer", fontFamily: "inherit" }}>
                 <X size={12} />Clear
               </button>
@@ -192,7 +234,7 @@ export default function ConfirmationProgress({ tours, onOpenTour }: {
           {/* All tours together */}
           <div style={{ padding: "12px 18px", background: "var(--surface-2)", borderBottom: "1px solid var(--surface-3)" }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 6 }}>
-              All {scope === "upcoming" ? "upcoming " : ""}tours together
+              All {effectiveScope === "upcoming" ? "upcoming " : ""}tours together
             </div>
             <Bar {...overall} height={10} />
           </div>

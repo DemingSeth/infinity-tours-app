@@ -6,7 +6,7 @@ import Image from "next/image";
 import IconColorButton, { IconColorRow } from "@/components/shared/IconColorPicker";
 import {
   BRAND, ROLES, AGENDA_TYPES, TRAVEL_SUBTYPES, SUBTYPES_BY_TYPE,
-  isDayInPast, initialCollapsedDays, parseAgendaDate, formatAgendaDate, suggestNextDate,
+  isDayInPast, initialCollapsedDays, parseAgendaDate, formatAgendaDate, suggestNextDate, agendaDayDateLabel,
   toDateInput, fmt$, buildTripInfo, orderAgendaItems, timeInsertIndex,
   orderedActivitySubtypes, expandStateName, tripInfoStartsCollapsed, itemMatchesGroup, groupName, resolveIconColor,
   activePersonaKeys, personaLabel, personaColors, getPersona, defaultPersonaVisibility, isActivityType, generateAccessCode,
@@ -2105,16 +2105,9 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
         {days.map((day, idx) => {
           const past = isDayInPast(day.date);
           const collapsed = collapsedDays[day.id] ?? false;
-          // Weekday derived client-side from the same date value the header renders
-          // — no new data field. If the string already carries a 4-digit year, parse
-          // as-is; otherwise append the current year so "Apr 14" → "Apr 14 2026"
-          // resolves. Empty/unparseable dates yield "" (header shows just "Day N").
-          const weekday = (() => {
-            if (!day.date) return "";
-            const hasYear = /\d{4}/.test(day.date);
-            const d = new Date(hasYear ? day.date : `${day.date} ${new Date().getFullYear()}`);
-            return isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-US", { weekday: "long" });
-          })();
+          // Weekday + date, from the shared helper so the editor, the shared
+          // link, and the PDF all label days the same way. Abbreviated on screen
+          // (September 2026 request: "Wed"), spelled out in print.
           return (
             <div key={day.id} style={{ background: "var(--surface)", border: `1.5px solid ${past ? "var(--border)" : "var(--border-soft)"}`, borderRadius: 12, overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
               <div
@@ -2160,7 +2153,7 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
                     </div>
                   ) : (
                     <>
-                      <span style={{ color: "#D1E8FF", fontSize: 13 }}>{weekday ? `${weekday}, ${day.date.replace(/,\s*\d{4}$/, "")}` : day.date}</span>
+                      <span style={{ color: "#D1E8FF", fontSize: 13 }}>{agendaDayDateLabel(day.date)}</span>
                       <button
                         onClick={e => {
                           e.stopPropagation();

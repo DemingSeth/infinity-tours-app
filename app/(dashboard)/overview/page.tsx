@@ -7,10 +7,12 @@ import type { OverviewTour, HostRole } from "@/lib/types";
 // tour data — including edits made directly in Supabase — with no caching.
 export const dynamic = "force-dynamic";
 
-// Command center: an all-tours view (not scoped to the current host by design).
-// Open to every signed-in team member (August 2026 request): the calendar and
-// the confirmation-progress list are for everyone; the revenue row and the
-// banner library stay admin-only inside OverviewClient.
+// Command center. Open to every signed-in team member, but scoped by role
+// (September 2026 request): an admin sees every tour, while everyone else sees
+// only the upcoming tours they are actually working — listed as Tour Consultant,
+// listed or assigned as Tour Host, or the owner. The scoping runs in
+// OverviewClient so one query feeds the calendar and the confirmation list.
+// The revenue row and the banner library stay admin-only.
 export default async function OverviewPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -30,6 +32,10 @@ export default async function OverviewPage() {
     <OverviewClient
       tours={(tours ?? []) as OverviewTour[]}
       currentHostId={user.id}
+      // Email and name back the fallback matching in isViewerOnTour(), for
+      // consultant/host entries saved before the staff dropdown stored ids.
+      currentHostEmail={tourHost?.email ?? user.email ?? null}
+      currentHostName={tourHost?.name ?? null}
       viewerRole={(tourHost?.role ?? "host") as HostRole}
     />
   );

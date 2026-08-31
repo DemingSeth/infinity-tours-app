@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronRight, Plus, Trash2, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { BRAND, calcRoster, calcRooms } from "@/lib/helpers";
@@ -56,6 +56,59 @@ const PRIORITY_META: Record<NotePriority, { label: string; color: string; bg: st
 };
 const PRIORITY_ORDER: NotePriority[] = ["low", "medium", "high"];
 
+// ── Notes autosave ────────────────────────────────────────────────────────────
+// September 2026 fix. A host took a full meeting's notes here, their hotspot
+// dropped, and everything typed was lost. Two independent layers now stand
+// between typing and losing it:
+//
+//   1. Local: every keystroke is mirrored into this browser's local storage.
+//      That write needs no network, so it survives a dead connection, a closed
+//      laptop, and an accidental reload. It is what actually saves the work.
+//   2. Server: a 30-second timer pushes the draft to Supabase. The first push
+//      creates the row and later pushes update that same row, so a long note
+//      never turns into a pile of fragments. While the composer still holds
+//      that row it is hidden from the list below (it is already on screen in
+//      the box), and it appears in the log as soon as the note is saved or the
+//      page is reloaded.
+//
+// Cancel deletes the autosaved row and clears local storage, so an abandoned
+// draft leaves nothing behind.
+const AUTOSAVE_MS = 30000;
+
+const draftKey = (tourId: string) => `infinity.notes.draft.${tourId}`;
+const editKey = (noteId: string) => `infinity.notes.edit.${noteId}`;
+
+type StoredDraft = { text: string; priority: NotePriority; autoNoteId: string | null };
+
+// Storage can throw outright (Safari private mode, blocked site data), so every
+// access is guarded and a failure just means this layer is unavailable.
+function readStored(key: string): string | null {
+  try { return window.localStorage.getItem(key); } catch { return null; }
+}
+function writeStored(key: string, value: string | null) {
+  try {
+    if (value) window.localStorage.setItem(key, value);
+    else window.localStorage.removeItem(key);
+  } catch { /* storage unavailable; the 30-second server autosave still runs */ }
+}
+function readDraft(tourId: string): StoredDraft | null {
+  const raw = readStored(draftKey(tourId));
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as Partial<StoredDraft>;
+    if (typeof parsed?.text !== "string") return null;
+    return {
+      text: parsed.text,
+      priority: (parsed.priority ?? "medium") as NotePriority,
+      autoNoteId: parsed.autoNoteId ?? null,
+    };
+  } catch { return null; }
+}
+
+function savedAtLabel(d: Date): string {
+  return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+}
+
 function NotesLog({ tourId, isOwner }: { tourId: string; isOwner: boolean }) {
   const [notes, setNotes] = useState<TourNoteRow[]>([]);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -67,23 +120,161 @@ function NotesLog({ tourId, isOwner }: { tourId: string; isOwner: boolean }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
   const [editSaving, setEditSaving] = useState(false);
+  // Autosave: the row the timer created for the open composer, plus the state
+  // the status line reports.
+  const [autoNoteId, setAutoNoteId] = useState<string | null>(null);
+  const [savedAt, setSavedAt] = useState<Date | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [recovered, setRecovered] = useState(false);
 
+  // Load the log, and in the same pass recover anything this browser was still
+  // holding from a previous visit — a dropped connection, a closed tab, a reload
+  // mid-sentence. Recovery runs inside the async body so it happens after the
+  // effect commits rather than cascading a second render synchronously.
   useEffect(() => {
     let active = true;
     (async () => {
       const { data } = await createClient()
         .from("tour_notes").select("*").eq("tour_id", tourId)
         .order("created_at", { ascending: false });
-      if (active && data) setNotes(data as TourNoteRow[]);
+      if (!active) return;
+      if (data) setNotes(data as TourNoteRow[]);
+      const stored = readDraft(tourId);
+      if (stored && stored.text.trim()) {
+        setDraft(stored.text);
+        setDraftPriority(stored.priority);
+        setAutoNoteId(stored.autoNoteId);
+        setAdding(true);
+        setRecovered(true);
+      }
     })();
     return () => { active = false; };
   }, [tourId]);
+
+  // Mirror the composer into local storage on every keystroke. No network.
+  useEffect(() => {
+    if (!adding) return;
+    if (!draft.trim() && !autoNoteId) { writeStored(draftKey(tourId), null); return; }
+    writeStored(draftKey(tourId), JSON.stringify({ text: draft, priority: draftPriority, autoNoteId }));
+  }, [draft, draftPriority, adding, autoNoteId, tourId]);
+
+  // Same for an in-place edit of an existing note.
+  useEffect(() => {
+    if (!editingId) return;
+    writeStored(editKey(editingId), editText);
+  }, [editText, editingId]);
+
+  // The 30-second timer reads through a ref, so it always sees the latest text
+  // without being torn down and rebuilt on every keystroke. The ref is filled in
+  // an effect (never during render) so React stays in charge of the ordering.
+  const liveRef = useRef({ adding, draft, draftPriority, autoNoteId, editingId, editText, notes });
+  useEffect(() => {
+    liveRef.current = { adding, draft, draftPriority, autoNoteId, editingId, editText, notes };
+  });
+
+  // One pass of the server autosave. Silent on success apart from the status
+  // line; a failure (offline) is reported and simply retried on the next tick,
+  // with local storage still holding the text in the meantime.
+  const autosave = useCallback(async () => {
+    const { adding, draft, draftPriority, autoNoteId, editingId, editText, notes } = liveRef.current;
+    const supabase = createClient();
+
+    // An open in-place edit: only write when the text actually changed.
+    if (editingId) {
+      const text = editText.trim();
+      const original = notes.find(n => n.id === editingId)?.text ?? "";
+      if (text && text !== original.trim()) {
+        const { error } = await supabase
+          .from("tour_notes").update({ text, updated_at: new Date().toISOString() }).eq("id", editingId);
+        if (error) { setSaveError("Not saved yet, still trying"); return; }
+        setNotes(prev => prev.map(n => n.id === editingId ? { ...n, text } : n));
+        setSaveError(null);
+        setSavedAt(new Date());
+      }
+      return;
+    }
+
+    if (!adding) return;
+    const text = draft.trim();
+    if (!text) return;
+
+    if (autoNoteId) {
+      const { error } = await supabase
+        .from("tour_notes").update({ text, priority: draftPriority, updated_at: new Date().toISOString() }).eq("id", autoNoteId);
+      if (error) { setSaveError("Not saved yet, still trying"); return; }
+      setSaveError(null);
+      setSavedAt(new Date());
+      return;
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data, error } = await supabase
+      .from("tour_notes")
+      .insert({ tour_id: tourId, text, priority: draftPriority, created_by: user?.id ?? null })
+      .select().single();
+    if (error || !data) { setSaveError("Not saved yet, still trying"); return; }
+    setAutoNoteId((data as TourNoteRow).id);
+    setNotes(prev => [data as TourNoteRow, ...prev]);
+    setSaveError(null);
+    setSavedAt(new Date());
+  }, [tourId]);
+
+  useEffect(() => {
+    if (!isOwner) return;
+    const timer = window.setInterval(() => { void autosave(); }, AUTOSAVE_MS);
+    return () => window.clearInterval(timer);
+  }, [isOwner, autosave]);
+
+  // Everything the composer was holding is done with: drop the local copy and
+  // reset the status line.
+  function clearComposer() {
+    writeStored(draftKey(tourId), null);
+    setDraft("");
+    setDraftPriority("medium");
+    setAutoNoteId(null);
+    setAdding(false);
+    setRecovered(false);
+    setSavedAt(null);
+    setSaveError(null);
+  }
+
+  // Cancel throws the draft away, including any row the autosave already
+  // created, so nothing half-written is left in the log.
+  async function cancelDraft() {
+    const id = autoNoteId;
+    clearComposer();
+    if (id) {
+      setNotes(prev => prev.filter(n => n.id !== id));
+      const { error } = await createClient().from("tour_notes").delete().eq("id", id);
+      if (error) console.error("[tour_notes.discardAutosave] failed", error.message);
+    }
+  }
 
   async function addNote() {
     const text = draft.trim();
     if (!text || saving) return;
     setSaving(true);
     const supabase = createClient();
+
+    // The 30-second autosave may already have created this note. Finish that
+    // row instead of inserting a duplicate.
+    if (autoNoteId) {
+      const { data, error } = await supabase
+        .from("tour_notes")
+        .update({ text, priority: draftPriority, updated_at: new Date().toISOString() })
+        .eq("id", autoNoteId).select().single();
+      setSaving(false);
+      if (error || !data) {
+        console.error("[tour_notes.update] failed", error?.message);
+        if (typeof window !== "undefined") window.alert(`Could not save note: ${error?.message ?? "permission denied"}`);
+        return;
+      }
+      setNotes(prev => prev.map(n => n.id === autoNoteId ? (data as TourNoteRow) : n));
+      setExpanded(prev => ({ ...prev, [autoNoteId]: true }));
+      clearComposer();
+      return;
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     const { data, error } = await supabase
       .from("tour_notes")
@@ -97,9 +288,7 @@ function NotesLog({ tourId, isOwner }: { tourId: string; isOwner: boolean }) {
     }
     setNotes(prev => [data as TourNoteRow, ...prev]);
     setExpanded(prev => ({ ...prev, [(data as TourNoteRow).id]: true }));
-    setDraft("");
-    setDraftPriority("medium");
-    setAdding(false);
+    clearComposer();
   }
 
   async function changePriority(id: string, priority: NotePriority) {
@@ -113,9 +302,21 @@ function NotesLog({ tourId, isOwner }: { tourId: string; isOwner: boolean }) {
   }
 
   function startEdit(n: TourNoteRow) {
+    // Prefer an unsaved local edit of this note over the stored text, so a
+    // dropped connection mid-edit does not quietly discard the rewrite.
+    const stored = readStored(editKey(n.id));
     setEditingId(n.id);
-    setEditText(n.text);
+    setEditText(stored && stored.trim() && stored !== n.text ? stored : n.text);
     setExpanded(prev => ({ ...prev, [n.id]: true }));
+    setSavedAt(null);
+    setSaveError(null);
+  }
+
+  function cancelEdit(id: string) {
+    writeStored(editKey(id), null);
+    setEditingId(null);
+    setSavedAt(null);
+    setSaveError(null);
   }
 
   async function saveEdit(id: string) {
@@ -131,10 +332,14 @@ function NotesLog({ tourId, isOwner }: { tourId: string; isOwner: boolean }) {
       return;
     }
     setNotes(prev => prev.map(n => n.id === id ? { ...n, ...(data as TourNoteRow) } : n));
+    writeStored(editKey(id), null);
     setEditingId(null);
+    setSavedAt(null);
+    setSaveError(null);
   }
 
   async function deleteNote(id: string) {
+    writeStored(editKey(id), null);
     const { error } = await createClient().from("tour_notes").delete().eq("id", id);
     if (error) {
       console.error("[tour_notes.delete] failed", error.message);
@@ -159,9 +364,14 @@ function NotesLog({ tourId, isOwner }: { tourId: string; isOwner: boolean }) {
 
       {adding && (
         <div style={{ marginBottom: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+          {recovered && (
+            <div style={{ fontSize: 12, color: "var(--sky-text)", background: "var(--sky-bg)", border: "1px solid var(--sky-border)", borderRadius: 8, padding: "7px 11px" }}>
+              Recovered an unsaved note from this browser. Save it or cancel to discard it.
+            </div>
+          )}
           <textarea autoFocus value={draft} onChange={e => setDraft(e.target.value)}
             placeholder="What happened / what to remember (a timestamp is added automatically)…"
-            style={{ ...inp, resize: "vertical", minHeight: 80 }} />
+            style={{ ...inp, resize: "vertical", minHeight: 140 }} />
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <span style={{ fontSize: 11, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: 0.6 }}>Priority</span>
@@ -176,9 +386,16 @@ function NotesLog({ tourId, isOwner }: { tourId: string; isOwner: boolean }) {
                 );
               })}
             </div>
+            <span style={{ fontSize: 11, color: saveError ? "var(--red-text)" : "var(--muted-2)" }}>
+              {saveError
+                ? saveError
+                : savedAt
+                  ? `Autosaved ${savedAtLabel(savedAt)}`
+                  : "Autosaves every 30 seconds, and keeps a copy in this browser"}
+            </span>
           </div>
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-            <button onClick={() => { setAdding(false); setDraft(""); setDraftPriority("medium"); }}
+            <button onClick={cancelDraft}
               style={{ background: "var(--surface-3)", color: "var(--muted)", border: "1.5px solid var(--border)", borderRadius: 8, padding: "6px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
               Cancel
             </button>
@@ -197,7 +414,9 @@ function NotesLog({ tourId, isOwner }: { tourId: string; isOwner: boolean }) {
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {notes.map(n => {
+        {/* While the composer still holds the row the autosave created, it is
+            already on screen in the box above; showing it twice reads as a bug. */}
+        {notes.filter(n => !(adding && n.id === autoNoteId)).map(n => {
           const isOpen = !!expanded[n.id];
           const firstLine = (n.text.split("\n")[0] || "").slice(0, 80);
           const pr = PRIORITY_META[(n.priority ?? "medium") as NotePriority] ?? PRIORITY_META.medium;
@@ -227,10 +446,13 @@ function NotesLog({ tourId, isOwner }: { tourId: string; isOwner: boolean }) {
                   {editingId === n.id ? (
                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                       <textarea autoFocus value={editText} onChange={e => setEditText(e.target.value)}
-                        onKeyDown={e => { if (e.key === "Escape") setEditingId(null); }}
+                        onKeyDown={e => { if (e.key === "Escape") cancelEdit(n.id); }}
                         style={{ ...inp, resize: "vertical", minHeight: 80 }} />
                       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                        <button onClick={() => setEditingId(null)}
+                        <span style={{ marginRight: "auto", fontSize: 11, color: saveError ? "var(--red-text)" : "var(--muted-2)" }}>
+                          {saveError ? saveError : savedAt ? `Autosaved ${savedAtLabel(savedAt)}` : "Autosaves every 30 seconds"}
+                        </span>
+                        <button onClick={() => cancelEdit(n.id)}
                           style={{ background: "var(--surface-3)", color: "var(--muted)", border: "1.5px solid var(--border)", borderRadius: 8, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
                           Cancel
                         </button>
