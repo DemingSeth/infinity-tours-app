@@ -491,12 +491,19 @@ export function buildTripInfo({ tour, members, days, hostName, hostPhone, confir
 
   // Multi-teacher / multi-host lists. When the new arrays are empty, backfill a
   // single entry from the legacy fields so existing tours look unchanged.
-  const rawTeachers = (tour?.teachers as { name?: string; contact?: string | null }[] | null) || [];
-  const teachers = rawTeachers.filter(t => (t?.name ?? "").trim() || (t?.contact ?? "").trim());
+  const rawTeachers = (tour?.teachers as { name?: string; contact?: string | null; phone?: string | null }[] | null) || [];
+  const teachers = rawTeachers.filter(t => (t?.name ?? "").trim() || (t?.contact ?? "").trim() || (t?.phone ?? "").trim());
+  // tours.contact_phone is the legacy single teacher phone: use it for the first
+  // teacher until one is entered on the list (mirrors contact_name / contact_email).
+  const legacyTeacherPhone = (tour?.contact_phone ?? "").trim() || null;
   const teacherList = teachers.length
-    ? teachers.map(t => ({ name: (t.name ?? "").trim(), contact: (t.contact ?? "").trim() || null }))
-    : (tour?.contact_name || tour?.contact_email
-        ? [{ name: tour?.contact_name ?? "", contact: tour?.contact_email ?? null }]
+    ? teachers.map((t, i) => ({
+        name: (t.name ?? "").trim(),
+        contact: (t.contact ?? "").trim() || null,
+        phone: (t.phone ?? "").trim() || (i === 0 ? legacyTeacherPhone : null),
+      }))
+    : (tour?.contact_name || tour?.contact_email || legacyTeacherPhone
+        ? [{ name: tour?.contact_name ?? "", contact: tour?.contact_email ?? null, phone: legacyTeacherPhone }]
         : []);
   const rawHosts = (tour?.tour_hosts_list as { name?: string; contact?: string | null }[] | null) || [];
   const hostEntries = rawHosts.filter(h => (h?.name ?? "").trim() || (h?.contact ?? "").trim());
@@ -508,12 +515,12 @@ export function buildTripInfo({ tour, members, days, hostName, hostPhone, confir
 
   // Consultants: prefer the new multi list, backfill a single entry from the
   // legacy planning_tour_host so existing tours look unchanged.
-  const rawConsultants = (tour?.consultants as { name?: string; contact?: string | null }[] | null) || [];
-  const consultantEntries = rawConsultants.filter(c => (c?.name ?? "").trim() || (c?.contact ?? "").trim());
+  const rawConsultants = (tour?.consultants as { name?: string; contact?: string | null; phone?: string | null }[] | null) || [];
+  const consultantEntries = rawConsultants.filter(c => (c?.name ?? "").trim() || (c?.contact ?? "").trim() || (c?.phone ?? "").trim());
   const consultantList = consultantEntries.length
-    ? consultantEntries.map(c => ({ name: (c.name ?? "").trim(), contact: (c.contact ?? "").trim() || null }))
+    ? consultantEntries.map(c => ({ name: (c.name ?? "").trim(), contact: (c.contact ?? "").trim() || null, phone: (c.phone ?? "").trim() || null }))
     : ((tour?.planning_tour_host ?? "").trim()
-        ? [{ name: (tour!.planning_tour_host as string).trim(), contact: null }]
+        ? [{ name: (tour!.planning_tour_host as string).trim(), contact: null, phone: null }]
         : []);
 
   const infoOverrides = (tour?.trip_info_overrides as TripInfo["overrides"] | null) || {};

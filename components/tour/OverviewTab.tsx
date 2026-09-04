@@ -5,7 +5,7 @@ import { ChevronDown, ChevronRight, Plus, Trash2, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { BRAND, calcRoster, calcRooms } from "@/lib/helpers";
 import SaveStatusBar from "@/components/shared/SaveStatusBar";
-import type { TourMemberRow, TourNoteRow, NotePriority } from "@/lib/types";
+import type { TourMemberRow, TourNoteRow, NotePriority, PersonRef } from "@/lib/types";
 
 // ─── Shared micro-components ──────────────────────────────────────────────────
 
@@ -499,6 +499,15 @@ function NotesLog({ tourId, isOwner }: { tourId: string; isOwner: boolean }) {
   );
 }
 
+// Sets the phone on the first tours.consultants entry without disturbing the
+// rest of the list (Trip Information owns the full multi-consultant editor).
+// Returns the untouched list when there is nothing to write.
+function mergeConsultantPhone(consultants: unknown, phone: string | null, name: string): PersonRef[] {
+  const list: PersonRef[] = Array.isArray(consultants) ? (consultants as PersonRef[]) : [];
+  if (!list.length) return phone ? [{ name, contact: null, phone, id: null }] : list;
+  return list.map((c, i) => (i === 0 ? { ...c, phone } : c));
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -534,6 +543,10 @@ export default function OverviewTab({ tour, members, isOwner, onChange, saving =
       activities: tour.activities ?? [],
       notes: tour.notes ?? "",
       planning_tour_host: tour.planning_tour_host ?? "",
+      // The consultant's phone lives on the structured tours.consultants list
+      // (first entry) that Trip Information also edits; the name mirror above
+      // stays on the legacy planning_tour_host field.
+      consultant_phone: tour.consultants?.[0]?.phone ?? "",
       traveling_tour_host: tour.traveling_tour_host ?? "",
     });
     setEditing(true);
@@ -544,10 +557,15 @@ export default function OverviewTab({ tour, members, isOwner, onChange, saving =
     // never stores empty objects/strings.
     const driverName = (form.bus_driver_contact?.name || "").trim();
     const driverPhone = (form.bus_driver_contact?.phone || "").trim();
+    const { consultant_phone, ...rest } = form;
     onChange({
-      ...form,
+      ...rest,
       bus_company: (form.bus_company || "").trim() || null,
       bus_driver_contact: driverName || driverPhone ? { name: driverName || null, phone: driverPhone || null } : null,
+      // Write the phone back onto the first consultant, keeping their name /
+      // email / account id intact. No consultant listed yet → seed one from the
+      // Tour Consultant name so the number has somewhere to live.
+      consultants: mergeConsultantPhone(tour.consultants, (consultant_phone || "").trim() || null, (form.planning_tour_host || "").trim()),
     });
     setEditing(false);
   };
@@ -613,6 +631,7 @@ export default function OverviewTab({ tour, members, isOwner, onChange, saving =
               ["End Date",         tour.end_date || "—"],
               ["Date Flexible",    tour.date_flexible ? "Yes" : "No"],
               ["Tour Consultant",  tour.planning_tour_host || "—"],
+              ["Tour Consultant Phone", tour.consultants?.[0]?.phone || "—"],
               ["Tour Host",        tour.traveling_tour_host || "—"],
               ["Bus Company",      tour.bus_company || "—"],
               ["Bus Driver Contact", [tour.bus_driver_contact?.name, tour.bus_driver_contact?.phone].filter(Boolean).join(" · ") || "—"],
@@ -666,6 +685,9 @@ export default function OverviewTab({ tour, members, isOwner, onChange, saving =
             </Field>
             <Field label="Tour Consultant" half>
               <input style={inp} value={form.planning_tour_host} onChange={e => f({ planning_tour_host: e.target.value })} />
+            </Field>
+            <Field label="Tour Consultant Phone" half>
+              <input style={inp} type="tel" value={form.consultant_phone} onChange={e => f({ consultant_phone: e.target.value })} placeholder="Consultant phone" />
             </Field>
             <Field label="Tour Host" half>
               <input style={inp} value={form.traveling_tour_host} onChange={e => f({ traveling_tour_host: e.target.value })} />
