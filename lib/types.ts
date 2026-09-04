@@ -139,10 +139,13 @@ export interface AccessCodes {
 }
 
 // A named person reference used by the multi-teacher / multi-host Trip
-// Information rows. `contact` holds an email (teachers) or phone (hosts).
+// Information rows. `contact` holds an email (teachers / consultants) or a
+// phone (tour hosts); `phone` is the separate phone number carried by teachers
+// and consultants, who list an email and a phone side by side.
 export interface PersonRef {
   name: string;
   contact?: string | null;
+  phone?: string | null;
   // tour_hosts.id when the person was picked from the staff dropdown. This is
   // what grants a listed consultant / tour host edit access to the tour (see
   // can_edit_tour() in the database and canEditTour() in lib/roles.ts).
@@ -233,14 +236,14 @@ export interface TourRow {
   trip_info_overrides: TripInfoOverrides;
   // Host-named extra Trip Information rows (text or links).
   custom_trip_rows: CustomTripRow[];
-  // Multiple teachers ({ name, contact: email }). Empty → fall back to the
-  // legacy single contact_name / contact_email pair.
+  // Multiple teachers ({ name, contact: email, phone }). Empty → fall back to
+  // the legacy single contact_name / contact_email pair.
   teachers: PersonRef[];
   // Multiple tour hosts ({ name, contact: phone }). Empty → fall back to the
   // legacy traveling_tour_host + host profile phone.
   tour_hosts_list: PersonRef[];
-  // Multiple tour consultants / travel planners ({ name, contact: email }).
-  // Empty → fall back to the legacy planning_tour_host single field.
+  // Multiple tour consultants / travel planners ({ name, contact: email,
+  // phone }). Empty → fall back to the legacy planning_tour_host single field.
   consultants: PersonRef[];
   // Tour-level map images for bus drivers (visible to hosts + bus drivers only).
   driver_map_urls: string[];

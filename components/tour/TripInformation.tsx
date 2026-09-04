@@ -12,14 +12,16 @@ const STORAGE_BUCKET = "agenda-images";
 type ConfItem = { id?: string; type: string; label: string | null; file_url: string };
 
 // `id` = tour_hosts.id when picked from the staff dropdown (grants edit access).
-type PersonForm = { name: string; contact: string; id?: string | null };
+// `phone` is only collected for teachers / consultants (whose `contact` is an
+// email); tour hosts keep their phone in `contact`.
+type PersonForm = { name: string; contact: string; phone: string; id?: string | null };
 type CustomRowForm = { id: string; label: string; value: string; url: string; visibility: Record<string, boolean> };
 
 type TripForm = {
-  // Multiple teachers ({ name, contact: email }) and tour hosts ({ name, contact: phone }).
+  // Multiple teachers ({ name, contact: email, phone }) and tour hosts ({ name, contact: phone }).
   teachers: PersonForm[];
   hosts: PersonForm[];
-  // Multiple tour consultants / travel planners ({ name, contact: email }).
+  // Multiple tour consultants / travel planners ({ name, contact: email, phone }).
   consultants: PersonForm[];
   busCapacity: string;
   // Free-text override for the Participants row; blank = use the roster counts.
@@ -122,22 +124,24 @@ interface TripInformationProps {
   print?: boolean;
 }
 
-// Editable list of people (teachers: name+email, hosts: name+phone). Each row
-// has an optional "select existing" dropdown sourced from Infinity staff
-// accounts + this tour's teachers; picking one fills name + contact, both still
-// editable afterward. `contactKind` decides which contact field to pull from a
-// staff account (phone for hosts, email for consultants/teachers).
-function PersonListEditor({ people, onChange, namePlaceholder, contactPlaceholder, addLabel, personnel = [], teacherRefs = [], contactKind = "email" }: {
+// Editable list of people (teachers / consultants: name+email+phone, hosts:
+// name+phone). Each row has an optional "select existing" dropdown sourced from
+// Infinity staff accounts + this tour's teachers; picking one fills name +
+// contact (+ phone), all still editable afterward. `contactKind` decides which
+// contact field to pull from a staff account (phone for hosts, email for
+// consultants/teachers). `phonePlaceholder` adds the separate phone input.
+function PersonListEditor({ people, onChange, namePlaceholder, contactPlaceholder, phonePlaceholder, addLabel, personnel = [], teacherRefs = [], contactKind = "email" }: {
   people: PersonForm[];
   onChange: (next: PersonForm[]) => void;
   namePlaceholder: string;
   contactPlaceholder: string;
+  phonePlaceholder?: string;
   addLabel: string;
   personnel?: PersonnelRow[];
   teacherRefs?: PersonForm[];
   contactKind?: "phone" | "email";
 }) {
-  const rows = people.length ? people : [{ name: "", contact: "", id: null }];
+  const rows = people.length ? people : [{ name: "", contact: "", phone: "", id: null }];
   const set = (i: number, patch: Partial<PersonForm>) =>
     onChange(rows.map((p, idx) => (idx === i ? { ...p, ...patch } : p)));
   const hasDropdown = personnel.length > 0 || teacherRefs.some(t => t.name.trim());
@@ -150,10 +154,10 @@ function PersonListEditor({ people, onChange, namePlaceholder, contactPlaceholde
     if (src === "staff") {
       const p = personnel.find(x => x.id === key);
       // Keep the account id: a staff member listed here gets edit access to the tour.
-      if (p) set(i, { name: p.name ?? "", contact: (contactKind === "phone" ? p.phone : p.email) ?? "", id: p.id });
+      if (p) set(i, { name: p.name ?? "", contact: (contactKind === "phone" ? p.phone : p.email) ?? "", phone: p.phone ?? "", id: p.id });
     } else if (src === "teacher") {
       const t = teacherRefs[parseInt(key, 10)];
-      if (t) set(i, { name: t.name, contact: t.contact ?? "", id: null });
+      if (t) set(i, { name: t.name, contact: t.contact ?? "", phone: t.phone ?? "", id: null });
     }
   }
 
@@ -177,11 +181,15 @@ function PersonListEditor({ people, onChange, namePlaceholder, contactPlaceholde
               )}
             </select>
           )}
-          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-            <input style={{ ...inputStyle, flex: 1 }} value={p.name} placeholder={namePlaceholder}
+          <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+            <input style={{ ...inputStyle, flex: "1 1 120px", minWidth: 0 }} value={p.name} placeholder={namePlaceholder}
               onChange={e => set(i, { name: e.target.value, id: null })} />
-            <input style={{ ...inputStyle, flex: 1 }} value={p.contact} placeholder={contactPlaceholder}
+            <input style={{ ...inputStyle, flex: "1 1 120px", minWidth: 0 }} value={p.contact} placeholder={contactPlaceholder}
               onChange={e => set(i, { contact: e.target.value })} />
+            {phonePlaceholder && (
+              <input style={{ ...inputStyle, flex: "1 1 120px", minWidth: 0 }} type="tel" value={p.phone} placeholder={phonePlaceholder}
+                onChange={e => set(i, { phone: e.target.value })} />
+            )}
             <button type="button" title="Remove" onClick={() => onChange(rows.filter((_, idx) => idx !== i))}
               style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted-2)", padding: 2, display: "flex", flexShrink: 0 }}>
               <X size={13} />
@@ -189,7 +197,7 @@ function PersonListEditor({ people, onChange, namePlaceholder, contactPlaceholde
           </div>
         </div>
       ))}
-      <button type="button" style={smallAddBtn} onClick={() => onChange([...rows, { name: "", contact: "", id: null }])}>
+      <button type="button" style={smallAddBtn} onClick={() => onChange([...rows, { name: "", contact: "", phone: "", id: null }])}>
         <Plus size={11} /> {addLabel}
       </button>
     </div>
@@ -227,13 +235,13 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
 
   // Teacher candidates for the host/consultant dropdowns come from the teachers
   // currently entered on the form (live), so a just-added teacher is selectable.
-  const teacherRefs = form.teachers.filter(t => t.name.trim() || t.contact.trim());
+  const teacherRefs = form.teachers.filter(t => t.name.trim() || t.contact.trim() || t.phone.trim());
 
   function startEdit() {
     setForm({
-      teachers: (info.teachers ?? []).map(t => ({ name: t.name ?? "", contact: t.contact ?? "", id: t.id ?? null })),
-      hosts: (info.tourHosts ?? []).map(h => ({ name: h.name ?? "", contact: h.contact ?? "", id: h.id ?? null })),
-      consultants: (info.consultants ?? []).map(c => ({ name: c.name ?? "", contact: c.contact ?? "", id: c.id ?? null })),
+      teachers: (info.teachers ?? []).map(t => ({ name: t.name ?? "", contact: t.contact ?? "", phone: t.phone ?? "", id: t.id ?? null })),
+      hosts: (info.tourHosts ?? []).map(h => ({ name: h.name ?? "", contact: h.contact ?? "", phone: h.phone ?? "", id: h.id ?? null })),
+      consultants: (info.consultants ?? []).map(c => ({ name: c.name ?? "", contact: c.contact ?? "", phone: c.phone ?? "", id: c.id ?? null })),
       busCapacity: info.busCapacity != null ? String(info.busCapacity) : "",
       participantsOverride: info.participantsOverride ?? "",
       flightOverride: info.overrides?.flight ?? "",
@@ -252,14 +260,14 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
     setSaving(true);
     try {
       const teachers = form.teachers
-        .map(t => ({ name: t.name.trim(), contact: t.contact.trim() || null, id: t.id ?? null }))
-        .filter(t => t.name || t.contact);
+        .map(t => ({ name: t.name.trim(), contact: t.contact.trim() || null, phone: t.phone.trim() || null, id: t.id ?? null }))
+        .filter(t => t.name || t.contact || t.phone);
       const hosts = form.hosts
         .map(h => ({ name: h.name.trim(), contact: h.contact.trim() || null, id: h.id ?? null }))
         .filter(h => h.name || h.contact);
       const consultants = form.consultants
-        .map(c => ({ name: c.name.trim(), contact: c.contact.trim() || null, id: c.id ?? null }))
-        .filter(c => c.name || c.contact);
+        .map(c => ({ name: c.name.trim(), contact: c.contact.trim() || null, phone: c.phone.trim() || null, id: c.id ?? null }))
+        .filter(c => c.name || c.contact || c.phone);
       // Final order = the rows as currently shown; custom rows follow it too.
       const finalOrder = orderRows(rows, form.rowOrder).map(r => r.key).filter(k => k !== "add_custom");
       const customRank = (id: string) => { const i = finalOrder.indexOf(`custom:${id}`); return i === -1 ? Number.MAX_SAFE_INTEGER : i; };
@@ -278,6 +286,7 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
           // Legacy single-field sync so older views / the quote module keep working.
           contact_name: teachers[0]?.name || null,
           contact_email: teachers[0]?.contact || null,
+          contact_phone: teachers[0]?.phone || null,
           traveling_tour_host: hosts[0]?.name || null,
           consultants,
           planning_tour_host: consultants[0]?.name || null,
@@ -517,8 +526,8 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
       content: editing ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <PersonListEditor people={form.teachers} onChange={t => setForm(f => ({ ...f, teachers: t }))}
-            namePlaceholder="Teacher name" contactPlaceholder="Teacher email" addLabel="Add teacher"
-            personnel={personnel} contactKind="email" />
+            namePlaceholder="Teacher name" contactPlaceholder="Teacher email" phonePlaceholder="Teacher phone"
+            addLabel="Add teacher" personnel={personnel} contactKind="email" />
         </div>
       ) : teachers.length ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
@@ -526,6 +535,7 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
             <div key={i}>
               {t.name || "—"}
               {t.contact && <> · {link(`mailto:${t.contact}`, t.contact)}</>}
+              {t.phone && <> · {link(telHref(t.phone), t.phone)}</>}
             </div>
           ))}
         </div>
@@ -565,14 +575,15 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
       label: (info.consultants ?? []).length > 1 ? "Tour Consultants" : "Tour Consultant",
       content: editing ? (
         <PersonListEditor people={form.consultants} onChange={c => setForm(f => ({ ...f, consultants: c }))}
-          namePlaceholder="Consultant (travel planner) name" contactPlaceholder="Consultant email" addLabel="Add consultant"
-          personnel={personnel} teacherRefs={teacherRefs} contactKind="email" />
+          namePlaceholder="Consultant (travel planner) name" contactPlaceholder="Consultant email" phonePlaceholder="Consultant phone"
+          addLabel="Add consultant" personnel={personnel} teacherRefs={teacherRefs} contactKind="email" />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
           {(info.consultants ?? []).map((c, i) => (
             <div key={i}>
               {c.name || "—"}
               {c.contact && <> · {link(`mailto:${c.contact}`, c.contact)}</>}
+              {c.phone && <> · {link(telHref(c.phone), c.phone)}</>}
             </div>
           ))}
         </div>
