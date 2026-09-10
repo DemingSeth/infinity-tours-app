@@ -259,10 +259,11 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                         {/* Meal money — one chip per entry; "group" shows no dollar figure. */}
                         {item.type === "food" && (item.meal_money ?? []).map((mm, i) => {
                           const amt = typeof mm.amount === "number" ? mm.amount : null;
-                          // Every meal chip is meal money's own pink, whatever the
-                          // meal type, so it reads as neither the amber Bus Driver
-                          // Note nor the blues around it (September 2026, Linda).
-                          const style = { color: "var(--pink-text)", background: "var(--pink-bg)" };
+                          // Every meal chip is the same yellow, whatever the meal
+                          // type. Meal money is traveler-facing; the Bus Driver
+                          // Note took red, since it is host and driver only
+                          // (September 2026, Linda).
+                          const style = { color: "var(--amber-text)", background: "var(--amber-bg)" };
                           const label = mm.type === "disney_dining"
                             ? `Disney Dining Dollars${amt != null ? ` $${amt}` : ""}`
                             : mm.type === "cash"
@@ -354,11 +355,11 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                       )}
 
                       {vis.driverNote && item.driver_note && (
-                        <div style={{ background: "var(--amber-bg-soft)", border: "1px solid var(--amber-border)", borderRadius: 8, padding: "8px 12px", marginTop: mt(6) }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, fontWeight: 700, color: "var(--amber-text)", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 }}>
+                        <div style={{ background: "var(--red-bg-soft)", border: "1px solid var(--red-border)", borderRadius: 8, padding: "8px 12px", marginTop: mt(6) }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, fontWeight: 700, color: "var(--red-text)", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 }}>
                             <Bus size={12} style={{ flexShrink: 0 }} />Bus Driver Note
                           </div>
-                          <div style={{ fontSize: 12, color: "var(--amber-text)", whiteSpace: "pre-wrap", lineHeight: 1.5 }}>{item.driver_note}</div>
+                          <div style={{ fontSize: 12, color: "var(--red-text)", whiteSpace: "pre-wrap", lineHeight: 1.5 }}>{item.driver_note}</div>
                         </div>
                       )}
 
@@ -376,18 +377,18 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                           gate as driver notes). Shown on screen and in print. */}
                       {vis.driverNote && (item.driver_map_urls?.length ?? 0) > 0 && (
                         <div style={{ marginTop: mt(6) }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, fontWeight: 700, color: "var(--amber-text)", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 3 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, fontWeight: 700, color: "var(--red-text)", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 3 }}>
                             <Bus size={12} style={{ flexShrink: 0 }} />Driver Maps
                           </div>
                           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                             {item.driver_map_urls.map(url => (
                               print ? (
                                 // eslint-disable-next-line @next/next/no-img-element
-                                <img key={url} className="agenda-photo" src={url} alt="Driver map" style={{ width: 150, height: 106, objectFit: "cover", borderRadius: 6, border: "1px solid var(--amber-border)" }} />
+                                <img key={url} className="agenda-photo" src={url} alt="Driver map" style={{ width: 150, height: 106, objectFit: "cover", borderRadius: 6, border: "1px solid var(--red-border)" }} />
                               ) : (
                                 <a key={url} href={url} target="_blank" rel="noopener noreferrer" title="Open full size">
                                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                                  <img src={url} alt="Driver map" style={{ width: 110, height: 78, objectFit: "cover", borderRadius: 6, border: "1px solid var(--amber-border)", display: "block" }} />
+                                  <img src={url} alt="Driver map" style={{ width: 110, height: 78, objectFit: "cover", borderRadius: 6, border: "1px solid var(--red-border)", display: "block" }} />
                                 </a>
                               )
                             ))}

@@ -481,11 +481,11 @@ function mealLegacyType(entries: MealMoneyForm[]): "group" | "stipend" | "disney
 
 const TYPE_COLORS = AGENDA_TYPE_COLORS;
 
-// Meal-money chips: one soft pink, regardless of how the meal is covered. Pink
-// is meal money's own color and nothing else in the app uses it, so a meal chip
-// reads as neither the amber Bus Driver Note nor any of the blues around it
-// (September 2026, Linda).
-export const MEAL_CHIP_STYLE: React.CSSProperties = { background: "var(--pink-bg)", color: "var(--pink-text)" };
+// Meal-money chips: one yellow, regardless of how the meal is covered. Meal
+// money is traveler-facing, and yellow is the app's warm, everyone-sees-it
+// color. The Bus Driver Note vacated yellow for red, since it is host and
+// driver only (September 2026, Linda).
+export const MEAL_CHIP_STYLE: React.CSSProperties = { background: "var(--amber-bg)", color: "var(--amber-text)" };
 
 const UNDO_WINDOW_MS = 5000;
 
@@ -910,8 +910,8 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
         </Field>
 
         {form.type === "food" && (
-          <div style={{ width: "100%", background: "var(--pink-bg-soft)", border: "1.5px solid var(--pink-border)", borderRadius: 10, padding: "12px 14px", display: "flex", flexWrap: "wrap", gap: 10 }}>
-            <div style={{ width: "100%", fontSize: 11, fontWeight: 700, color: "var(--pink-text)", textTransform: "uppercase", letterSpacing: .7 }}>Meal Money</div>
+          <div style={{ width: "100%", background: "var(--amber-bg-soft)", border: "1.5px solid var(--amber-border)", borderRadius: 10, padding: "12px 14px", display: "flex", flexWrap: "wrap", gap: 10 }}>
+            <div style={{ width: "100%", fontSize: 11, fontWeight: 700, color: "var(--amber-text)", textTransform: "uppercase", letterSpacing: .7 }}>Meal Money</div>
             <Field label="How is this meal covered? (select any that apply)">
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {MEAL_MONEY_TYPES.map(opt => {
@@ -963,7 +963,7 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
           <Tex value={form.driver_note} onChange={e => f({ driver_note: e.target.value })} placeholder="Drop at main entrance, gate code 4821, idle in north lot..." style={{ minHeight: 52 }} />
           <div style={{ fontSize: 11, color: "var(--muted-2)", marginTop: 4 }}>Only visible to bus drivers and tour hosts.</div>
           {form.driver_note.trim() && form.persona_visibility?.bus_driver !== true && (
-            <div style={{ marginTop: 6, display: "flex", gap: 6, alignItems: "flex-start", background: "var(--amber-bg-soft)", border: "1px solid var(--amber-border)", borderRadius: 8, padding: "7px 10px", fontSize: 11.5, color: "var(--amber-text)" }}>
+            <div style={{ marginTop: 6, display: "flex", gap: 6, alignItems: "flex-start", background: "var(--red-bg-soft)", border: "1px solid var(--red-border)", borderRadius: 8, padding: "7px 10px", fontSize: 11.5, color: "var(--red-text)" }}>
               <Bus size={13} style={{ flexShrink: 0, marginTop: 1 }} />
               <span>This item isn&rsquo;t visible to bus drivers yet. Turn on bus driver visibility above so they can see this note.</span>
             </div>
@@ -1228,8 +1228,8 @@ function ItemRow({ item, groups, personaLabels, onEdit, onRemove, onDuplicate, o
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 4 }}>
               {item.meal_money.map((mm, i) => {
                 const amt = typeof mm.amount === "number" ? mm.amount : null;
-                // Every meal chip is meal money's own pink, whatever the
-                // meal type (no per-option colors).
+                // Every meal chip is the same yellow, whatever the meal
+                // type (no per-option colors).
                 const style = MEAL_CHIP_STYLE;
                 const label = mm.type === "stipend"
                   ? `Meal Stipend${amt != null ? ` - $${amt} on Till Card` : ""}`
@@ -1273,7 +1273,7 @@ function ItemRow({ item, groups, personaLabels, onEdit, onRemove, onDuplicate, o
                 </button>
               </span>
             )}
-            {item.driver_note && <span style={{ fontSize: 10, background: "var(--amber-bg)", color: "var(--amber-text)", borderRadius: 5, padding: "1px 7px", display: "inline-flex", alignItems: "center", gap: 4 }}><Bus size={11} style={{ flexShrink: 0 }} /><strong style={{ fontWeight: 700 }}>Bus Driver Note:</strong> {item.driver_note}</span>}
+            {item.driver_note && <span style={{ fontSize: 10, background: "var(--red-bg-soft)", border: "1px solid var(--red-border)", color: "var(--red-text)", borderRadius: 5, padding: "0 6px", display: "inline-flex", alignItems: "center", gap: 4 }}><Bus size={11} style={{ flexShrink: 0 }} /><strong style={{ fontWeight: 700 }}>Bus Driver Note:</strong> {item.driver_note}</span>}
           </div>
 
           {/* Internal note — full text, own block (no truncation), host-only view. */}
@@ -1291,14 +1291,14 @@ function ItemRow({ item, groups, personaLabels, onEdit, onRemove, onDuplicate, o
 
           {(item.driver_map_urls?.length ?? 0) > 0 && (
             <div style={{ marginTop: 8 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: "var(--amber-text)", textTransform: "uppercase", letterSpacing: .5, marginBottom: 4, display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "var(--red-text)", textTransform: "uppercase", letterSpacing: .5, marginBottom: 4, display: "inline-flex", alignItems: "center", gap: 4 }}>
                 <Bus size={11} /> Driver Maps
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {item.driver_map_urls.map(url => (
                   <a key={url} href={url} target="_blank" rel="noreferrer" title="Open full size">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={url} alt="Driver map" style={{ width: 96, height: 68, objectFit: "cover", borderRadius: 8, border: "1px solid var(--amber-border)", display: "block" }} />
+                    <img src={url} alt="Driver map" style={{ width: 96, height: 68, objectFit: "cover", borderRadius: 8, border: "1px solid var(--red-border)", display: "block" }} />
                   </a>
                 ))}
               </div>

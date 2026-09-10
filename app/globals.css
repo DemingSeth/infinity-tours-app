@@ -45,6 +45,7 @@
   --green-border: #bbf7d0;
   --green-text: #15803d;
   --red-bg: #fee2e2;
+  --red-bg-soft: #fef2f2;
   --red-border: #fecaca;
   --red-text: #b91c1c;
   --sky-bg: #e0f2fe;
@@ -91,6 +92,7 @@
   --green-border: rgba(34, 197, 94, 0.4);
   --green-text: #4ade80;
   --red-bg: rgba(239, 68, 68, 0.18);
+  --red-bg-soft: rgba(239, 68, 68, 0.1);
   --red-border: rgba(239, 68, 68, 0.4);
   --red-text: #f87171;
   --sky-bg: rgba(56, 189, 248, 0.16);
