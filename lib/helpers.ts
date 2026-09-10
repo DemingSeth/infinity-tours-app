@@ -1,4 +1,4 @@
-import type { TourMemberRow, RoomConfig, TripInfo, Role } from "@/lib/types";
+import type { TourMemberRow, RoomConfig, TripInfo, Role, NoteAudience } from "@/lib/types";
 
 // ─── Brand ────────────────────────────────────────────────────────────────────
 
@@ -314,6 +314,71 @@ export function generateAccessCode(len = 10): string {
   let out = "";
   for (let i = 0; i < len; i++) out += CODE_ALPHABET[bytes[i] % CODE_ALPHABET.length];
   return out;
+}
+
+// ─── Internal note audience ───────────────────────────────────────────────────
+// September 2026 (Linda): an Internal Note can name which tour host it is for,
+// and can be opened to another persona's itinerary (the Teacher today).
+//
+// Tour hosts always see internal notes — they co-manage the tour and the share
+// link is per persona, not per person, so there is no identity to hide behind.
+// Naming hosts marks WHO the note is for, and that name is what the itinerary
+// prints in place of "Internal:". Adding a persona is the real gate: it puts
+// the note on that persona's own itinerary under their label.
+
+// Personas that may be given an internal note. Tour host is implicit (always),
+// and travelers (student / chaperone / bus driver) are deliberately excluded —
+// a bus driver already has the Bus Driver Note.
+export const INTERNAL_NOTE_PERSONAS = ["teacher"] as const;
+
+// Normalize the stored jsonb into a predictable shape.
+export function noteAudience(raw: NoteAudience | null | undefined): { hosts: string[]; personas: string[] } {
+  const hosts = Array.isArray(raw?.hosts) ? raw!.hosts.map(h => String(h).trim()).filter(Boolean) : [];
+  const personas = Array.isArray(raw?.personas) ? raw!.personas.map(p => String(p).trim()).filter(Boolean) : [];
+  return { hosts, personas };
+}
+
+// True when the note has no audience choices at all — the historical
+// tour-host-only note that keeps its "Internal:" label.
+export function noteAudienceIsDefault(raw: NoteAudience | null | undefined): boolean {
+  const a = noteAudience(raw);
+  return a.hosts.length === 0 && a.personas.length === 0;
+}
+
+// The label the itinerary shows in front of an internal note: the names of who
+// it is for ("Linda", "Director", "Linda, Director"), or "Internal" when the
+// host has not narrowed it. Persona names come from the tour's own labels, so
+// a Teacher renamed to "Director" in Settings reads "Director" here.
+export function internalNoteLabel(
+  raw: NoteAudience | null | undefined,
+  personaLabels?: Record<string, string> | null,
+): string {
+  const { hosts, personas } = noteAudience(raw);
+  const parts = [...hosts, ...personas.map(p => personaLabel(p, personaLabels))];
+  return parts.length ? parts.join(", ") : "Internal";
+}
+
+// Can this viewer see the internal note? Tour hosts always can. Every other
+// persona has to be named on the note itself.
+export function canSeeInternalNote(
+  raw: NoteAudience | null | undefined,
+  role: Role,
+  personaKey?: string | null,
+): boolean {
+  if (role === "coordinator") return true;
+  const { personas } = noteAudience(raw);
+  if (personas.length === 0) return false;
+  if (personaKey) return personas.includes(personaKey);
+  // No persona key (a plain role view): fall back to the personas that map to
+  // this view role, so a Teacher-role link still resolves.
+  return PERSONAS.some(p => p.viewRole === role && personas.includes(p.key));
+}
+
+// The tour host names a note can be addressed to: the tour's own host list.
+export function tourHostNames(tourHostsList?: { name?: string | null }[] | null): string[] {
+  return (tourHostsList || [])
+    .map(h => (h?.name ?? "").trim())
+    .filter(Boolean);
 }
 
 // Smart per-persona visibility defaults for a NEW item, by type + travel method.

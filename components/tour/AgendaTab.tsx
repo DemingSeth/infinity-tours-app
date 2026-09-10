@@ -10,6 +10,7 @@ import {
   toDateInput, fmt$, buildTripInfo, orderAgendaItems, timeInsertIndex,
   orderedActivitySubtypes, expandStateName, tripInfoStartsCollapsed, itemMatchesGroup, groupName, resolveIconColor,
   activePersonaKeys, personaLabel, personaColors, getPersona, defaultPersonaVisibility, isActivityType, generateAccessCode,
+  INTERNAL_NOTE_PERSONAS, noteAudience, internalNoteLabel, tourHostNames,
   MEAL_MONEY_TYPES, mealMoneyHasAmount, mealMoneyLabel,
 } from "@/lib/helpers";
 import GoogleMapsLink from "@/components/shared/GoogleMapsLink";
@@ -19,9 +20,11 @@ import {
   AGENDA_TYPE_COLORS, getAgendaTypeIcon, getSentimentIcon, getSubtypeIcon,
 } from "@/components/shared/agendaIcons";
 import AgendaImages from "@/components/shared/AgendaImages";
+import NoteText from "@/components/shared/NoteText";
+import LinkableNoteField from "@/components/shared/LinkableNoteField";
 import ItemConfirmationControl, { ConfirmationFileChips, type ConfirmationPatch } from "@/components/tour/itemConfirmation";
 import ItineraryHeaderTile from "@/components/tour/ItineraryHeaderTile";
-import { MapPin, Phone, Bus, Lock, Clock, ImagePlus, Printer, Check, GripVertical, X as XIcon, Copy, CopyPlus, Sparkles, Tag, ChevronsUpDown } from "lucide-react";
+import { MapPin, Phone, Bus, Lock, Eye, Clock, ImagePlus, Printer, Check, GripVertical, X as XIcon, Copy, CopyPlus, Sparkles, Tag, ChevronsUpDown } from "lucide-react";
 import type {
   TourRow, AgendaDayWithItems, AgendaItemWithFeedback,
   AgendaItemType, TravelMethod, MealMoneyType, Role, TourGroup,
@@ -423,6 +426,8 @@ type ItemFormState = {
   contact_email: string; cost: string; cost_paid: boolean;
   confirmation_not_required: boolean;
   driver_note: string; internal_note: string;
+  // Who the Internal Note is for: named tour hosts and/or other personas.
+  internal_note_audience: { hosts: string[]; personas: string[] };
   meal_money: MealMoneyForm[];
   persona_visibility: Record<string, boolean>;
   feedback_enabled: boolean;
@@ -439,6 +444,7 @@ const BLANK: ItemFormState = {
   address: "", map_link: "", website: "", travel_methods: [],
   contact_name: "", contact_phone: "", contact_email: "",
   cost: "", cost_paid: false, confirmation_not_required: false, driver_note: "", internal_note: "",
+  internal_note_audience: { hosts: [], personas: [] },
   meal_money: [], persona_visibility: defaultPersonaVisibility("activity", []),
   feedback_enabled: isActivityType("activity", []), image_urls: [], driver_map_urls: [], icon_color: null,
   elevate_url: "", group_tags: [], custom_type_label: "",
@@ -559,13 +565,88 @@ function ImageUploader({ tourId, itemId, urls, onChange, folder, buttonLabel = "
   );
 }
 
-function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, itemId, activePersonas, personaLabels, destination, confirmationControl, moveDayOptions, moveTargetDayId, onMoveTargetChange, groups = [], isImageShared }: {
+// ── Internal note: "Who sees this?" ───────────────────────────────────────────
+// September 2026 (Linda). Tour hosts always see internal notes — they co-manage
+// the tour, and share links are per persona rather than per person. Naming a
+// host marks who the note is FOR, and that name heads the note on the itinerary
+// in place of "Internal:". Adding a persona (Teacher, under whatever it is
+// renamed to in Settings) is what actually puts the note on someone else's
+// itinerary.
+function InternalNoteAudience({ value, onChange, hostNames, activePersonas, personaLabels }: {
+  value: { hosts: string[]; personas: string[] };
+  onChange: (v: { hosts: string[]; personas: string[] }) => void;
+  hostNames: string[];
+  activePersonas: string[];
+  personaLabels: Record<string, string>;
+}) {
+  const personaOptions = INTERNAL_NOTE_PERSONAS.filter(k => activePersonas.includes(k));
+  const hostMeta = personaColors("tour_host");
+
+  const chip = (on: boolean, color: string, bg: string): React.CSSProperties => ({
+    display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 20,
+    border: `2px solid ${on ? color : "var(--border)"}`, background: on ? bg : "var(--surface)",
+    color: on ? color : "var(--muted-2)", fontSize: 12, fontWeight: on ? 700 : 500,
+    cursor: "pointer", fontFamily: "inherit",
+  });
+
+  return (
+    <div style={{ marginTop: 8, padding: "10px 12px", background: "var(--surface)", border: "1px solid var(--border-soft)", borderRadius: 9 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: .8, marginBottom: 6 }}>
+        Who sees this?
+      </div>
+
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+        <span style={{ ...chip(true, hostMeta.color, hostMeta.bg), cursor: "default", border: "2px solid transparent" }}>
+          <Lock size={11} />{personaLabel("tour_host", personaLabels)}
+        </span>
+        {hostNames.map(name => {
+          const on = value.hosts.includes(name);
+          return (
+            <button key={name} type="button" aria-pressed={on}
+              title={on ? `Addressed to ${name} (tap to clear)` : `Address this note to ${name}`}
+              onClick={() => onChange({ ...value, hosts: toggleInArray(value.hosts, name) })}
+              style={chip(on, hostMeta.color, hostMeta.bg)}>
+              {on && <Check size={11} strokeWidth={3} />}{name}
+            </button>
+          );
+        })}
+        {personaOptions.map(key => {
+          const on = value.personas.includes(key);
+          const meta = personaColors(key);
+          const label = personaLabel(key, personaLabels);
+          return (
+            <button key={key} type="button" aria-pressed={on}
+              title={on ? `${label} sees this note on their itinerary (tap to remove)` : `Also show this note to ${label}`}
+              onClick={() => onChange({ ...value, personas: toggleInArray(value.personas, key) })}
+              style={chip(on, meta.color, meta.bg)}>
+              {on ? <Check size={11} strokeWidth={3} /> : <XIcon size={11} strokeWidth={3} />}{label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div style={{ fontSize: 11, color: "var(--muted-2)", marginTop: 7, lineHeight: 1.5 }}>
+        {hostNames.length === 0
+          ? "Add tour hosts in Trip Information to address a note to one of them by name. "
+          : "Tour hosts always see internal notes. Naming one heads the note with their name on the itinerary. "}
+        {personaOptions.length > 0
+          ? `Adding ${personaOptions.map(k => personaLabel(k, personaLabels)).join(" or ")} puts this note on their itinerary too.`
+          : ""}
+      </div>
+    </div>
+  );
+}
+
+function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, itemId, activePersonas, personaLabels, hostNames = [], destination, confirmationControl, moveDayOptions, moveTargetDayId, onMoveTargetChange, groups = [], isImageShared }: {
   form: ItemFormState;
   setForm: React.Dispatch<React.SetStateAction<ItemFormState>>;
   onSave: () => void; onCancel: () => void; isEdit?: boolean; saving?: boolean;
   tourId: string; itemId: string;
   activePersonas: string[];
   personaLabels: Record<string, string>;
+  // Tour hosts named on this tour (Trip Information) — an Internal Note can be
+  // addressed to one of them by name.
+  hostNames?: string[];
   // Tour-defined groups (band, choir, ...) this item can be limited to.
   groups?: TourGroup[];
   // See ImageUploader.isShared.
@@ -795,16 +876,27 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
           <Inp value={form.address} onChange={e => f({ address: e.target.value })} placeholder="Full street address" />
         </Field>
         <Field label="Details / Notes">
-          <Inp value={form.detail} onChange={e => f({ detail: e.target.value })} placeholder="Instructions, confirmation numbers..." />
+          <LinkableNoteField multiline={false} value={form.detail} onChange={v => f({ detail: v })}
+            placeholder="Instructions, confirmation numbers..." />
         </Field>
         <Field label="Public Notes (Visible to All Roles)">
-          <Tex value={form.public_note} onChange={e => f({ public_note: e.target.value })} placeholder="Directions, dress code, what to bring..." />
+          <LinkableNoteField value={form.public_note} onChange={v => f({ public_note: v })}
+            placeholder="Directions, dress code, what to bring..."
+            hint="Highlight words (e.g. what was ordered), click Link, paste the address." />
         </Field>
         <Field label="Google Maps Link" half>
           <Inp value={form.map_link} onChange={e => f({ map_link: e.target.value })} placeholder="https://maps.app.goo.gl/..." />
         </Field>
-        <Field label="Internal Note (Tour Host Only)">
-          <Tex value={form.internal_note} onChange={e => f({ internal_note: e.target.value })} placeholder="Booking refs, reminders..." style={{ minHeight: 84 }} />
+        <Field label="Internal Note">
+          <LinkableNoteField value={form.internal_note} onChange={v => f({ internal_note: v })}
+            placeholder="Booking refs, reminders..." style={{ minHeight: 84 }} />
+          <InternalNoteAudience
+            value={form.internal_note_audience}
+            onChange={a => f({ internal_note_audience: a })}
+            hostNames={hostNames}
+            activePersonas={activePersonas}
+            personaLabels={personaLabels}
+          />
         </Field>
         <Field label="Images (visible to all roles)">
           <ImageUploader tourId={tourId} itemId={itemId} urls={form.image_urls} onChange={urls => f({ image_urls: urls })} isShared={isImageShared} />
@@ -981,8 +1073,11 @@ function ActionButton({ title, onClick, active, danger, children }: {
 // Click-to-edit text block for an item note (detail / public / internal).
 // Saves on blur or Ctrl/Cmd+Enter; Escape cancels. Rendering stays identical to
 // the read-only block while not editing.
-function InlineNote({ value, onSave, style, prefix }: {
+function InlineNote({ value, onSave, style, prefix, linkColor }: {
   value: string; onSave: (v: string) => Promise<boolean>; style: React.CSSProperties; prefix?: React.ReactNode;
+  // Link color for [words](address) inside the note. Defaults to inheriting the
+  // block's own color, which reads correctly inside the tinted note blocks.
+  linkColor?: string;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -998,28 +1093,35 @@ function InlineNote({ value, onSave, style, prefix }: {
   if (editing) {
     return (
       <div style={{ ...style, padding: 0, background: "transparent", border: "none" }} onClick={e => e.stopPropagation()}>
-        <textarea autoFocus value={draft} onChange={e => setDraft(e.target.value)}
+        <LinkableNoteField
+          compact
+          autoFocus
+          value={draft}
+          onChange={setDraft}
           onBlur={commit}
           onKeyDown={e => {
             if (e.key === "Escape") { setDraft(value); setEditing(false); }
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); commit(); }
           }}
-          style={{ ...INP, minHeight: 64, resize: "vertical", fontSize: 12, lineHeight: 1.5 }} />
-        <div style={{ fontSize: 10.5, color: "var(--muted-2)", marginTop: 3 }}>{saving ? "Saving..." : "Click away or press Ctrl+Enter to save. Esc to cancel."}</div>
+          hint={saving ? "Saving..." : "Highlight words, click Link. Ctrl+Enter saves, Esc cancels."}
+        />
       </div>
     );
   }
   return (
     <div title="Click to edit" onClick={e => { e.stopPropagation(); setDraft(value); setEditing(true); }}
       style={{ ...style, cursor: "text" }}>
-      {prefix}{value}
+      {prefix}<NoteText text={value} linkColor={linkColor} />
     </div>
   );
 }
 
-function ItemRow({ item, groups, onEdit, onRemove, onDuplicate, onCopyToDays, onToggleCostPaid, onRemoveImage, onSaveField, onSaveIconColor, dragProps, isDragOver }: {
+function ItemRow({ item, groups, personaLabels, onEdit, onRemove, onDuplicate, onCopyToDays, onToggleCostPaid, onRemoveImage, onSaveField, onSaveIconColor, dragProps, isDragOver }: {
   item: AgendaItemWithFeedback;
   groups: TourGroup[];
+  // Tour's persona label overrides — the Internal Note is headed with the name
+  // of whoever it is for, and a renamed Teacher has to read that way here too.
+  personaLabels: Record<string, string>;
   // Inline note edits (detail / public / internal) straight from the row.
   onSaveField: (field: "detail" | "public_note" | "internal_note", value: string) => Promise<boolean>;
   // Icon color picked from the row itself.
@@ -1043,6 +1145,11 @@ function ItemRow({ item, groups, onEdit, onRemove, onDuplicate, onCopyToDays, on
   // singular columns are dormant rollback insurance and not read here).
   const travelMethods = item.travel_methods ?? [];
   const activitySubtypes = item.activity_subtypes ?? [];
+  // "Internal:" only while the note is host-only; once it names a host or opens
+  // to a persona, that name heads the note instead (September 2026, Linda).
+  const noteAud = noteAudience(item.internal_note_audience);
+  const noteHeading = internalNoteLabel(item.internal_note_audience, personaLabels);
+  const noteShared = noteAud.personas.length > 0;
 
   return (
     <div
@@ -1168,7 +1275,11 @@ function ItemRow({ item, groups, onEdit, onRemove, onDuplicate, onCopyToDays, on
           {/* Internal note — full text, own block (no truncation), host-only view. */}
           {item.internal_note && (
             <InlineNote value={item.internal_note} onSave={v => onSaveField("internal_note", v)}
-              prefix={<strong style={{ fontWeight: 700 }}><Lock size={12} style={{ display: "inline", verticalAlign: "-2px", marginRight: 4 }} />Internal: </strong>}
+              prefix={<strong style={{ fontWeight: 700 }}>
+                {noteShared
+                  ? <Eye size={12} style={{ display: "inline", verticalAlign: "-2px", marginRight: 4 }} />
+                  : <Lock size={12} style={{ display: "inline", verticalAlign: "-2px", marginRight: 4 }} />}
+                {noteHeading}: </strong>}
               style={{ fontSize: 12, background: "var(--purple-bg)", color: "var(--purple-text)", borderRadius: 7, padding: "6px 10px", marginTop: 6, lineHeight: 1.5, whiteSpace: "pre-wrap" }} />
           )}
 
@@ -1364,6 +1475,12 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
       contact_email: f.contact_email || null, cost: parseFloat(f.cost) || 0,
       cost_paid: f.cost_paid, confirmation_not_required: f.confirmation_not_required, driver_note: f.driver_note || null,
       internal_note: f.internal_note || null,
+      // Empty arrays are dropped so an untouched note stores {} and keeps its
+      // historical "Internal:" rendering.
+      internal_note_audience: {
+        ...(f.internal_note_audience.hosts.length ? { hosts: f.internal_note_audience.hosts } : {}),
+        ...(f.internal_note_audience.personas.length ? { personas: f.internal_note_audience.personas } : {}),
+      },
       // Authoritative meal-money list: drop blank/invalid amounts; group carries none.
       meal_money: f.meal_money.map(e => {
         if (!mealMoneyHasAmount(e.type)) return { type: e.type };
@@ -1410,6 +1527,7 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
       cost: item.cost > 0 ? String(item.cost) : "",
       cost_paid: item.cost_paid, confirmation_not_required: !!item.confirmation_not_required, driver_note: item.driver_note || "",
       internal_note: item.internal_note || "",
+      internal_note_audience: noteAudience(item.internal_note_audience),
       meal_money: mealMoneyToForm(item),
       persona_visibility: item.persona_visibility ?? defaultPersonaVisibility(item.type, item.travel_methods ?? (item.travel_method ? [item.travel_method] : [])),
       feedback_enabled: item.feedback_enabled ?? isActivityType(item.type, item.activity_subtypes ?? item.activity_subtype),
@@ -2220,6 +2338,7 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
                       key={item.id}
                       item={item}
                       groups={tourGroups}
+                      personaLabels={tour.persona_labels || {}}
                       onEdit={() => { setEditCtx({ dayId: day.id, itemId: item.id }); setEditForm(itemToForm(item)); setMoveTargetDayId(day.id); }}
                       onRemove={() => setConfirmDeleteItem({ dayId: day.id, itemId: item.id })}
                       onDuplicate={() => duplicateItem(day.id, item)}
@@ -2266,6 +2385,7 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
                       tourId={tour.id} itemId={addingItemId}
                       activePersonas={activePersonaKeys(tour.active_personas)}
                       personaLabels={tour.persona_labels || {}}
+                      hostNames={tourHostNames(tour.tour_hosts_list)}
                       destination={tour.destination}
                       groups={tourGroups}
                       isImageShared={url => isImageShared(url, addingItemId)}
@@ -2333,6 +2453,7 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
               tourId={tour.id} itemId={editCtx.itemId}
               activePersonas={activePersonaKeys(tour.active_personas)}
               personaLabels={tour.persona_labels || {}}
+              hostNames={tourHostNames(tour.tour_hosts_list)}
               destination={tour.destination}
               groups={tourGroups}
               isImageShared={url => isImageShared(url, editCtx.itemId)}

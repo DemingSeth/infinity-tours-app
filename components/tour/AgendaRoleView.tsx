@@ -9,7 +9,8 @@ import GeneralFeedback from "@/components/tour/GeneralFeedback";
 import TripInformation from "@/components/tour/TripInformation";
 import ItineraryHeaderTile from "@/components/tour/ItineraryHeaderTile";
 import GoogleMapsLink from "@/components/shared/GoogleMapsLink";
-import { BRAND, ROLES, DEFAULT_VISIBILITY, isItemVisibleTo, personaColors, orderAgendaItems, parseAgendaDate, agendaDayDateLabel, initialCollapsedDays, tripInfoStartsCollapsed, itemMatchesGroup, resolveIconColor } from "@/lib/helpers";
+import { BRAND, ROLES, DEFAULT_VISIBILITY, isItemVisibleTo, personaColors, orderAgendaItems, parseAgendaDate, agendaDayDateLabel, initialCollapsedDays, tripInfoStartsCollapsed, itemMatchesGroup, resolveIconColor, canSeeInternalNote, internalNoteLabel } from "@/lib/helpers";
+import NoteText from "@/components/shared/NoteText";
 import type { AgendaDayWithItems, Role, TripInfo, TourGroup } from "@/lib/types";
 
 interface Props {
@@ -49,6 +50,9 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
     () => (initialGroup && tourGroups.some(g => g.id === initialGroup) ? initialGroup : null),
   );
   const vis = DEFAULT_VISIBILITY[role] as Record<string, boolean>;
+  // Persona label overrides ride along on tripInfo, so a Teacher renamed to
+  // "Director" in Settings heads their internal notes that way here too.
+  const personaLabels = tripInfo?.personaLabels ?? {};
   const roleInfo = ROLES[role];
   const label = roleLabel || roleInfo.label; // persona label override
   // Use the persona's own color (so Chaperone ≠ Student) when a persona is known.
@@ -279,12 +283,12 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                       {/* whiteSpace: pre-wrap keeps line breaks / bullet lists on
                           their own lines — on screen AND in the print/PDF view. */}
                       {vis.detail && item.detail && (
-                        <div style={{ fontSize: 12, color: "var(--text-2)", marginTop: mt(3), whiteSpace: "pre-wrap", lineHeight: 1.5 }}>{item.detail}</div>
+                        <div style={{ fontSize: 12, color: "var(--text-2)", marginTop: mt(3), whiteSpace: "pre-wrap", lineHeight: 1.5 }}><NoteText text={item.detail} linkColor={BRAND.blue} print={print} /></div>
                       )}
 
                       {item.public_note && (
                         <div style={{ fontSize: 12, color: "#1d4ed8", background: "var(--sky-bg-soft)", borderRadius: 6, padding: "5px 10px", marginTop: mt(6), whiteSpace: "pre-wrap", lineHeight: 1.5 }}>
-                          {item.public_note}
+                          <NoteText text={item.public_note} print={print} />
                         </div>
                       )}
 
@@ -354,9 +358,13 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                         </div>
                       )}
 
-                      {vis.internalNote && item.internal_note && (
+                      {/* Internal note: tour hosts always; anyone else only when
+                          the host named their persona on the note itself. The
+                          heading is who it is for, not the word "Internal". */}
+                      {item.internal_note && canSeeInternalNote(item.internal_note_audience, role, personaKey) && (
                         <div style={{ fontSize: 12, color: "var(--purple-text)", background: "var(--purple-bg-soft)", borderRadius: 6, padding: "5px 10px", marginTop: mt(6), whiteSpace: "pre-wrap", lineHeight: 1.5 }}>
-                          Note: {item.internal_note}
+                          <strong style={{ fontWeight: 700 }}>{internalNoteLabel(item.internal_note_audience, personaLabels)}: </strong>
+                          <NoteText text={item.internal_note} print={print} />
                         </div>
                       )}
 

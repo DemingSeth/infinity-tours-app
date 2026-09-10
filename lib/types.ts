@@ -280,6 +280,15 @@ export interface MealMoneyEntry {
   amount?: number | null;
 }
 
+// Audience for an item's Internal Note. Tour hosts always see internal notes;
+// `hosts` marks which host the note is addressed to (and is what the itinerary
+// prints in place of "Internal:"), while `personas` opens the note to another
+// participant persona's own itinerary view.
+export interface NoteAudience {
+  hosts?: string[];
+  personas?: string[];
+}
+
 export interface ItemVisibility {
   coordinator: Record<string, boolean>;
   teacher: Record<string, boolean>;
@@ -345,6 +354,12 @@ export interface AgendaItemRow {
   meal_pay_type: MealPayType | null;
   stipend_amount: number | null;
   item_visibility: ItemVisibility | null;
+  // Who the Internal Note is for (September 2026, Linda). `hosts` names tour
+  // hosts from tours.tour_hosts_list the note is addressed to (empty = every
+  // tour host, the historical behavior); `personas` lists participant personas
+  // beyond the tour host that may also see it (Teacher today). An empty object
+  // keeps a note exactly as it has always rendered: tour hosts only, "Internal:".
+  internal_note_audience: NoteAudience | null;
   // Per-persona show/hide for this item (tour_host/teacher/student/chaperone/bus_driver → bool).
   persona_visibility: Record<string, boolean>;
   image_urls: string[];

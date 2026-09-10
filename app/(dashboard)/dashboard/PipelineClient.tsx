@@ -188,6 +188,7 @@ export default function PipelineClient({ initialTours, currentHostId, currentHos
             cost_paid: false,
             driver_note: item.driver_note,
             internal_note: item.internal_note,
+            internal_note_audience: item.internal_note_audience ?? {},
             meal_money: item.meal_money,
             meal_pay_type: item.meal_pay_type,
             stipend_amount: item.stipend_amount,
