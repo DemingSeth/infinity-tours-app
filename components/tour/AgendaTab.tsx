@@ -1145,8 +1145,9 @@ function ItemRow({ item, groups, personaLabels, onEdit, onRemove, onDuplicate, o
   // singular columns are dormant rollback insurance and not read here).
   const travelMethods = item.travel_methods ?? [];
   const activitySubtypes = item.activity_subtypes ?? [];
-  // "Internal:" only while the note is host-only; once it names a host or opens
-  // to a persona, that name heads the note instead (September 2026, Linda).
+  // The note is always headed by who sees it: the named host(s), else "Tour
+  // Host" (the tour's own label for that persona), plus any persona it was
+  // opened to. Never the word "Internal" (September 2026, Linda).
   const noteAud = noteAudience(item.internal_note_audience);
   const noteHeading = internalNoteLabel(item.internal_note_audience, personaLabels);
   const noteShared = noteAud.personas.length > 0;

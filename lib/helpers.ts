@@ -323,8 +323,9 @@ export function generateAccessCode(len = 10): string {
 // Tour hosts always see internal notes — they co-manage the tour and the share
 // link is per persona, not per person, so there is no identity to hide behind.
 // Naming hosts marks WHO the note is for, and that name is what the itinerary
-// prints in place of "Internal:". Adding a persona is the real gate: it puts
-// the note on that persona's own itinerary under their label.
+// prints. With no name chosen the note still reads "Tour Host", never
+// "Internal". Adding a persona is the real gate: it puts the note on that
+// persona's own itinerary under their label.
 
 // Personas that may be given an internal note. Tour host is implicit (always),
 // and travelers (student / chaperone / bus driver) are deliberately excluded —
@@ -338,24 +339,26 @@ export function noteAudience(raw: NoteAudience | null | undefined): { hosts: str
   return { hosts, personas };
 }
 
-// True when the note has no audience choices at all — the historical
-// tour-host-only note that keeps its "Internal:" label.
+// True when the note has no audience choices at all — a plain tour-host note.
 export function noteAudienceIsDefault(raw: NoteAudience | null | undefined): boolean {
   const a = noteAudience(raw);
   return a.hosts.length === 0 && a.personas.length === 0;
 }
 
-// The label the itinerary shows in front of an internal note: the names of who
-// it is for ("Linda", "Director", "Linda, Director"), or "Internal" when the
-// host has not narrowed it. Persona names come from the tour's own labels, so
-// a Teacher renamed to "Director" in Settings reads "Director" here.
+// The label the itinerary shows in front of an internal note. The tour host
+// always sees the note and can never be removed from it, so the label always
+// leads with them: the named host(s) when the note is addressed to someone
+// ("Linda", "Linda, Amy"), otherwise the tour host label itself ("Tour Host",
+// or whatever it is renamed to in Settings). Any persona given the note is
+// appended under its own label, so a Teacher renamed to "Director" reads
+// "Tour Host, Director". The word "Internal" is never shown.
 export function internalNoteLabel(
   raw: NoteAudience | null | undefined,
   personaLabels?: Record<string, string> | null,
 ): string {
   const { hosts, personas } = noteAudience(raw);
-  const parts = [...hosts, ...personas.map(p => personaLabel(p, personaLabels))];
-  return parts.length ? parts.join(", ") : "Internal";
+  const hostPart = hosts.length ? hosts.join(", ") : personaLabel("tour_host", personaLabels);
+  return [hostPart, ...personas.map(p => personaLabel(p, personaLabels))].join(", ");
 }
 
 // Can this viewer see the internal note? Tour hosts always can. Every other
@@ -674,6 +677,26 @@ export function formatTimeRange(time: string | null | undefined, endTime: string
   const end = (endTime ?? "").trim();
   if (!start) return end ? `– ${end}` : "";
   return end ? `${start} – ${end}` : start;
+}
+
+// AUTHORITATIVE display order for a tour's DAYS. sort_order is the host's own
+// ordering, but it is written by fire-and-forget renumbers (add / move / delete
+// a day), so two days can end up sharing a value. A plain "order by sort_order"
+// then leaves ties to the database, and the same tour can come back in a
+// different order from one request to the next, which reads as the itinerary
+// spontaneously shuffling. Break every tie deterministically: sort_order, then
+// day_number, then the day's own date. Days already numbered correctly are
+// untouched.
+export function orderAgendaDays<T extends { sort_order?: number | null; day_number?: number | null; date?: string | null }>(days: T[]): T[] {
+  return [...days].sort((a, b) => {
+    const so = (a.sort_order ?? 0) - (b.sort_order ?? 0);
+    if (so !== 0) return so;
+    const dn = (a.day_number ?? 0) - (b.day_number ?? 0);
+    if (dn !== 0) return dn;
+    const da = parseAgendaDate(a.date ?? "")?.getTime() ?? 0;
+    const db = parseAgendaDate(b.date ?? "")?.getTime() ?? 0;
+    return da - db;
+  });
 }
 
 // AUTHORITATIVE display order for a day's items: manual sort_order (drag &

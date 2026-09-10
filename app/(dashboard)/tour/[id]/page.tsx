@@ -24,7 +24,10 @@ export default async function TourDetailPage({ params }: { params: Promise<{ id:
       .from("agenda_days")
       .select("*, agenda_items(*, agenda_feedback(*))")
       .eq("tour_id", id)
-      .order("sort_order"),
+      // day_number breaks a sort_order tie so the day order can never vary
+      // between requests (see orderAgendaDays in lib/helpers).
+      .order("sort_order")
+      .order("day_number"),
     supabase
       .from("post_trip")
       .select("*")

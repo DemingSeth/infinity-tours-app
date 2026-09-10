@@ -9,7 +9,7 @@ import GeneralFeedback from "@/components/tour/GeneralFeedback";
 import TripInformation from "@/components/tour/TripInformation";
 import ItineraryHeaderTile from "@/components/tour/ItineraryHeaderTile";
 import GoogleMapsLink from "@/components/shared/GoogleMapsLink";
-import { BRAND, ROLES, DEFAULT_VISIBILITY, isItemVisibleTo, personaColors, orderAgendaItems, parseAgendaDate, agendaDayDateLabel, initialCollapsedDays, tripInfoStartsCollapsed, itemMatchesGroup, resolveIconColor, canSeeInternalNote, internalNoteLabel } from "@/lib/helpers";
+import { BRAND, ROLES, DEFAULT_VISIBILITY, isItemVisibleTo, personaColors, orderAgendaItems, parseAgendaDate, agendaDayDateLabel, initialCollapsedDays, tripInfoStartsCollapsed, itemMatchesGroup, resolveIconColor, canSeeInternalNote, internalNoteLabel, orderAgendaDays } from "@/lib/helpers";
 import NoteText from "@/components/shared/NoteText";
 import type { AgendaDayWithItems, Role, TripInfo, TourGroup } from "@/lib/types";
 
@@ -44,8 +44,11 @@ interface Props {
   initialGroup?: string | null;
 }
 
-export default function AgendaRoleView({ tourName, tourDestination, tourDates, bannerUrl, bannerFocusX = 50, bannerFocusY = 50, tripInfo, days, confTourId, role, roleLabel, personaKey, onClose, embedded, print = false, tourId, generalFeedbackEnabled = false, tourEndDate, groups = [], initialGroup = null }: Props) {
+export default function AgendaRoleView({ tourName, tourDestination, tourDates, bannerUrl, bannerFocusX = 50, bannerFocusY = 50, tripInfo, days: daysProp, confTourId, role, roleLabel, personaKey, onClose, embedded, print = false, tourId, generalFeedbackEnabled = false, tourEndDate, groups = [], initialGroup = null }: Props) {
   const tourGroups = groups.filter(g => g && g.id && (g.name ?? "").trim());
+  // Same day ordering the editor uses, so a shared link and the PDF can never
+  // disagree with the host's own view.
+  const days = orderAgendaDays(daysProp);
   const [groupFilter, setGroupFilter] = useState<string | null>(
     () => (initialGroup && tourGroups.some(g => g.id === initialGroup) ? initialGroup : null),
   );

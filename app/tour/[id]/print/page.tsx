@@ -41,7 +41,7 @@ export default async function ItineraryPrintPage({
 
   const [{ data: tour }, { data: days }, { data: members }, { data: confirmations }] = await Promise.all([
     supabase.from("tours").select("*, tour_hosts(id, name, phone, email)").eq("id", id).single(),
-    supabase.from("agenda_days").select("*, agenda_items(*)").eq("tour_id", id).order("sort_order"),
+    supabase.from("agenda_days").select("*, agenda_items(*)").eq("tour_id", id).order("sort_order").order("day_number"),
     supabase.from("tour_members").select("type").eq("tour_id", id),
     supabase.from("tour_confirmations").select("type, label, file_url").eq("tour_id", id),
   ]);
