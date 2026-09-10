@@ -11,6 +11,7 @@ import {
   orderedActivitySubtypes, expandStateName, tripInfoStartsCollapsed, itemMatchesGroup, groupName, resolveIconColor,
   activePersonaKeys, personaLabel, personaColors, getPersona, defaultPersonaVisibility, isActivityType, generateAccessCode,
   INTERNAL_NOTE_PERSONAS, noteAudience, internalNoteLabel, tourHostNames,
+  orderAgendaDays, agendaDaysAreDated,
   MEAL_MONEY_TYPES, mealMoneyHasAmount, mealMoneyLabel,
 } from "@/lib/helpers";
 import GoogleMapsLink from "@/components/shared/GoogleMapsLink";
@@ -1355,7 +1356,13 @@ interface AgendaTabProps {
   onDismissAddedPersona?: () => void;
 }
 
-export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, onTourChange, onSaveHostPhone, recentlyAddedPersona, onDismissAddedPersona }: AgendaTabProps) {
+export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDaysChange, onTourChange, onSaveHostPhone, recentlyAddedPersona, onDismissAddedPersona }: AgendaTabProps) {
+  // The displayed order. On a fully dated tour the dates decide (see
+  // orderAgendaDays), so the itinerary is always chronological no matter what
+  // sort_order a past add / move / delete left behind. Everything below reads
+  // this list, so the render, the move arrows and the day pickers all agree.
+  const days = orderAgendaDays(daysProp);
+  const daysFollowDates = agendaDaysAreDated(days);
   const [showAddDay, setShowAddDay] = useState(false);
   const [newDayDate, setNewDayDate] = useState("");
   const [addMultiple, setAddMultiple] = useState(false);
@@ -2291,6 +2298,7 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
                   <span style={{ color: "rgba(255,255,255,.4)", fontSize: 11 }}>{day.agenda_items.length} item{day.agenda_items.length !== 1 ? "s" : ""}</span>
                 </div>
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  {!daysFollowDates && (
                   <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", marginRight: 2 }}>
                     <button onClick={e => { e.stopPropagation(); moveDay(idx, -1); }}
                       disabled={idx === 0}
@@ -2305,6 +2313,7 @@ export default function AgendaTab({ tour, days, members, isOwner, onDaysChange, 
                       <I n="chevron" s={14} />
                     </button>
                   </div>
+                  )}
                   <DayVisibilityButton
                     dayId={day.id}
                     activePersonas={activePersonaKeys(tour.active_personas)}

@@ -209,7 +209,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: print ? 8 : 16 }}>
-        {days.map(day => {
+        {days.map((day, dayIdx) => {
           // Strict per-persona filtering: only items where visibility[persona] === true.
           // Then the host-controlled display order (sort_order; drag & drop aware).
           const items = orderAgendaItems(
@@ -230,7 +230,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
               {!print && (collapsed
                 ? <ChevronRight size={16} color="rgba(255,255,255,.7)" style={{ flexShrink: 0 }} />
                 : <ChevronDown size={16} color="rgba(255,255,255,.7)" style={{ flexShrink: 0 }} />)}
-              <span style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", color: "#fff", fontWeight: 400, fontSize: 15 }}>Day {day.day_number}</span>
+              <span style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", color: "#fff", fontWeight: 400, fontSize: 15 }}>Day {dayIdx + 1}</span>
               <span style={{ color: "#D1E8FF", fontSize: 13 }}>{agendaDayDateLabel(day.date, print)}</span>
               <span style={{ color: "rgba(255,255,255,.4)", fontSize: 11 }}>{items.length} item{items.length !== 1 ? "s" : ""}</span>
             </div>

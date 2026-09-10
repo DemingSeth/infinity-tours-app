@@ -1,6 +1,6 @@
 "use client";
 
-import { BRAND, orderAgendaItems, resolveIconColor } from "@/lib/helpers";
+import { BRAND, orderAgendaItems, orderAgendaDays, resolveIconColor } from "@/lib/helpers";
 import TypeDot from "@/components/shared/TypeDot";
 import ItemConfirmationControl from "@/components/tour/itemConfirmation";
 import type { AgendaDayWithItems, AgendaItemWithFeedback } from "@/lib/types";
@@ -12,7 +12,9 @@ interface Props {
   isOwner: boolean;
 }
 
-export default function ConfirmationsTab({ tourId, days, onDaysChange, isOwner }: Props) {
+export default function ConfirmationsTab({ tourId, days: daysProp, onDaysChange, isOwner }: Props) {
+  // Same day ordering and numbering the itinerary uses.
+  const days = orderAgendaDays(daysProp);
   const allItems = days.flatMap(d => d.agenda_items);
   const confirmed = allItems.filter(i => (i.confirmation_urls?.length ?? 0) > 0).length;
   const notRequired = allItems.filter(i => !(i.confirmation_urls?.length) && i.confirmation_not_required).length;
@@ -52,10 +54,10 @@ export default function ConfirmationsTab({ tourId, days, onDaysChange, isOwner }
         </div>
       </div>
 
-      {days.map(day => (
+      {days.map((day, dayIdx) => (
         <div key={day.id} style={{ background: "var(--surface)", border: "1.5px solid var(--border-soft)", borderRadius: 12, overflow: "hidden" }}>
           <div style={{ background: BRAND.navy, padding: "9px 16px", display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", color: "#fff", fontWeight: 400, fontSize: 14 }}>Day {day.day_number}</span>
+            <span style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", color: "#fff", fontWeight: 400, fontSize: 14 }}>Day {dayIdx + 1}</span>
             <span style={{ color: "#D1E8FF", fontSize: 12 }}>{day.date}</span>
           </div>
           {day.agenda_items.length === 0 ? (

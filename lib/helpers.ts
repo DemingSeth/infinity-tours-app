@@ -679,15 +679,34 @@ export function formatTimeRange(time: string | null | undefined, endTime: string
   return end ? `${start} – ${end}` : start;
 }
 
-// AUTHORITATIVE display order for a tour's DAYS. sort_order is the host's own
-// ordering, but it is written by fire-and-forget renumbers (add / move / delete
-// a day), so two days can end up sharing a value. A plain "order by sort_order"
-// then leaves ties to the database, and the same tour can come back in a
-// different order from one request to the next, which reads as the itinerary
-// spontaneously shuffling. Break every tie deterministically: sort_order, then
-// day_number, then the day's own date. Days already numbered correctly are
-// untouched.
+// Do all of a tour's days carry a real, parseable date? A dated tour runs in
+// calendar order by definition, so the date is the ordering. A tour still being
+// sketched out (days with no date yet) keeps the host's manual order.
+export function agendaDaysAreDated<T extends { date?: string | null }>(days: T[]): boolean {
+  return days.length > 0 && days.every(d => !!parseAgendaDate(d.date ?? ""));
+}
+
+// AUTHORITATIVE display order for a tour's DAYS.
+//
+// sort_order used to be the only authority, but it is written by fire-and-forget
+// renumbers (add / move / delete a day) that can leave it stale, duplicated, or
+// simply disagreeing with the dates the days now carry, and the itinerary then
+// shows Jun 14, Jun 16, Jun 18, Jun 15. Dates are the thing a tour host, a
+// teacher and a bus driver all read, so on a fully dated tour the dates decide
+// and the itinerary is always chronological. sort_order only breaks a tie
+// between two days on the same date.
+//
+// A tour with any undated day is still being laid out, so there the host's
+// manual order stands: sort_order, then day_number, then whatever date exists.
 export function orderAgendaDays<T extends { sort_order?: number | null; day_number?: number | null; date?: string | null }>(days: T[]): T[] {
+  if (agendaDaysAreDated(days)) {
+    return [...days].sort((a, b) => {
+      const da = parseAgendaDate(a.date ?? "")!.getTime();
+      const db = parseAgendaDate(b.date ?? "")!.getTime();
+      if (da !== db) return da - db;
+      return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+    });
+  }
   return [...days].sort((a, b) => {
     const so = (a.sort_order ?? 0) - (b.sort_order ?? 0);
     if (so !== 0) return so;
