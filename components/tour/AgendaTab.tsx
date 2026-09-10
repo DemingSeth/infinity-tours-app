@@ -481,9 +481,11 @@ function mealLegacyType(entries: MealMoneyForm[]): "group" | "stipend" | "disney
 
 const TYPE_COLORS = AGENDA_TYPE_COLORS;
 
-// Meal-money chips: one yellow that matches the Dining icon (#f59e0b tint),
-// regardless of how the meal is covered.
-export const MEAL_CHIP_STYLE: React.CSSProperties = { background: "var(--amber-bg)", color: "var(--amber-text)" };
+// Meal-money chips: one teal, regardless of how the meal is covered. Teal is
+// meal money's own color and nothing else in the app uses it, so a meal chip is
+// never mistaken for the amber Bus Driver Note it used to match (September 2026
+// request).
+export const MEAL_CHIP_STYLE: React.CSSProperties = { background: "var(--teal-bg)", color: "var(--teal-text)" };
 
 const UNDO_WINDOW_MS = 5000;
 
@@ -908,8 +910,8 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
         </Field>
 
         {form.type === "food" && (
-          <div style={{ width: "100%", background: "var(--amber-bg-soft)", border: "1.5px solid var(--amber-border)", borderRadius: 10, padding: "12px 14px", display: "flex", flexWrap: "wrap", gap: 10 }}>
-            <div style={{ width: "100%", fontSize: 11, fontWeight: 700, color: "var(--amber-text)", textTransform: "uppercase", letterSpacing: .7 }}>Meal Money</div>
+          <div style={{ width: "100%", background: "var(--teal-bg-soft)", border: "1.5px solid var(--teal-border)", borderRadius: 10, padding: "12px 14px", display: "flex", flexWrap: "wrap", gap: 10 }}>
+            <div style={{ width: "100%", fontSize: 11, fontWeight: 700, color: "var(--teal-text)", textTransform: "uppercase", letterSpacing: .7 }}>Meal Money</div>
             <Field label="How is this meal covered? (select any that apply)">
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {MEAL_MONEY_TYPES.map(opt => {
@@ -1226,8 +1228,8 @@ function ItemRow({ item, groups, personaLabels, onEdit, onRemove, onDuplicate, o
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 4 }}>
               {item.meal_money.map((mm, i) => {
                 const amt = typeof mm.amount === "number" ? mm.amount : null;
-                // Every meal chip is the Dining yellow, matching the meal icon
-                // (August 2026 request: no per-option colors).
+                // Every meal chip is meal money's own teal, whatever the
+                // meal type (no per-option colors).
                 const style = MEAL_CHIP_STYLE;
                 const label = mm.type === "stipend"
                   ? `Meal Stipend${amt != null ? ` - $${amt} on Till Card` : ""}`

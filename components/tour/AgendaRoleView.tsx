@@ -259,9 +259,10 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                         {/* Meal money — one chip per entry; "group" shows no dollar figure. */}
                         {item.type === "food" && (item.meal_money ?? []).map((mm, i) => {
                           const amt = typeof mm.amount === "number" ? mm.amount : null;
-                          // Every meal chip is the Dining yellow (matches the meal
-                          // icon); no per-option colors (August 2026 request).
-                          const style = { color: "var(--amber-text)", background: "var(--amber-bg)" };
+                          // Every meal chip is meal money's own teal, whatever the
+                          // meal type, so it never reads as the amber Bus Driver
+                          // Note (September 2026 request).
+                          const style = { color: "var(--teal-text)", background: "var(--teal-bg)" };
                           const label = mm.type === "disney_dining"
                             ? `Disney Dining Dollars${amt != null ? ` $${amt}` : ""}`
                             : mm.type === "cash"
