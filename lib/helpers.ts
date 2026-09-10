@@ -237,7 +237,10 @@ export const VENDOR_CATS = ["Airfare", "Bus", "Hotel", "Tickets", "Restaurant", 
 export const ROLES = {
   coordinator: { label: "Tour Host",          color: BRAND.navy, bg: "#e8f4f8", rank: 4 },
   teacher:     { label: "Teacher / Admin",     color: "#5b21b6",  bg: "#f5f3ff", rank: 3 },
-  driver:      { label: "Bus Driver",          color: "#92400e",  bg: "#fef3c7", rank: 2 },
+  // Bus Driver is red everywhere (September 2026): the driver note, the driver
+  // maps, and this role's own preview button, badges and access link all match,
+  // because bus material is host and driver only and never client facing.
+  driver:      { label: "Bus Driver",          color: "#b91c1c",  bg: "#fee2e2", rank: 2 },
   student:     { label: "Student / Chaperone", color: "#065f46",  bg: "#ecfdf5", rank: 1 },
 } as const;
 
@@ -272,7 +275,7 @@ export const PERSONAS: PersonaDef[] = [
   { key: "teacher",    default: "Teacher",    locked: false, defaultOn: true,  viewRole: "teacher",     codeKey: "teacher",     memberType: "teacher",   color: "#5b21b6", bg: "#f5f3ff" },
   { key: "student",    default: "Student",    locked: false, defaultOn: true,  viewRole: "student",     codeKey: "student",     memberType: "student",   color: "#065f46", bg: "#ecfdf5" },
   { key: "chaperone",  default: "Chaperone",  locked: false, defaultOn: true,  viewRole: "student",     codeKey: "chaperone",   memberType: "chaperone", color: "#1d4ed8", bg: "#eff6ff" },
-  { key: "bus_driver", default: "Bus Driver", locked: false, defaultOn: false, viewRole: "driver",      codeKey: "driver",      memberType: "driver",    color: "#92400e", bg: "#fef3c7" },
+  { key: "bus_driver", default: "Bus Driver", locked: false, defaultOn: false, viewRole: "driver",      codeKey: "driver",      memberType: "driver",    color: "#b91c1c", bg: "#fee2e2" },
 ];
 
 // Accent color/background for a persona (distinct per persona, not per view role).
