@@ -406,6 +406,27 @@ export function defaultPersonaVisibility(type: string, travelMethods?: string | 
 // pre-August-2026 per-type color (flight / bus / meeting point), else null so
 // TypeDot uses the item type's own color. A stored "#FFFFFF" comes from the old
 // navy-chip rendering and is ignored (TypeDot treats it as default too).
+// Items saved before the icon palette was muted hold the old full-strength hex.
+// Translate it to the muted counterpart at display time so an existing itinerary
+// softens with everything else. Nothing is rewritten in the database, and a hex
+// that is not a known legacy choice is left exactly as the host set it.
+const LEGACY_ICON_COLOR_MAP: Record<string, string> = {
+  "#0B1957": "#303E78",
+  "#2563EB": "#4163AF",
+  "#0891B2": "#358BA0",
+  "#059669": "#309576",
+  "#D97706": "#B07837",
+  "#EA580C": "#B3653C",
+  "#E11D48": "#AB455B",
+  "#7C3AED": "#6941AF",
+  "#DB2777": "#A74973",
+  "#475569": "#5D6673",
+};
+
+export function mutedIconColor(hex: string): string {
+  return LEGACY_ICON_COLOR_MAP[hex.trim().toUpperCase()] ?? hex;
+}
+
 export function resolveIconColor(item: {
   icon_color?: string | null;
   travel_methods?: string[] | null;
@@ -415,7 +436,7 @@ export function resolveIconColor(item: {
   bus_icon_color?: string | null;
   meeting_icon_color?: string | null;
 }): string | null {
-  if (item.icon_color) return item.icon_color;
+  if (item.icon_color) return mutedIconColor(item.icon_color);
   const methods = item.travel_methods ?? (item.travel_method ? [item.travel_method] : []);
   if (methods.includes("flight") && item.flight_icon_color) return item.flight_icon_color;
   if (methods.includes("bus") && item.bus_icon_color) return item.bus_icon_color;

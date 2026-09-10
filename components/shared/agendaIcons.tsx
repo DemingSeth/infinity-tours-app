@@ -139,19 +139,22 @@ export const AGENDA_TYPE_ICONS: Record<string, AgendaIcon> = {
   general: Sparkles,         // default; overridden by the general sub-type
 };
 
+// Muted, dusty versions of the original hues (September 2026): an itinerary
+// shows a lot of these at once, and full-strength colors came across too
+// strongly. Same hue and the same separation between types, half the shout.
+// Dining keeps amber and Hotel keeps teal. Meal money is pink, and pink is
+// already the Meeting Point icon, so the Dining icon cannot match its chips
+// without two icons reading the same (September 2026, Linda).
 export const AGENDA_TYPE_COLORS: Record<string, string> = {
-  travel: "#3b82f6",
-  activity: "#8b5cf6",
-  // Dining keeps amber and Hotel keeps teal. Meal money is pink, and pink is
-  // already the Meeting Point icon, so the Dining icon cannot match its chips
-  // without two icons reading the same (September 2026, Linda).
-  food: "#f59e0b",
-  hotel: "#0d9488",
-  free: "#6b7280",
-  break: "#b45309",
-  meeting: "#ec4899",
-  instructions: "#0891b2",
-  general: "#64748b",
+  travel: "#3C69B4",
+  activity: "#613DB3",
+  food: "#A87A33",
+  hotel: "#36928A",
+  free: "#71757D",
+  break: "#A16436",
+  meeting: "#AD4277",
+  instructions: "#358BA0",
+  general: "#6D7682",
 };
 
 // ── Sub-type icon maps ─────────────────────────────────────────────────────────

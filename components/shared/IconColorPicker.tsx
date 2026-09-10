@@ -9,17 +9,22 @@ import TypeDot from "@/components/shared/TypeDot";
 // on a light tint of the same color, so each one stays legible in light and
 // dark mode. Stored as the hex on agenda_items.icon_color; null = the item
 // type's own color.
+// September 2026: every option is a muted, dusty version of its hue (roughly
+// half the saturation of the originals, held near 47% lightness). An itinerary
+// carries a lot of these at once, so a full-strength palette shouted; these read
+// as calm without losing which hue is which, and each still clears the 3:1
+// contrast a glyph needs on its own 12% tint.
 export const ICON_COLOR_CHOICES: { value: string; label: string }[] = [
-  { value: "#0B1957", label: "Navy" },
-  { value: "#2563EB", label: "Blue" },
-  { value: "#0891B2", label: "Teal" },
-  { value: "#059669", label: "Green" },
-  { value: "#D97706", label: "Gold" },
-  { value: "#EA580C", label: "Orange" },
-  { value: "#E11D48", label: "Rose" },
-  { value: "#7C3AED", label: "Purple" },
-  { value: "#DB2777", label: "Pink" },
-  { value: "#475569", label: "Slate" },
+  { value: "#303E78", label: "Navy" },
+  { value: "#4163AF", label: "Blue" },
+  { value: "#358BA0", label: "Teal" },
+  { value: "#309576", label: "Green" },
+  { value: "#B07837", label: "Gold" },
+  { value: "#B3653C", label: "Orange" },
+  { value: "#AB455B", label: "Rose" },
+  { value: "#6941AF", label: "Purple" },
+  { value: "#A74973", label: "Pink" },
+  { value: "#5D6673", label: "Slate" },
 ];
 
 // The item's icon, as a button: click it to pick a color right there on the
