@@ -142,8 +142,10 @@ export const AGENDA_TYPE_ICONS: Record<string, AgendaIcon> = {
 export const AGENDA_TYPE_COLORS: Record<string, string> = {
   travel: "#3b82f6",
   activity: "#8b5cf6",
-  food: "#f59e0b",
-  hotel: "#0d9488",
+  // Teal is meal money's color, so a food item and its meal chips read as one
+  // thing. Hotel moved off teal to green to make room (September 2026 request).
+  food: "#0d9488",
+  hotel: "#16a34a",
   free: "#6b7280",
   break: "#b45309",
   meeting: "#ec4899",
