@@ -132,6 +132,41 @@ body {
   color: color-mix(in srgb, var(--type-dot-color) 55%, white) !important;
 }
 
+/* Note fields (Details, Public Note, Internal Note) are edited in place, with
+   links shown as a pill carrying only the words. The address lives on
+   data-href and is never rendered, so a long URL cannot clutter the field.
+   Notes are still stored as plain [words](address) text. */
+.note-editable {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  resize: vertical;
+  overflow: auto;
+}
+.note-editable:focus {
+  border-color: var(--border-strong, var(--border));
+}
+.note-editable .note-link {
+  display: inline;
+  border-radius: 5px;
+  padding: 1px 6px 1px 5px;
+  margin: 0 1px;
+  background: var(--sky-bg);
+  color: var(--sky-text);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+.note-editable .note-link::before {
+  content: "\1F517\00a0";
+  font-size: 0.85em;
+  opacity: 0.75;
+}
+.note-editable .note-link:hover {
+  background: var(--sky-border);
+}
+
 /* Swap an element per theme (e.g. the navy vs light brand mark on a card). */
 [data-theme="dark"] .theme-light-only {
   display: none !important;

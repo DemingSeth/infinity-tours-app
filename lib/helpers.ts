@@ -246,10 +246,13 @@ export const ROLES = {
 
 // Payment information (cost / paid status) is visible ONLY to the tour host
 // (coordinator) view — off by default for every other role (July 2026 request).
+// Details / Notes is on for EVERY role (September 2026): it carries the plain
+// instructions for a stop ("about 30-35 minutes"), which a bus driver needs as
+// much as anyone. The host-only material lives in the Internal Note.
 export const DEFAULT_VISIBILITY = {
   coordinator: { address: true, mapLink: true, contactName: true, contactPhone: true, contactEmail: true, cost: true, costPaid: true, driverNote: true, detail: true, internalNote: true },
   teacher:     { address: true, mapLink: true, contactName: true, contactPhone: true, contactEmail: true, cost: false, costPaid: false, driverNote: false, detail: true, internalNote: false },
-  driver:      { address: true, mapLink: true, contactName: false, contactPhone: false, contactEmail: false, cost: false, costPaid: false, driverNote: true, detail: false, internalNote: false },
+  driver:      { address: true, mapLink: true, contactName: false, contactPhone: false, contactEmail: false, cost: false, costPaid: false, driverNote: true, detail: true,  internalNote: false },
   student:     { address: true, mapLink: true, contactName: false, contactPhone: false, contactEmail: false, cost: false, costPaid: false, driverNote: false, detail: true, internalNote: false },
 } as const;
 
