@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import InfinityLogoImg from "@/components/shared/InfinityLogoImg";
 import { BRAND } from "@/lib/helpers";
 import { firstName } from "@/lib/invites";
+import PasswordInput from "@/components/shared/PasswordInput";
 
 type Status = "checking" | "ready" | "invalid" | "saving";
 
@@ -160,9 +161,8 @@ export default function AcceptInvitePage() {
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
                   <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: 0.8 }}>Password</label>
-                  <input
+                  <PasswordInput
                     style={inp}
-                    type="password"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     placeholder="At least 8 characters"
@@ -174,9 +174,8 @@ export default function AcceptInvitePage() {
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
                   <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: 0.8 }}>Confirm password</label>
-                  <input
+                  <PasswordInput
                     style={inp}
-                    type="password"
                     value={confirm}
                     onChange={e => setConfirm(e.target.value)}
                     placeholder="Re-enter your password"

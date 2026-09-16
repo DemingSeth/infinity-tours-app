@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import InfinityLogoImg from "@/components/shared/InfinityLogoImg";
+import PasswordInput from "@/components/shared/PasswordInput";
 import { BRAND } from "@/lib/helpers";
 
 // useSearchParams suspends on the first client render of a prerendered page, so
@@ -107,9 +108,8 @@ function LoginForm() {
 
             <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
               <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: 0.8 }}>Password</label>
-              <input
+              <PasswordInput
                 style={inp}
-                type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder="••••••••"

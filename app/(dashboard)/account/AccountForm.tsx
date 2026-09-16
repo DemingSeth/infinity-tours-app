@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { BRAND } from "@/lib/helpers";
+import PasswordInput from "@/components/shared/PasswordInput";
 
 export default function AccountForm({
   userId,
@@ -98,8 +99,7 @@ export default function AccountForm({
         <form onSubmit={savePassword} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             <label style={fieldLabel}>New password</label>
-            <input
-              type="password"
+            <PasswordInput
               value={password}
               onChange={e => setPassword(e.target.value)}
               style={inp}
@@ -110,8 +110,7 @@ export default function AccountForm({
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             <label style={fieldLabel}>Confirm new password</label>
-            <input
-              type="password"
+            <PasswordInput
               value={confirm}
               onChange={e => setConfirm(e.target.value)}
               style={inp}
