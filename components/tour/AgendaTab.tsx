@@ -2380,14 +2380,29 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
                     );
                   })}
                   {/* Drop zone below the last item — lets a drag land at the end
-                      (of this day, or of another day when moving). */}
-                  {dragCtx && (
-                    <div
-                      onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOverIdx(cur => (cur?.dayId === day.id && cur.index === day.agenda_items.length) ? cur : { dayId: day.id, index: day.agenda_items.length }); }}
-                      onDrop={e => { e.preventDefault(); handleItemDrop(day.id, day.agenda_items.length); }}
-                      style={{ height: 26, borderTop: dragOverIdx?.dayId === day.id && dragOverIdx.index === day.agenda_items.length ? `2px solid ${BRAND.blue}` : "2px solid transparent" }}
-                    />
-                  )}
+                      (of this day, or of another day when moving).
+
+                      ALWAYS rendered, never gated on dragCtx. It used to appear
+                      only while a drag was in progress, which meant every day on
+                      the page grew by 26px the instant an item was picked up. A
+                      host dragging inside day 3 of a 5 day tour had the whole
+                      list jump down by the height of every spacer above it, so
+                      the row under the cursor was no longer the row being aimed
+                      at and the drop either landed wrong or landed back where it
+                      started. Day 1 had nothing above it and so always worked,
+                      which is exactly how it was reported (September 2026,
+                      Jess via Amy). Reserving the space at rest costs 26px per
+                      day and keeps the list still while dragging. */}
+                  <div
+                    onDragOver={e => {
+                      if (!dragCtx) return;
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = "move";
+                      setDragOverIdx(cur => (cur?.dayId === day.id && cur.index === day.agenda_items.length) ? cur : { dayId: day.id, index: day.agenda_items.length });
+                    }}
+                    onDrop={e => { e.preventDefault(); handleItemDrop(day.id, day.agenda_items.length); }}
+                    style={{ height: 26, borderTop: dragCtx && dragOverIdx?.dayId === day.id && dragOverIdx.index === day.agenda_items.length ? `2px solid ${BRAND.blue}` : "2px solid transparent" }}
+                  />
                   {addingItem === day.id && (
                     <ItemForm
                       form={itemForm} setForm={setItemForm}
