@@ -11,6 +11,7 @@ import ItineraryHeaderTile from "@/components/tour/ItineraryHeaderTile";
 import GoogleMapsLink from "@/components/shared/GoogleMapsLink";
 import { BRAND, ROLES, DEFAULT_VISIBILITY, isItemVisibleTo, personaColors, orderAgendaItems, parseAgendaDate, agendaDayDateLabel, initialCollapsedDays, tripInfoStartsCollapsed, itemMatchesGroup, resolveIconColor, canSeeInternalNote, internalNoteLabel, orderAgendaDays } from "@/lib/helpers";
 import NoteText from "@/components/shared/NoteText";
+import { ConfirmationFileChips } from "@/components/tour/itemConfirmation";
 import type { AgendaDayWithItems, Role, TripInfo, TourGroup } from "@/lib/types";
 
 interface Props {
@@ -60,6 +61,17 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
   const label = roleLabel || roleInfo.label; // persona label override
   // Use the persona's own color (so Chaperone ≠ Student) when a persona is known.
   const colors = personaKey ? personaColors(personaKey) : { color: roleInfo.color, bg: roleInfo.bg };
+
+  // Who sees what on a shared link (September 2026, Amy / Westlake):
+  // - Item confirmations (the PDFs and links attached to itinerary items) show
+  //   to the Tour Host always, and to the Teacher when Settings > Confirmations
+  //   has "Also show confirmation links on the Teacher view" on. The same rule
+  //   Trip Information already used for flight / hotel / bus confirmations.
+  //   Students, chaperones and bus drivers never see them.
+  // - "No Tour Host traveling" puts every internal note on the Teacher view.
+  const isTeacherViewer = personaKey ? personaKey === "teacher" : role === "teacher";
+  const showItemConfirmations = !print && (role === "coordinator" || (isTeacherViewer && !!tripInfo?.confirmationsTeacherVisible));
+  const allNotesToTeacher = !!tripInfo?.internalNotesTeacherVisible;
 
   // Feedback is for participants rating activities. Show it for all participant
   // roles (student/chaperone, teacher) and hide it only for the bus driver. It's
@@ -366,10 +378,20 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                       {/* Internal note: tour hosts always; anyone else only when
                           the host named their persona on the note itself. The
                           heading is who it is for, not the word "Internal". */}
-                      {item.internal_note && canSeeInternalNote(item.internal_note_audience, role, personaKey) && (
+                      {item.internal_note && canSeeInternalNote(item.internal_note_audience, role, personaKey, allNotesToTeacher) && (
                         <div style={{ fontSize: 12, color: "var(--purple-text)", background: "var(--purple-bg-soft)", borderRadius: 6, padding: "5px 10px", marginTop: mt(6), whiteSpace: "pre-wrap", lineHeight: 1.5 }}>
                           <strong style={{ fontWeight: 700 }}>{internalNoteLabel(item.internal_note_audience, personaLabels)}: </strong>
                           <NoteText text={item.internal_note} print={print} />
+                        </div>
+                      )}
+
+                      {/* Item confirmations: Tour Host always, Teacher when the
+                          tour allows it. File links do nothing on paper, so
+                          print leaves them out (same as Trip Information). */}
+                      {showItemConfirmations && (item.confirmation_urls?.length ?? 0) > 0 && (
+                        <div style={{ marginTop: mt(6), display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                          <span style={{ fontSize: 10, fontWeight: 700, color: "var(--green-text)", textTransform: "uppercase", letterSpacing: 0.5 }}>Confirmation</span>
+                          <ConfirmationFileChips urls={item.confirmation_urls ?? []} />
                         </div>
                       )}
 

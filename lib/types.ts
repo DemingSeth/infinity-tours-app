@@ -250,6 +250,9 @@ export interface TourRow {
   // also shown on the Teacher view. Tour hosts always see them; students,
   // chaperones and bus drivers never do.
   confirmations_teacher_visible: boolean;
+  // When true, every Internal Note also shows on the Teacher view (tours with
+  // no traveling Tour Host, where the teacher runs the trip).
+  internal_notes_teacher_visible: boolean;
   // Host-chosen order of the Trip Information rows (row keys such as
   // "teacher", "flight", "custom:<id>"). Missing keys append in default order.
   trip_info_row_order: string[];
@@ -538,6 +541,8 @@ export interface TripInfo {
   personaLabels: Record<string, string>;
   // Whether teachers may see the confirmation links.
   confirmationsTeacherVisible: boolean;
+  // Whether teachers see every internal note (no traveling Tour Host).
+  internalNotesTeacherVisible: boolean;
   // Host-chosen Trip Information row order (row keys); empty = default.
   rowOrder: string[];
   flightName: string | null;

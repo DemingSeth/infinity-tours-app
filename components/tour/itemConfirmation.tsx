@@ -200,7 +200,7 @@ export function ConfirmationFileChips({ urls }: { urls: string[] }) {
   return (
     <>
       {urls.map(url => (
-        <a key={url} href={url} target="_blank" rel="noreferrer" title={fileLabel(url)}
+        <a key={url} href={isExternalLink(url) ? externalHref(url) : url} target="_blank" rel="noreferrer" title={fileLabel(url)}
           style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "var(--green-bg-soft)", border: "1px solid var(--green-border)", borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 600, color: "var(--green-text)", textDecoration: "none", maxWidth: 200 }}>
           {isExternalLink(url) ? <LinkIcon size={12} style={{ flexShrink: 0 }} /> : isPdf(url) ? <FileText size={12} style={{ flexShrink: 0 }} /> : <ImageIcon size={12} style={{ flexShrink: 0 }} />}
           <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{fileLabel(url)}</span>

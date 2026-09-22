@@ -329,7 +329,7 @@ export default function SettingsTab({ tour, isOwner, viewerIsAdmin, currentUserI
       <div style={{ background: "var(--surface)", border: "1.5px solid var(--border-soft)", borderRadius: 14, padding: 20 }}>
         <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 15, fontWeight: 400, color: "var(--ink)", marginBottom: 12 }}>Confirmations</div>
         <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 12px", lineHeight: 1.6 }}>
-          Flight, hotel and bus confirmation links in Trip Information are shown to the Tour Host only. Students, chaperones and bus drivers never see them.
+          Confirmation links (flight, hotel and bus in Trip Information, plus the confirmations attached to itinerary items) are shown to the Tour Host only. Students, chaperones and bus drivers never see them.
         </p>
         <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: isOwner ? "pointer" : "default" }}>
           <input
@@ -343,6 +343,30 @@ export default function SettingsTab({ tour, isOwner, viewerIsAdmin, currentUserI
             <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>Also show confirmation links on the Teacher view</span>
             <span style={{ display: "block", fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
               Off by default. Turn on when the teacher or director should be able to open the booking confirmations.
+            </span>
+          </span>
+        </label>
+      </div>
+
+      {/* No traveling Tour Host: the teacher runs the trip, so every internal
+          note goes on the Teacher view (September 2026, Amy). */}
+      <div style={{ background: "var(--surface)", border: "1.5px solid var(--border-soft)", borderRadius: 14, padding: 20 }}>
+        <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 15, fontWeight: 400, color: "var(--ink)", marginBottom: 12 }}>Internal Notes</div>
+        <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 12px", lineHeight: 1.6 }}>
+          Internal notes are shown to the Tour Host. A single note can also be shared with the Teacher from its &quot;Who sees this?&quot; option.
+        </p>
+        <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: isOwner ? "pointer" : "default" }}>
+          <input
+            type="checkbox"
+            checked={tour.internal_notes_teacher_visible === true}
+            disabled={!isOwner}
+            onChange={() => onTourChange({ internal_notes_teacher_visible: !(tour.internal_notes_teacher_visible === true) })}
+            style={{ accentColor: BRAND.navy, width: 16, height: 16, marginTop: 1, cursor: isOwner ? "pointer" : "default", flexShrink: 0 }}
+          />
+          <span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>No Tour Host traveling: show all internal notes on the Teacher view</span>
+            <span style={{ display: "block", fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
+              Off by default. Turn on when the teacher is running the trip without a host, so they see every note without logging in. Students, chaperones and bus drivers still never see them.
             </span>
           </span>
         </label>

@@ -128,6 +128,7 @@ export default function PipelineClient({ initialTours, currentHostId, currentHos
         banner_focus_y: source.banner_focus_y,
         groups: source.groups,
         confirmations_teacher_visible: source.confirmations_teacher_visible,
+        internal_notes_teacher_visible: source.internal_notes_teacher_visible,
         trip_info_row_order: source.trip_info_row_order,
       })
       .select("*, tour_hosts(id, name, initials), tour_members(id, type, waiver)")

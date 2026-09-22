@@ -307,11 +307,11 @@ function AccessLinkManager({ tour, onTourChange, open, setOpen, isOwner }: {
   const linkGroups: TourGroup[] = (tour.groups ?? []).filter(g => g && g.id && (g.name ?? "").trim());
   const [linkGroup, setLinkGroup] = useState<string>("");
 
-  // Outward-facing links cover participant personas only — never the tour host /
-  // coordinator. No distributable coordinator link is generated anywhere; the
-  // coordinator view stays reachable only by someone who knows its code (via the
-  // bare /view self-select fallback).
-  const personaKeys = activePersonaKeys(tour.active_personas).filter(k => k !== "tour_host");
+  // One link per active persona, including the Tour Host (September 2026, Amy):
+  // hosts in the middle of a tour need every note and confirmation without
+  // logging in. The Tour Host link is read only and shows internal notes, costs
+  // and confirmations, so its row carries a "hosts only" warning below.
+  const personaKeys = activePersonaKeys(tour.active_personas);
 
   // Auto-generate-and-persist a code for any participant persona missing one, so
   // every persona always has a working link. OWNER ONLY: this writes to the tour,
@@ -392,7 +392,8 @@ function AccessLinkManager({ tour, onTourChange, open, setOpen, isOwner }: {
           {visibleRows.map(r => {
             const copied = copiedKey === r.codeKey;
             return (
-              <div key={r.key} style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--surface)", border: "1px solid var(--border-soft)", borderRadius: 9, padding: "8px 10px" }}>
+              <div key={r.key} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, background: "var(--surface)", border: "1px solid var(--border-soft)", borderRadius: 9, padding: "8px 10px" }}>
                 <span style={{ fontSize: 10, fontWeight: 700, color: r.color, textTransform: "uppercase", letterSpacing: .7, flex: "0 0 96px" }}>{r.label}</span>
                 <input readOnly value={linkFor(r.codeKey)}
                   onFocus={e => e.currentTarget.select()}
@@ -407,6 +408,12 @@ function AccessLinkManager({ tour, onTourChange, open, setOpen, isOwner }: {
                   style={{ display: "inline-flex", alignItems: "center", gap: 4, border: "none", borderRadius: 6, padding: "5px 10px", cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "inherit", flexShrink: 0, background: copied ? "var(--green-bg)" : r.color, color: copied ? "var(--green-text)" : "#fff" }}>
                   {copied ? <><Check size={12} strokeWidth={3} />Copied</> : "Copy"}
                 </button>
+              </div>
+              {r.key === "tour_host" && (
+                <div style={{ fontSize: 11, color: "var(--muted-2)", margin: "-4px 0 0 4px" }}>
+                  Tour Hosts only. This link shows internal notes, costs and confirmations. Use the refresh button to shut it off if it is ever shared by mistake.
+                </div>
+              )}
               </div>
             );
           })}

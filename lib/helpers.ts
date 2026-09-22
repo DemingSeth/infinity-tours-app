@@ -367,14 +367,18 @@ export function internalNoteLabel(
   return [hostPart, ...personas.map(p => personaLabel(p, personaLabels))].join(", ");
 }
 
-// Can this viewer see the internal note? Tour hosts always can. Every other
+// Can this viewer see the internal note? Tour hosts always can. The Teacher can
+// when the tour has "No Tour Host traveling" on (allToTeacher). Every other
 // persona has to be named on the note itself.
 export function canSeeInternalNote(
   raw: NoteAudience | null | undefined,
   role: Role,
   personaKey?: string | null,
+  allToTeacher = false,
 ): boolean {
   if (role === "coordinator") return true;
+  // Tour-level switch (no traveling Tour Host): the teacher sees every note.
+  if (allToTeacher && (personaKey ? personaKey === "teacher" : role === "teacher")) return true;
   const { personas } = noteAudience(raw);
   if (personas.length === 0) return false;
   if (personaKey) return personas.includes(personaKey);
@@ -640,6 +644,7 @@ export function buildTripInfo({ tour, members, days, hostName, hostPhone, confir
     activePersonas: active,
     personaLabels: labels ?? {},
     confirmationsTeacherVisible: tour?.confirmations_teacher_visible === true,
+    internalNotesTeacherVisible: tour?.internal_notes_teacher_visible === true,
     rowOrder: Array.isArray(tour?.trip_info_row_order) ? (tour.trip_info_row_order as string[]).filter(k => typeof k === "string") : [],
     flightName: flightName || null,
     flightAddress: flight?.address || null,
