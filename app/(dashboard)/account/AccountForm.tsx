@@ -9,12 +9,17 @@ export default function AccountForm({
   userId,
   email,
   initialName,
+  initialPhone = "",
 }: {
   userId: string;
   email: string;
   initialName: string;
+  initialPhone?: string;
 }) {
   const [name, setName] = useState(initialName);
+  // Phone (September 2026): this is the number that fills in automatically
+  // when someone picks you from "Select existing" as a Tour Host on a tour.
+  const [phone, setPhone] = useState(initialPhone);
   const [savingName, setSavingName] = useState(false);
   const [nameMsg, setNameMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -35,10 +40,10 @@ export default function AccountForm({
     const supabase = createClient();
     const { error } = await supabase
       .from("tour_hosts")
-      .update({ name: name.trim() })
+      .update({ name: name.trim(), phone: phone.trim() || null })
       .eq("id", userId);
     setSavingName(false);
-    setNameMsg(error ? { ok: false, text: error.message } : { ok: true, text: "Name updated." });
+    setNameMsg(error ? { ok: false, text: error.message } : { ok: true, text: "Profile updated." });
   }
 
   async function savePassword(e: React.FormEvent) {
@@ -84,10 +89,15 @@ export default function AccountForm({
         <form onSubmit={saveName} style={{ display: "flex", flexDirection: "column", gap: 5 }}>
           <label style={fieldLabel}>Full name</label>
           <input value={name} onChange={e => setName(e.target.value)} style={inp} placeholder="Your name" />
+          <label style={{ ...fieldLabel, marginTop: 12 }}>Phone</label>
+          <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} style={inp} placeholder="Your cell number" autoComplete="tel" />
+          <span style={{ fontSize: 12, color: "var(--muted)" }}>
+            Fills in automatically when you are picked as a Tour Host on a tour. You can still change it per tour.
+          </span>
           {nameMsg && <Msg ok={nameMsg.ok} text={nameMsg.text} />}
           <div style={{ marginTop: 10 }}>
             <button type="submit" disabled={savingName} style={btn(savingName)}>
-              {savingName ? "Saving..." : "Save name"}
+              {savingName ? "Saving..." : "Save profile"}
             </button>
           </div>
         </form>

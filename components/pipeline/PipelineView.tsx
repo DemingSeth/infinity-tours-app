@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Search, X } from "lucide-react";
 import { STATUSES, BRAND, parseISODate, parseAgendaDate, expandDateRange } from "@/lib/helpers";
 import { canEditTour, type EditorViewer } from "@/lib/roles";
 import TripCard from "./TripCard";
@@ -35,10 +35,35 @@ function departureMs(tour: any): number | null {
   return null;
 }
 
+// Everything a person might type to find a tour (September 2026 request):
+// tour name, destination, dates, school contact, teachers, tour hosts and
+// consultants. Case-insensitive; every word typed must match somewhere, so
+// "rigby nyc" finds the Rigby tour to New York.
+function tourSearchText(t: any): string {
+  const names = (list: any) => (Array.isArray(list) ? list : [])
+    .map((p: any) => [p?.name, p?.contact].filter(Boolean).join(" "))
+    .join(" ");
+  return [
+    t.name, t.destination, t.dates, t.start_date, t.end_date,
+    t.contact_name, t.contact_email,
+    t.traveling_tour_host, t.planning_tour_host,
+    t.tour_hosts?.name,
+    names(t.teachers), names(t.tour_hosts_list), names(t.consultants),
+  ].filter(Boolean).join(" ").toLowerCase();
+}
+
+export function matchesTourSearch(t: any, query: string): boolean {
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return true;
+  const text = tourSearchText(t);
+  return words.every(w => text.includes(w));
+}
+
 export default function PipelineView({
   tours, currentHostId, currentHostName, viewer, duplicatingId, onSelectTour, onNewTour, onDuplicate, onDelete,
 }: Props) {
   const [hostFilter, setHostFilter] = useState<"mine" | "all">("mine");
+  const [search, setSearch] = useState("");
   // Sort order: departure date (soonest first, undated last) — the default per
   // the July 2026 request — or most recently created.
   const [sortMode, setSortMode] = useState<"departure" | "recent">("departure");
@@ -51,9 +76,12 @@ export default function PipelineView({
   // Tour Consultant (August 2026 request). Admin rights are deliberately left
   // out of this filter, otherwise an admin's "My Tours" would be every tour.
   const listedViewer: EditorViewer = { ...viewer, role: null };
-  const filtered = hostFilter === "mine"
+  const scoped = hostFilter === "mine"
     ? tours.filter(t => canEditTour(t, listedViewer))
     : tours;
+  // Search applies within whichever list is showing (My Tours or All Tours).
+  const searching = search.trim().length > 0;
+  const filtered = searching ? scoped.filter(t => matchesTourSearch(t, search)) : scoped;
 
   const sorted = [...filtered].sort((a, b) => {
     if (sortMode === "recent") {
@@ -74,10 +102,30 @@ export default function PipelineView({
             Tour Pipeline
           </h2>
           <p style={{ color: "var(--muted)", fontSize: 13, marginTop: 4, marginBottom: 0 }}>
-            {filtered.length} tour{filtered.length !== 1 ? "s" : ""} · logged in as <strong>{currentHostName}</strong>
+            {searching
+              ? <>{filtered.length} of {scoped.length} tour{scoped.length !== 1 ? "s" : ""} match</>
+              : <>{filtered.length} tour{filtered.length !== 1 ? "s" : ""}</>} · logged in as <strong>{currentHostName}</strong>
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <div style={{ position: "relative", display: "flex", alignItems: "center", flex: "1 1 220px", minWidth: 0, maxWidth: 320 }}>
+            <Search size={14} style={{ position: "absolute", left: 10, color: "var(--muted-2)", pointerEvents: "none" }} />
+            <input
+              type="search"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              onKeyDown={e => { if (e.key === "Escape") setSearch(""); }}
+              placeholder="Search tours, schools, hosts..."
+              aria-label="Search tours"
+              style={{ width: "100%", boxSizing: "border-box", border: "1.5px solid var(--border)", borderRadius: 8, padding: "7px 30px 7px 30px", fontSize: 13, fontFamily: "inherit", color: "var(--text)", background: "var(--surface)", outline: "none" }}
+            />
+            {searching && (
+              <button type="button" onClick={() => setSearch("")} title="Clear search" aria-label="Clear search"
+                style={{ position: "absolute", right: 6, background: "none", border: "none", cursor: "pointer", color: "var(--muted-2)", padding: 2, display: "flex" }}>
+                <X size={14} />
+              </button>
+            )}
+          </div>
           <div style={{ display: "flex", gap: 1, background: "var(--surface-3)", borderRadius: 8, padding: 3 }}>
             {([{ value: "departure", label: "By Departure" }, { value: "recent", label: "Recently Added" }] as const).map(opt => (
               <button
@@ -129,6 +177,16 @@ export default function PipelineView({
         </div>
       </div>
 
+      {searching && hostFilter === "mine" && filtered.length === 0 && tours.some(t => matchesTourSearch(t, search)) && (
+        <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 12 }}>
+          No matches in My Tours.{" "}
+          <button type="button" onClick={() => setHostFilter("all")}
+            style={{ background: "none", border: "none", padding: 0, color: BRAND.blue, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", fontSize: 12 }}>
+            Search All Tours
+          </button>
+        </div>
+      )}
+
       <div className="pipeline-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 14, alignItems: "start" }}>
         {STATUSES.map(st => {
           const col = sorted.filter(t => t.status === st.id);
@@ -162,7 +220,7 @@ export default function PipelineView({
                 ))}
                 {col.length === 0 && (
                   <div style={{ border: "2px dashed var(--border)", borderRadius: 10, padding: 18, textAlign: "center", color: "var(--muted-3)", fontSize: 12 }}>
-                    No tours
+                    {searching ? "No matches" : "No tours"}
                   </div>
                 )}
               </div>

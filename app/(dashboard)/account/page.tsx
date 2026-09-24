@@ -11,7 +11,7 @@ export default async function AccountPage() {
   // exposes it here. No schema change — this only reads/writes existing columns.
   const { data: tourHost } = await supabase
     .from("tour_hosts")
-    .select("name")
+    .select("name, phone")
     .eq("id", user.id)
     .single();
 
@@ -20,6 +20,7 @@ export default async function AccountPage() {
       userId={user.id}
       email={user.email ?? ""}
       initialName={tourHost?.name ?? ""}
+      initialPhone={tourHost?.phone ?? ""}
     />
   );
 }
