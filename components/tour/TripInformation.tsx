@@ -544,7 +544,9 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
     },
     {
       key: "host",
-      label: hosts.length > 1 ? "Tour Hosts" : "Infinity Tours + Events",
+      // "Tour Host" or "Tour Hosts" by how many are listed (September 2026).
+      // While editing, follow the form so the heading updates as rows change.
+      label: (editing ? form.hosts.filter(h => h.name.trim() || h.contact.trim()).length : hosts.length) > 1 ? "Tour Hosts" : "Tour Host",
       content: editing ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <PersonListEditor people={form.hosts} onChange={h => setForm(f => ({ ...f, hosts: h }))}
