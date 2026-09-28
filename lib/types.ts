@@ -147,6 +147,8 @@ export interface PersonRef {
   // what grants a listed consultant / tour host edit access to the tour (see
   // can_edit_tour() in the database and canEditTour() in lib/roles.ts).
   id?: string | null;
+  // Optional link for the person's name, e.g. a Tour Host bio (September 2026).
+  url?: string | null;
 }
 
 // Host-named extra Trip Information row: plain text, or a link when `url` is set.

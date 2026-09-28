@@ -12,7 +12,8 @@ const STORAGE_BUCKET = "agenda-images";
 type ConfItem = { id?: string; type: string; label: string | null; file_url: string };
 
 // `id` = tour_hosts.id when picked from the staff dropdown (grants edit access).
-type PersonForm = { name: string; contact: string; id?: string | null };
+// `url` = optional link on the name (Tour Host bio). Hosts only for now.
+type PersonForm = { name: string; contact: string; id?: string | null; url?: string };
 type CustomRowForm = { id: string; label: string; value: string; url: string; visibility: Record<string, boolean> };
 
 type TripForm = {
@@ -127,7 +128,7 @@ interface TripInformationProps {
 // accounts + this tour's teachers; picking one fills name + contact, both still
 // editable afterward. `contactKind` decides which contact field to pull from a
 // staff account (phone for hosts, email for consultants/teachers).
-function PersonListEditor({ people, onChange, namePlaceholder, contactPlaceholder, addLabel, personnel = [], teacherRefs = [], contactKind = "email" }: {
+function PersonListEditor({ people, onChange, namePlaceholder, contactPlaceholder, addLabel, personnel = [], teacherRefs = [], contactKind = "email", urlPlaceholder }: {
   people: PersonForm[];
   onChange: (next: PersonForm[]) => void;
   namePlaceholder: string;
@@ -136,6 +137,8 @@ function PersonListEditor({ people, onChange, namePlaceholder, contactPlaceholde
   personnel?: PersonnelRow[];
   teacherRefs?: PersonForm[];
   contactKind?: "phone" | "email";
+  /** When set, each row also gets a link field (e.g. the Tour Host bio). */
+  urlPlaceholder?: string;
 }) {
   const rows = people.length ? people : [{ name: "", contact: "", id: null }];
   const set = (i: number, patch: Partial<PersonForm>) =>
@@ -150,7 +153,9 @@ function PersonListEditor({ people, onChange, namePlaceholder, contactPlaceholde
     if (src === "staff") {
       const p = personnel.find(x => x.id === key);
       // Keep the account id: a staff member listed here gets edit access to the tour.
-      if (p) set(i, { name: p.name ?? "", contact: (contactKind === "phone" ? p.phone : p.email) ?? "", id: p.id });
+      // Fall back to what is already typed when the account has no phone saved,
+      // so picking someone never blanks a number that was there.
+      if (p) set(i, { name: p.name ?? "", contact: (contactKind === "phone" ? p.phone : p.email) || rows[i]?.contact || "", id: p.id });
     } else if (src === "teacher") {
       const t = teacherRefs[parseInt(key, 10)];
       if (t) set(i, { name: t.name, contact: t.contact ?? "", id: null });
@@ -187,6 +192,10 @@ function PersonListEditor({ people, onChange, namePlaceholder, contactPlaceholde
               <X size={13} />
             </button>
           </div>
+          {urlPlaceholder && (
+            <input style={inputStyle} value={p.url ?? ""} placeholder={urlPlaceholder}
+              onChange={e => set(i, { url: e.target.value })} />
+          )}
         </div>
       ))}
       <button type="button" style={smallAddBtn} onClick={() => onChange([...rows, { name: "", contact: "", id: null }])}>
@@ -232,7 +241,7 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
   function startEdit() {
     setForm({
       teachers: (info.teachers ?? []).map(t => ({ name: t.name ?? "", contact: t.contact ?? "", id: t.id ?? null })),
-      hosts: (info.tourHosts ?? []).map(h => ({ name: h.name ?? "", contact: h.contact ?? "", id: h.id ?? null })),
+      hosts: (info.tourHosts ?? []).map(h => ({ name: h.name ?? "", contact: h.contact ?? "", id: h.id ?? null, url: h.url ?? "" })),
       consultants: (info.consultants ?? []).map(c => ({ name: c.name ?? "", contact: c.contact ?? "", id: c.id ?? null })),
       busCapacity: info.busCapacity != null ? String(info.busCapacity) : "",
       participantsOverride: info.participantsOverride ?? "",
@@ -255,7 +264,7 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
         .map(t => ({ name: t.name.trim(), contact: t.contact.trim() || null, id: t.id ?? null }))
         .filter(t => t.name || t.contact);
       const hosts = form.hosts
-        .map(h => ({ name: h.name.trim(), contact: h.contact.trim() || null, id: h.id ?? null }))
+        .map(h => ({ name: h.name.trim(), contact: h.contact.trim() || null, id: h.id ?? null, url: (h.url ?? "").trim() || null }))
         .filter(h => h.name || h.contact);
       const consultants = form.consultants
         .map(c => ({ name: c.name.trim(), contact: c.contact.trim() || null, id: c.id ?? null }))
@@ -540,7 +549,8 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <PersonListEditor people={form.hosts} onChange={h => setForm(f => ({ ...f, hosts: h }))}
             namePlaceholder="Tour host name" contactPlaceholder="Tour host phone" addLabel="Add tour host"
-            personnel={personnel} teacherRefs={teacherRefs} contactKind="phone" />
+            personnel={personnel} teacherRefs={teacherRefs} contactKind="phone"
+            urlPlaceholder="Bio link (optional, makes the name a link)" />
           <div style={{ color: "var(--muted)", fontSize: 12 }}>
             Infinity Hotline {HOTLINE_DISPLAY}
           </div>
@@ -549,7 +559,10 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
         <>
           {hosts.length ? hosts.map((h, i) => (
             <div key={i}>
-              {h.name || "—"}
+              {/* Name links to the host's bio when one is set (not on paper). */}
+              {h.url && h.name && !print
+                ? <a href={externalHref(h.url)} target="_blank" rel="noreferrer" style={linkStyle}>{h.name}</a>
+                : (h.name || "—")}
               {h.contact && <> · {link(telHref(h.contact), h.contact)}</>}
             </div>
           )) : <div>—</div>}

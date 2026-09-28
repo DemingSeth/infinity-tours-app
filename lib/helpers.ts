@@ -593,24 +593,26 @@ export function buildTripInfo({ tour, members, days, hostName, hostPhone, confir
   const rawTeachers = (tour?.teachers as { name?: string; contact?: string | null }[] | null) || [];
   const teachers = rawTeachers.filter(t => (t?.name ?? "").trim() || (t?.contact ?? "").trim());
   const teacherList = teachers.length
-    ? teachers.map(t => ({ name: (t.name ?? "").trim(), contact: (t.contact ?? "").trim() || null }))
+    ? teachers.map(t => ({ name: (t.name ?? "").trim(), contact: (t.contact ?? "").trim() || null, id: (t as { id?: string | null }).id ?? null }))
     : (tour?.contact_name || tour?.contact_email
         ? [{ name: tour?.contact_name ?? "", contact: tour?.contact_email ?? null }]
         : []);
-  const rawHosts = (tour?.tour_hosts_list as { name?: string; contact?: string | null }[] | null) || [];
+  const rawHosts = (tour?.tour_hosts_list as { name?: string; contact?: string | null; id?: string | null; url?: string | null }[] | null) || [];
   const hostEntries = rawHosts.filter(h => (h?.name ?? "").trim() || (h?.contact ?? "").trim());
   const hostList = hostEntries.length
-    ? hostEntries.map(h => ({ name: (h.name ?? "").trim(), contact: (h.contact ?? "").trim() || null }))
+    // Keep the account id (it is what grants edit access, and dropping it here
+    // meant every Trip Information save wiped it) and the optional bio link.
+    ? hostEntries.map(h => ({ name: (h.name ?? "").trim(), contact: (h.contact ?? "").trim() || null, id: h.id ?? null, url: (h.url ?? "").trim() || null }))
     : (tour?.traveling_tour_host || hostName
         ? [{ name: (tour?.traveling_tour_host || hostName) as string, contact: hostPhone ?? null }]
         : []);
 
   // Consultants: prefer the new multi list, backfill a single entry from the
   // legacy planning_tour_host so existing tours look unchanged.
-  const rawConsultants = (tour?.consultants as { name?: string; contact?: string | null }[] | null) || [];
+  const rawConsultants = (tour?.consultants as { name?: string; contact?: string | null; id?: string | null }[] | null) || [];
   const consultantEntries = rawConsultants.filter(c => (c?.name ?? "").trim() || (c?.contact ?? "").trim());
   const consultantList = consultantEntries.length
-    ? consultantEntries.map(c => ({ name: (c.name ?? "").trim(), contact: (c.contact ?? "").trim() || null }))
+    ? consultantEntries.map(c => ({ name: (c.name ?? "").trim(), contact: (c.contact ?? "").trim() || null, id: c.id ?? null }))
     : ((tour?.planning_tour_host ?? "").trim()
         ? [{ name: (tour!.planning_tour_host as string).trim(), contact: null }]
         : []);
