@@ -827,6 +827,14 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
               <X size={13} />
             </button>
           </div>
+          {/* A custom "Tour Host" row is display only (September 2026: Linda
+              was added this way on Alpine Orchestra and could not edit). Edit
+              access comes only from the Tour Host / Tour Consultant lists. */}
+          {/(host|consultant)/i.test(r.label) && (
+            <div style={{ fontSize: 11.5, color: "var(--amber-text)", background: "var(--amber-bg)", borderRadius: 6, padding: "5px 8px", lineHeight: 1.4 }}>
+              This row is display only. To give someone edit access to this tour, add them under Tour Hosts or Tour Consultants instead.
+            </div>
+          )}
           <input style={inputStyle} value={r.value} placeholder="Text to show (optional)"
             onChange={e => setForm(f => ({ ...f, customRows: f.customRows.map((x, idx) => idx === i ? { ...x, value: e.target.value } : x) }))} />
           <input style={inputStyle} value={r.url} placeholder="Link URL (optional, makes the row a link)"

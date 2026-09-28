@@ -43,13 +43,13 @@ export function canEditTour(
   if (tour.tour_host_id === viewer.id) return true;
   if (isAdmin(viewer.role)) return true;
   const email = (viewer.email ?? "").trim().toLowerCase();
-  const name = (viewer.name ?? "").trim();
+  const name = (viewer.name ?? "").trim().toLowerCase();
   const listed = [...(tour.consultants ?? []), ...(tour.tour_hosts_list ?? [])];
   return listed.some(p => {
     if (!p) return false;
     if (p.id && p.id === viewer.id) return true;
     if (email && (p.contact ?? "").trim().toLowerCase() === email) return true;
-    if (name && (p.name ?? "").trim() === name) return true;
+    if (name && (p.name ?? "").trim().toLowerCase() === name) return true;
     return false;
   });
 }
@@ -64,12 +64,12 @@ export function personListIncludes(
 ): boolean {
   if (!viewer?.id || !list?.length) return false;
   const email = (viewer.email ?? "").trim().toLowerCase();
-  const name = (viewer.name ?? "").trim();
+  const name = (viewer.name ?? "").trim().toLowerCase();
   return list.some(p => {
     if (!p) return false;
     if (p.id && p.id === viewer.id) return true;
     if (email && (p.contact ?? "").trim().toLowerCase() === email) return true;
-    if (name && (p.name ?? "").trim() === name) return true;
+    if (name && (p.name ?? "").trim().toLowerCase() === name) return true;
     return false;
   });
 }
