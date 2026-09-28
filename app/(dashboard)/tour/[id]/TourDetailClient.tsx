@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { BRAND, STATUSES, formatAgendaDate, expandStateName } from "@/lib/helpers";
+import { isItemConfirmed, BRAND, STATUSES, formatAgendaDate, expandStateName } from "@/lib/helpers";
 import StatusPill from "@/components/shared/StatusPill";
 import OverviewTab from "@/components/tour/OverviewTab";
 import AgendaTab from "@/components/tour/AgendaTab";
@@ -30,9 +30,11 @@ const I = ({ n, s = 13 }: { n: string; s?: number }) => (
   </svg>
 );
 
+// Roster is hidden for now (September 2026, Amy): groups are not using it and
+// it confused consultants. The tab's code and data are untouched; add this
+// entry back to bring it back.
 const TABS = [
   { id: "agenda",   label: "Itinerary", icon: "map"      },
-  { id: "roster",   label: "Roster",    icon: "users"    },
   { id: "vendors",  label: "Confirmations", icon: "check" },
   { id: "post",     label: "Post-Trip", icon: "note"     },
   { id: "overview", label: "Overview",  icon: "home"     },
@@ -74,7 +76,7 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
   // Count only genuinely outstanding items: no confirmation linked AND not
   // marked "no confirmation required".
   const unconfirmedCount = days.reduce(
-    (n, d) => n + d.agenda_items.filter((i: any) => !(i.confirmation_urls?.length) && !i.confirmation_not_required).length,
+    (n, d) => n + d.agenda_items.filter((i: any) => !isItemConfirmed(i) && !i.confirmation_not_required).length,
     0,
   );
 

@@ -3,8 +3,9 @@
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, ExternalLink, CalendarDays } from "lucide-react";
 import {
+  tourDateRange,
   BRAND, STATUSES, getStatus, buildHostColorMap, initialsFrom, hostNameOf,
-  parseISODate, startOfDay, sameDay, tourDateLabel, MONTH_NAMES, WEEKDAY_LABELS,
+  startOfDay, sameDay, tourDateLabel, MONTH_NAMES, WEEKDAY_LABELS,
 } from "@/lib/helpers";
 import StatusPill from "@/components/shared/StatusPill";
 import type { TourWithHostAndMembers } from "@/lib/types";
@@ -62,15 +63,15 @@ export default function CalendarView({ tours, onOpenTour }: {
   const colorFor = (tour: TourWithHostAndMembers) =>
     mode === "status" ? getStatus(tour.status).dot : (hostColorMap[tour.tour_host_id] ?? "#94a3b8");
 
-  // Tours with a usable start_date, normalized to whole-day ranges.
+  // Tours with a usable date range, normalized to whole-day ranges. Uses the
+  // Departure / Return dates when set, else reads the tour's Dates text.
   const { scheduled, unscheduledCount } = useMemo(() => {
     const list: ScheduledTour[] = [];
     let missing = 0;
     for (const tour of tours) {
-      const s = parseISODate(tour.start_date);
-      if (!s) { missing++; continue; }
-      const e = parseISODate(tour.end_date) ?? s;
-      list.push({ tour, start: startOfDay(s), end: startOfDay(e < s ? s : e) });
+      const r = tourDateRange(tour);
+      if (!r) { missing++; continue; }
+      list.push({ tour, start: startOfDay(r.start), end: startOfDay(r.end) });
     }
     return { scheduled: list, unscheduledCount: missing };
   }, [tours]);

@@ -9,8 +9,11 @@ import GeneralFeedback from "@/components/tour/GeneralFeedback";
 import TripInformation from "@/components/tour/TripInformation";
 import ItineraryHeaderTile from "@/components/tour/ItineraryHeaderTile";
 import GoogleMapsLink from "@/components/shared/GoogleMapsLink";
-import { BRAND, ROLES, DEFAULT_VISIBILITY, isItemVisibleTo, personaColors, orderAgendaItems, parseAgendaDate, agendaDayDateLabel, initialCollapsedDays, tripInfoStartsCollapsed, itemMatchesGroup, resolveIconColor, canSeeInternalNote, internalNoteLabel, orderAgendaDays } from "@/lib/helpers";
+import { BRAND, ROLES, DEFAULT_VISIBILITY, isItemVisibleTo, personaColors, orderAgendaItems, parseAgendaDate, agendaDayDateLabel, initialCollapsedDays, tripInfoStartsCollapsed, itemMatchesGroup, resolveIconColor, canSeeInternalNote, internalNoteLabel, orderAgendaDays, paymentStatus, PAYMENT_LABEL, isItemConfirmed } from "@/lib/helpers";
 import NoteText from "@/components/shared/NoteText";
+import AddressText from "@/components/shared/AddressText";
+import ItinerarySummary from "@/components/tour/ItinerarySummary";
+import { summaryVisibleTo } from "@/lib/itinerarySummary";
 import { ConfirmationFileChips } from "@/components/tour/itemConfirmation";
 import type { AgendaDayWithItems, Role, TripInfo, TourGroup } from "@/lib/types";
 
@@ -208,6 +211,20 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
           })}
         </div>
       )}
+      {/* Summary of Itinerary: read only, built from exactly what this viewer
+          sees below (their items, their group). Shown to the viewers picked in
+          Settings (Tour Host by default). */}
+      {summaryVisibleTo(tripInfo?.summaryPersonas, personaKey ?? (role === "coordinator" ? "tour_host" : role)) && (
+        <ItinerarySummary
+          print={print}
+          days={days.map(d => ({
+            ...d,
+            agenda_items: (personaKey ? d.agenda_items.filter(i => isItemVisibleTo(i, personaKey)) : d.agenda_items)
+              .filter(i => itemMatchesGroup(i, groupFilter)),
+          }))}
+        />
+      )}
+
       {tourGroups.length > 0 && print && groupFilter && (
         <div style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", marginBottom: 8 }}>
           Group: {tourGroups.find(g => g.id === groupFilter)?.name}
@@ -286,6 +303,8 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                             ? "Delivered Meal"
                             : mm.type === "group"
                             ? "Group Meal"
+                            : mm.type === "not_included"
+                            ? "Not Included"
                             : `Stipend${amt != null ? ` $${amt}` : ""}`;
                           return (
                             <span key={`m-${mm.type}-${i}`} style={{ fontSize: 10, fontWeight: 700, borderRadius: 4, padding: "1px 6px", ...style }}>{label}</span>
@@ -294,7 +313,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                       </div>
 
                       {vis.address && item.address?.trim() && (
-                        <div style={{ fontSize: 12, color: "var(--text-2)", marginTop: mt(4) }}>{item.address}</div>
+                        <div style={{ marginTop: mt(4) }}><AddressText address={item.address} print={print} withIcon /></div>
                       )}
 
                       {/* whiteSpace: pre-wrap keeps line breaks / bullet lists on
@@ -353,15 +372,26 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                         </div>
                       )}
 
-                      {vis.cost && item.cost > 0 && (
-                        <div style={{ fontSize: 12, marginTop: 4, display: "flex", alignItems: "center", gap: 6 }}>
-                          <span style={{ fontWeight: 700, color: "var(--text-2)" }}>
-                            ${item.cost.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                          </span>
-                          {vis.costPaid && (
-                            <span style={{ color: item.cost_paid ? "#059669" : "#dc2626", fontSize: 11, fontWeight: 700 }}>
-                              {item.cost_paid ? "PAID" : "UNPAID"}
+                      {/* Tour Host only: cost plus Deposit Paid / Paid in Full, and
+                          Confirmed, so a host on tour knows where each stop stands
+                          (September 2026, Amy). */}
+                      {vis.cost && (item.cost > 0 || item.deposit_paid || item.cost_paid || isItemConfirmed(item)) && (
+                        <div style={{ fontSize: 12, marginTop: 4, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                          {item.cost > 0 && (
+                            <span style={{ fontWeight: 700, color: "var(--text-2)" }}>
+                              ${item.cost.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                             </span>
+                          )}
+                          {vis.costPaid && (item.cost > 0 || item.deposit_paid || item.cost_paid) && (() => {
+                            const ps = paymentStatus(item);
+                            return (
+                              <span style={{ color: ps === "paid" ? "#059669" : ps === "deposit" ? "#b45309" : "#dc2626", fontSize: 11, fontWeight: 700, textTransform: "uppercase" }}>
+                                {PAYMENT_LABEL[ps]}
+                              </span>
+                            );
+                          })()}
+                          {isItemConfirmed(item) && (
+                            <span style={{ color: "#059669", fontSize: 11, fontWeight: 700, textTransform: "uppercase" }}>Confirmed</span>
                           )}
                         </div>
                       )}

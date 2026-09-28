@@ -23,7 +23,7 @@ export default async function OverviewPage() {
       .from("tours")
       // agenda_items feed the confirmation-completeness bars (only the three
       // columns that calculation needs).
-      .select("*, tour_hosts(id, name, initials), tour_members(id, type, waiver), agenda_items(id, confirmation_urls, confirmation_not_required)")
+      .select("*, tour_hosts(id, name, initials), tour_members(id, type, waiver), agenda_items(id, confirmation_urls, confirmation_not_required, confirmed)")
       .order("start_date", { ascending: true, nullsFirst: false }),
     supabase.from("tour_hosts").select("*").eq("id", user.id).maybeSingle(),
   ]);

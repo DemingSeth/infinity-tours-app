@@ -10,7 +10,7 @@ import StatsRow from "@/components/overview/StatsRow";
 import CalendarView from "@/components/overview/CalendarView";
 import ConfirmationProgress from "@/components/overview/ConfirmationProgress";
 import VisibilitySettingsModal from "@/components/overview/VisibilitySettingsModal";
-import { parseISODate, startOfDay } from "@/lib/helpers";
+import { startOfDay, tourDateRange } from "@/lib/helpers";
 import type { OverviewTour, HostRole } from "@/lib/types";
 import { isAdmin, isViewerOnTour } from "@/lib/roles";
 
@@ -70,7 +70,7 @@ interface Props {
 // still being planned.
 function isUpcoming(tour: OverviewTour, today: Date): boolean {
   if (tour.status === "closed") return false;
-  const end = parseISODate(tour.end_date) ?? parseISODate(tour.start_date);
+  const end = tourDateRange(tour)?.end ?? null;
   return end ? startOfDay(end) >= today : true;
 }
 

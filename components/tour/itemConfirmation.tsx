@@ -52,6 +52,9 @@ export const isPdf = (url: string) => /\.pdf(\?|$)/i.test(url);
 export type ConfirmationPatch = {
   confirmation_urls?: string[];
   confirmation_not_required?: boolean;
+  confirmed?: boolean;
+  deposit_paid?: boolean;
+  cost_paid?: boolean;
 };
 
 // Shared upload/remove/toggle logic for a single item's confirmation. Each
@@ -213,15 +216,17 @@ export function ConfirmationFileChips({ urls }: { urls: string[] }) {
 // Full confirmation control: status, "no confirmation needed" toggle, linked
 // files (with remove), and an upload button. Reads/writes the same agenda_items
 // record from anywhere it's mounted (Confirmations page and item edit modal).
-export default function ItemConfirmationControl({ tourId, itemId, urls, notRequired, isOwner = true, onPatch }: {
+export default function ItemConfirmationControl({ tourId, itemId, urls, notRequired, confirmed = false, isOwner = true, onPatch }: {
   tourId: string;
   itemId: string;
   urls: string[];
   notRequired: boolean;
+  /** The manual "Confirmed" checkbox. An attached file also counts. */
+  confirmed?: boolean;
   isOwner?: boolean;
   onPatch: (patch: ConfirmationPatch) => void;
 }) {
-  const linked = urls.length > 0;
+  const linked = urls.length > 0 || confirmed;
   const { uploading, inputRef, handleFiles, addLink, removeFile, toggleNotRequired } =
     useItemConfirmation({ tourId, itemId, urls, onPatch });
   const [linkOpen, setLinkOpen] = useState(false);
@@ -241,7 +246,7 @@ export default function ItemConfirmationControl({ tourId, itemId, urls, notRequi
       </div>
 
       {/* Linked confirmation files */}
-      {linked && (
+      {urls.length > 0 && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
           {urls.map(url => (
             <span key={url} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 7, padding: "4px 8px", fontSize: 11, maxWidth: 240 }}>
@@ -267,7 +272,7 @@ export default function ItemConfirmationControl({ tourId, itemId, urls, notRequi
             onChange={e => handleFiles(e.target.files)} />
           <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading}
             style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: 8, border: "1.5px dashed var(--border-strong)", background: "var(--surface)", cursor: uploading ? "default" : "pointer", fontSize: 12, fontWeight: 600, color: "var(--text-2)", fontFamily: "inherit", opacity: uploading ? 0.6 : 1 }}>
-            <Upload size={14} />{uploading ? "Uploading..." : linked ? "Add Another (PDF or image)" : "Upload Confirmation (PDF or image)"}
+            <Upload size={14} />{uploading ? "Uploading..." : urls.length > 0 ? "Add Another (PDF or image)" : "Upload Confirmation (PDF or image)"}
           </button>
           {linkOpen ? (
             <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
@@ -293,6 +298,44 @@ export default function ItemConfirmationControl({ tourId, itemId, urls, notRequi
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// Confirmed / Deposit Paid / Paid in Full checkboxes (September 2026, Amy):
+// each can be checked off on its own. Writes the agenda_items row straight
+// away, like the rest of this module, and surfaces a failed save.
+export function ItemStatusChecks({ itemId, confirmed, hasFiles, depositPaid, paidInFull, isOwner = true, onPatch }: {
+  itemId: string;
+  confirmed: boolean;
+  hasFiles: boolean;
+  depositPaid: boolean;
+  paidInFull: boolean;
+  isOwner?: boolean;
+  onPatch: (patch: ConfirmationPatch) => void;
+}) {
+  async function save(patch: ConfirmationPatch) {
+    const { data, error } = await createClient().from("agenda_items").update(patch).eq("id", itemId).select("id");
+    if (error || !data || data.length === 0) {
+      console.error("[agenda_items status] save failed", error?.message);
+      if (typeof window !== "undefined") window.alert(error?.message ? `Could not save: ${error.message}` : "Could not save. You may not have edit access to this tour.");
+      return;
+    }
+    onPatch(patch);
+  }
+  const box = (id: string, label: string, checked: boolean, onChange: (v: boolean) => void, title?: string, locked = false) => (
+    <label key={id} title={title} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, color: checked ? "var(--green-text)" : "var(--text-2)", cursor: isOwner && !locked ? "pointer" : "default" }}>
+      <input type="checkbox" checked={checked} disabled={!isOwner || locked} onChange={e => onChange(e.target.checked)}
+        style={{ accentColor: "#16a34a", width: 14, height: 14, cursor: isOwner && !locked ? "pointer" : "default" }} />
+      {label}
+    </label>
+  );
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+      {box("confirmed", "Confirmed", confirmed || hasFiles, v => save({ confirmed: v }),
+        hasFiles ? "A confirmation is attached, so this counts as confirmed" : undefined, hasFiles && !confirmed)}
+      {box("deposit", "Deposit Paid", depositPaid || paidInFull, v => save({ deposit_paid: v }), paidInFull ? "Paid in full" : undefined, paidInFull)}
+      {box("paid", "Paid in Full", paidInFull, v => save({ cost_paid: v }))}
     </div>
   );
 }

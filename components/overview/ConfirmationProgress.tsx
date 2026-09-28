@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ClipboardCheck, Filter, X } from "lucide-react";
-import { MONTH_NAMES, STATUSES, parseISODate, tourDateLabel, hostNameOf } from "@/lib/helpers";
+import { MONTH_NAMES, STATUSES, parseISODate, tourDateLabel, hostNameOf, tourDateRange, isItemConfirmed } from "@/lib/helpers";
 import StatusPill from "@/components/shared/StatusPill";
 import type { OverviewTour } from "@/lib/types";
 
@@ -12,7 +12,7 @@ import type { OverviewTour } from "@/lib/types";
 // required" are left out of both numbers, matching the Confirmations tab badge.
 export function confirmationStats(tour: OverviewTour) {
   const items = (tour.agenda_items ?? []).filter(i => !i.confirmation_not_required);
-  const done = items.filter(i => (i.confirmation_urls?.length ?? 0) > 0).length;
+  const done = items.filter(i => isItemConfirmed(i)).length;
   const total = items.length;
   return { done, total, pct: total > 0 ? Math.round((done / total) * 100) : null };
 }
@@ -119,7 +119,7 @@ export default function ConfirmationProgress({ tours, onOpenTour, allowAllScope 
       if (consultantFilter && !consultantKeysOf(t).includes(consultantFilter)) return false;
       if (statusFilter && t.status !== statusFilter) return false;
       if (from || to) {
-        const s = parseISODate(t.start_date);
+        const s = tourDateRange(t)?.start ?? null;
         if (!s) return false;
         if (from && s < from) return false;
         if (to && s > to) return false;
@@ -128,8 +128,8 @@ export default function ConfirmationProgress({ tours, onOpenTour, allowAllScope 
     });
     // Dated tours first (soonest first), undated at the end.
     return [...list].sort((a, b) => {
-      const am = parseISODate(a.start_date)?.getTime() ?? Infinity;
-      const bm = parseISODate(b.start_date)?.getTime() ?? Infinity;
+      const am = tourDateRange(a)?.start.getTime() ?? Infinity;
+      const bm = tourDateRange(b)?.start.getTime() ?? Infinity;
       return am - bm || a.name.localeCompare(b.name);
     });
   }, [tours, effectiveScope, hostFilter, consultantFilter, statusFilter, fromDate, toDate]);
@@ -144,7 +144,7 @@ export default function ConfirmationProgress({ tours, onOpenTour, allowAllScope 
   const months = useMemo(() => {
     const map = new Map<string, { label: string; tours: OverviewTour[]; done: number; total: number }>();
     for (const t of visible) {
-      const d = parseISODate(t.start_date);
+      const d = tourDateRange(t)?.start ?? null;
       const key = d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}` : "undated";
       const label = d ? `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}` : "No dates yet";
       if (!map.has(key)) map.set(key, { label, tours: [], done: 0, total: 0 });

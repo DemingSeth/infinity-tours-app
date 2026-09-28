@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
-import { BRAND, ROLES, DEFAULT_VISIBILITY, PERSONAS, activePersonaKeys, personaColors, BANNER_OVERLAY_GRADIENT } from "@/lib/helpers";
+import { BRAND, ROLES, DEFAULT_VISIBILITY, PERSONAS, activePersonaKeys, personaColors, personaLabel, BANNER_OVERLAY_GRADIENT } from "@/lib/helpers";
 import { I, Field, Inp, Btn } from "@/components/tour/ui";
 import FocalPointPicker from "@/components/tour/FocalPointPicker";
 import BannerLibraryPicker from "@/components/tour/BannerLibraryPicker";
@@ -347,6 +347,30 @@ export default function SettingsTab({ tour, isOwner, viewerIsAdmin, currentUserI
           </span>
         </label>
       </div>
+
+      {/* Summary of Itinerary: which shared views show it (September 2026). */}
+      {(() => {
+        const current: string[] = Array.isArray(tour.summary_personas) ? tour.summary_personas : ["tour_host"];
+        const keys = activePersonaKeys(tour.active_personas);
+        const toggle = (k: string) => onTourChange({ summary_personas: current.includes(k) ? current.filter(x => x !== k) : [...current, k] });
+        return (
+          <div style={{ background: "var(--surface)", border: "1.5px solid var(--border-soft)", borderRadius: 14, padding: 20 }}>
+            <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 15, fontWeight: 400, color: "var(--ink)", marginBottom: 12 }}>Summary of Itinerary</div>
+            <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 12px", lineHeight: 1.6 }}>
+              A read-only grid of each day&apos;s meals and morning, afternoon and evening activities, built from the itinerary. Staff always see it on the Itinerary tab. Choose which shared links and printouts also show it.
+            </p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
+              {keys.map(k => (
+                <label key={k} style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 13, color: "var(--text)", cursor: isOwner ? "pointer" : "default" }}>
+                  <input type="checkbox" checked={current.includes(k)} disabled={!isOwner} onChange={() => toggle(k)}
+                    style={{ accentColor: BRAND.navy, width: 15, height: 15 }} />
+                  {personaLabel(k, tour.persona_labels)}
+                </label>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* No traveling Tour Host: the teacher runs the trip, so every internal
           note goes on the Teacher view (September 2026, Amy). */}

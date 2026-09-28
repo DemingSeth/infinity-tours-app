@@ -14,7 +14,7 @@ type ConfItem = { id?: string; type: string; label: string | null; file_url: str
 // `id` = tour_hosts.id when picked from the staff dropdown (grants edit access).
 // `url` = optional link on the name (Tour Host bio). Hosts only for now.
 type PersonForm = { name: string; contact: string; id?: string | null; url?: string };
-type CustomRowForm = { id: string; label: string; value: string; url: string; visibility: Record<string, boolean> };
+type CustomRowForm = { id: string; label: string; value: string; url: string; visibility: Record<string, boolean>; confirmation?: boolean };
 
 type TripForm = {
   // Multiple teachers ({ name, contact: email }) and tour hosts ({ name, contact: phone }).
@@ -250,7 +250,7 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
       busOverride: info.overrides?.bus ?? "",
       departureOverride: info.overrides?.departure ?? "",
       returnOverride: info.overrides?.return ?? "",
-      customRows: (info.customRows ?? []).map(r => ({ id: r.id, label: r.label ?? "", value: r.value ?? "", url: r.url ?? "", visibility: { ...(r.visibility ?? {}) } })),
+      customRows: (info.customRows ?? []).map(r => ({ id: r.id, label: r.label ?? "", value: r.value ?? "", url: r.url ?? "", visibility: { ...(r.visibility ?? {}) }, confirmation: r.confirmation === true })),
       rowOrder: [...(info.rowOrder ?? [])],
     });
     setOpen(true);
@@ -277,7 +277,7 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
         .map(r => {
           // Drop false entries; an empty map means "everyone".
           const visibility = Object.fromEntries(Object.entries(r.visibility ?? {}).filter(([, v]) => v));
-          return { id: r.id, label: r.label.trim(), value: r.value.trim() || null, url: r.url.trim() || null, visibility: Object.keys(visibility).length ? visibility : null };
+          return { id: r.id, label: r.label.trim(), value: r.value.trim() || null, url: r.url.trim() || null, visibility: Object.keys(visibility).length ? visibility : null, confirmation: r.confirmation === true };
         })
         .filter(r => r.label || r.value || r.url);
       await Promise.all([
@@ -814,15 +814,16 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
           )}
           {r.url ? (
             print ? (
-              <span>{r.value || r.label || r.url}</span>
+              <span style={{ whiteSpace: "pre-wrap" }}>{r.value || r.label || r.url}</span>
             ) : (
-              <a href={externalHref(r.url)} target="_blank" rel="noreferrer" style={{ ...linkStyle, display: "inline-flex", alignItems: "center", gap: 5 }}>
-                <LinkIcon size={12} />{r.value || r.label || r.url}
+              <a href={externalHref(r.url)} target="_blank" rel="noreferrer" style={{ ...linkStyle, display: "inline-flex", alignItems: "flex-start", gap: 5, whiteSpace: "pre-wrap" }}>
+                <LinkIcon size={12} style={{ flexShrink: 0, marginTop: 3 }} />{r.value || r.label || r.url}
               </a>
             )
           ) : (
             <div style={{ whiteSpace: "pre-wrap" }}>{dash(r.value)}</div>
           )}
+          {r.confirmation && renderConf(`custom:${r.id}`, r.label || "Confirmation")}
         </div>
       ),
     })) : []),
@@ -850,10 +851,17 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
               This row is display only. To give someone edit access to this tour, add them under Tour Hosts or Tour Consultants instead.
             </div>
           )}
-          <input style={inputStyle} value={r.value} placeholder="Text to show (optional)"
+          {/* Multi-line (September 2026): Enter starts a new line. */}
+          <textarea style={{ ...inputStyle, minHeight: 38, resize: "vertical", lineHeight: 1.45 }} rows={Math.min(8, Math.max(1, r.value.split("\n").length))} value={r.value} placeholder="Text to show (optional, Enter for a new line)"
             onChange={e => setForm(f => ({ ...f, customRows: f.customRows.map((x, idx) => idx === i ? { ...x, value: e.target.value } : x) }))} />
           <input style={inputStyle} value={r.url} placeholder="Link URL (optional, makes the row a link)"
             onChange={e => setForm(f => ({ ...f, customRows: f.customRows.map((x, idx) => idx === i ? { ...x, url: e.target.value } : x) }))} />
+          <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-2)", cursor: "pointer" }}>
+            <input type="checkbox" checked={r.confirmation === true}
+              onChange={e => setForm(f => ({ ...f, customRows: f.customRows.map((x, idx) => idx === i ? { ...x, confirmation: e.target.checked } : x) }))}
+              style={{ accentColor: BRAND.navy, width: 13, height: 13 }} />
+            Attach a confirmation to this row (shown like the flight, hotel and bus confirmations)
+          </label>
           {/* Who sees this row. Nothing checked = everyone. */}
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, marginTop: 2 }}>
             <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: 0.5 }}>Show to</span>

@@ -12,7 +12,7 @@ import {
   activePersonaKeys, personaLabel, personaColors, getPersona, defaultPersonaVisibility, isActivityType, generateAccessCode,
   INTERNAL_NOTE_PERSONAS, noteAudience, internalNoteLabel, tourHostNames,
   orderAgendaDays, agendaDaysAreDated,
-  MEAL_MONEY_TYPES, mealMoneyHasAmount, mealMoneyLabel,
+  MEAL_MONEY_TYPES, mealMoneyHasAmount, mealMoneyLabel, paymentStatus, PAYMENT_LABEL,
 } from "@/lib/helpers";
 import GoogleMapsLink from "@/components/shared/GoogleMapsLink";
 import AgendaRoleView from "@/components/tour/AgendaRoleView";
@@ -22,6 +22,8 @@ import {
 } from "@/components/shared/agendaIcons";
 import AgendaImages from "@/components/shared/AgendaImages";
 import NoteText from "@/components/shared/NoteText";
+import AddressText from "@/components/shared/AddressText";
+import ItinerarySummary from "@/components/tour/ItinerarySummary";
 import LinkableNoteField from "@/components/shared/LinkableNoteField";
 import ItemConfirmationControl, { ConfirmationFileChips, type ConfirmationPatch } from "@/components/tour/itemConfirmation";
 import ItineraryHeaderTile from "@/components/tour/ItineraryHeaderTile";
@@ -432,6 +434,8 @@ type ItemFormState = {
   public_note: string; address: string; map_link: string; website: string;
   travel_methods: string[]; contact_name: string; contact_phone: string;
   contact_email: string; cost: string; cost_paid: boolean;
+  // Separate checkboxes (September 2026): cost_paid is "Paid in Full".
+  deposit_paid: boolean; confirmed: boolean;
   confirmation_not_required: boolean;
   driver_note: string; internal_note: string;
   // Who the Internal Note is for: named tour hosts and/or other personas.
@@ -451,7 +455,7 @@ const BLANK: ItemFormState = {
   time: "", end_time: "", type: "activity", activity_subtypes: [], title: "", detail: "", public_note: "",
   address: "", map_link: "", website: "", travel_methods: [],
   contact_name: "", contact_phone: "", contact_email: "",
-  cost: "", cost_paid: false, confirmation_not_required: false, driver_note: "", internal_note: "",
+  cost: "", cost_paid: false, deposit_paid: false, confirmed: false, confirmation_not_required: false, driver_note: "", internal_note: "",
   internal_note_audience: { hosts: [], personas: [] },
   meal_money: [], persona_visibility: defaultPersonaVisibility("activity", []),
   feedback_enabled: isActivityType("activity", []), image_urls: [], driver_map_urls: [], icon_color: null,
@@ -977,9 +981,18 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
           )}
         </Field>
         <div style={{ width: "100%", display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
+          {/* Confirmed and paid are separate (September 2026, Amy). */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <input type="checkbox" id="cconf" checked={form.confirmed} onChange={e => f({ confirmed: e.target.checked })} style={{ accentColor: BRAND.navy }} />
+            <label htmlFor="cconf" style={{ fontSize: 12, cursor: "pointer" }}>Confirmed</label>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <input type="checkbox" id="cdep" checked={form.deposit_paid || form.cost_paid} disabled={form.cost_paid} onChange={e => f({ deposit_paid: e.target.checked })} style={{ accentColor: BRAND.navy }} />
+            <label htmlFor="cdep" style={{ fontSize: 12, cursor: form.cost_paid ? "default" : "pointer" }}>Deposit Paid</label>
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <input type="checkbox" id="cpaid" checked={form.cost_paid} onChange={e => f({ cost_paid: e.target.checked })} style={{ accentColor: BRAND.navy }} />
-            <label htmlFor="cpaid" style={{ fontSize: 12, cursor: "pointer" }}>Cost paid / confirmed</label>
+            <label htmlFor="cpaid" style={{ fontSize: 12, cursor: "pointer" }}>Paid in Full</label>
           </div>
           {/* Inline checkbox only when there's no full confirmation control
               (i.e. the New Item form). In the edit modal the control below
@@ -1217,7 +1230,7 @@ function ItemRow({ item, groups, personaLabels, onEdit, onRemove, onDuplicate, o
                 uploading / status lives in the edit modal and Confirmations page. */}
             <ConfirmationFileChips urls={item.confirmation_urls ?? []} />
           </div>
-          {item.address && <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 3, display: "flex", alignItems: "center", gap: 4 }}><MapPin size={12} style={{ flexShrink: 0 }} />{item.address}</div>}
+          {item.address && <div style={{ fontSize: 12, marginBottom: 3, display: "flex", alignItems: "flex-start", gap: 4 }}><MapPin size={12} style={{ flexShrink: 0, color: "var(--red-text)", marginTop: 2 }} /><AddressText address={item.address} withIcon /></div>}
           {item.detail && (
             <InlineNote value={item.detail} onSave={v => onSaveField("detail", v)}
               style={{ fontSize: 12, color: "var(--text-2)", marginBottom: 3, whiteSpace: "pre-wrap", lineHeight: 1.5 }} />
@@ -1248,6 +1261,8 @@ function ItemRow({ item, groups, personaLabels, onEdit, onRemove, onDuplicate, o
                   ? "Hotel Breakfast"
                   : mm.type === "delivered"
                   ? "Delivered Meal"
+                  : mm.type === "not_included"
+                  ? "Not Included"
                   : "Group Meal";
                 return (
                   <span key={`${mm.type}-${i}`} style={{ fontSize: 11, borderRadius: 6, padding: "2px 9px", fontWeight: 700, ...style }}>{label}</span>
@@ -1271,15 +1286,22 @@ function ItemRow({ item, groups, personaLabels, onEdit, onRemove, onDuplicate, o
                 <Phone size={11} style={{ flexShrink: 0 }} />{item.contact_name}{item.contact_phone ? ` · ${item.contact_phone}` : ""}
               </span>
             )}
-            {item.cost > 0 && (
-              <span style={{ fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4 }}>
-                <span style={{ color: "var(--amber-text)", fontWeight: 700 }}>{fmt$(item.cost)}</span>
-                <button onClick={onToggleCostPaid}
-                  style={{ background: item.cost_paid ? "var(--green-bg)" : "var(--red-bg)", color: item.cost_paid ? "var(--green-text)" : "var(--red-text)", border: "none", borderRadius: 4, padding: "1px 6px", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-                  {item.cost_paid ? "Paid" : "Unpaid"}
-                </button>
-              </span>
-            )}
+            {(item.cost > 0 || item.deposit_paid || item.cost_paid) && (() => {
+              // Click cycles Unpaid, Deposit Paid, Paid in Full.
+              const ps = paymentStatus(item);
+              const tone = ps === "paid" ? { bg: "var(--green-bg)", fg: "var(--green-text)" }
+                : ps === "deposit" ? { bg: "var(--amber-bg)", fg: "var(--amber-text)" }
+                : { bg: "var(--red-bg)", fg: "var(--red-text)" };
+              return (
+                <span style={{ fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  {item.cost > 0 && <span style={{ color: "var(--amber-text)", fontWeight: 700 }}>{fmt$(item.cost)}</span>}
+                  <button onClick={onToggleCostPaid} title="Click to change: Unpaid, Deposit Paid, Paid in Full"
+                    style={{ background: tone.bg, color: tone.fg, border: "none", borderRadius: 4, padding: "1px 6px", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                    {PAYMENT_LABEL[ps]}
+                  </button>
+                </span>
+              );
+            })()}
             {item.driver_note && <span style={{ fontSize: 10, background: "var(--red-bg-soft)", border: "1px solid var(--red-border)", color: "var(--red-text)", borderRadius: 5, padding: "0 6px", display: "inline-flex", alignItems: "center", gap: 4 }}><Bus size={11} style={{ flexShrink: 0 }} /><strong style={{ fontWeight: 700 }}>Bus Driver Note:</strong> {item.driver_note}</span>}
           </div>
 
@@ -1490,7 +1512,8 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
       activity_subtype: f.activity_subtypes[0] || null,
       contact_name: f.contact_name || null, contact_phone: f.contact_phone || null,
       contact_email: f.contact_email || null, cost: parseFloat(f.cost) || 0,
-      cost_paid: f.cost_paid, confirmation_not_required: f.confirmation_not_required, driver_note: f.driver_note || null,
+      cost_paid: f.cost_paid, deposit_paid: f.deposit_paid, confirmed: f.confirmed,
+      confirmation_not_required: f.confirmation_not_required, driver_note: f.driver_note || null,
       internal_note: f.internal_note || null,
       // Empty arrays are dropped so an untouched note stores {} and keeps its
       // historical "Internal:" rendering.
@@ -1542,7 +1565,8 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
       contact_name: item.contact_name || "", contact_phone: item.contact_phone || "",
       contact_email: item.contact_email || "",
       cost: item.cost > 0 ? String(item.cost) : "",
-      cost_paid: item.cost_paid, confirmation_not_required: !!item.confirmation_not_required, driver_note: item.driver_note || "",
+      cost_paid: item.cost_paid, deposit_paid: !!item.deposit_paid, confirmed: !!item.confirmed,
+      confirmation_not_required: !!item.confirmation_not_required, driver_note: item.driver_note || "",
       internal_note: item.internal_note || "",
       internal_note_audience: noteAudience(item.internal_note_audience),
       meal_money: mealMoneyToForm(item),
@@ -1886,7 +1910,8 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
   function duplicateItem(dayId: string, item: AgendaItemWithFeedback) {
     setAddingItem(dayId);
     setAddingItemId(crypto.randomUUID());
-    setItemForm(itemToForm(item));
+    // A copy is a new booking: it starts unconfirmed.
+    setItemForm({ ...itemToForm(item), confirmed: false });
     setCollapsedDays(c => ({ ...c, [dayId]: false }));
   }
 
@@ -1897,7 +1922,7 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
     if (targetDayIds.length === 0) return;
     setCopying(true);
     const supabase = createClient();
-    const form = itemToForm(source);
+    const form = { ...itemToForm(source), confirmed: false };
     const rows = targetDayIds.map(dayId => {
       const day = daysRef.current.find(d => d.id === dayId);
       const ordered = orderAgendaItems(day?.agenda_items ?? []);
@@ -1936,10 +1961,19 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
     setCopyTargets({});
   }
 
+  // Cycles Unpaid, Deposit Paid, Paid in Full, back to Unpaid.
   async function toggleCostPaid(dayId: string, item: AgendaItemWithFeedback) {
+    const ps = paymentStatus(item);
+    const patch = ps === "unpaid" ? { deposit_paid: true, cost_paid: false }
+      : ps === "deposit" ? { deposit_paid: true, cost_paid: true }
+      : { deposit_paid: false, cost_paid: false };
     const supabase = createClient();
-    await supabase.from("agenda_items").update({ cost_paid: !item.cost_paid }).eq("id", item.id);
-    onDaysChange(days.map(d => d.id === dayId ? { ...d, agenda_items: d.agenda_items.map(i => i.id === item.id ? { ...i, cost_paid: !i.cost_paid } : i) } : d));
+    const { data, error } = await supabase.from("agenda_items").update(patch).eq("id", item.id).select("id");
+    if (error || !data || data.length === 0) {
+      window.alert(error?.message ? `Could not save: ${error.message}` : "Could not save. You may not have edit access to this tour.");
+      return;
+    }
+    onDaysChange(days.map(d => d.id === dayId ? { ...d, agenda_items: d.agenda_items.map(i => i.id === item.id ? { ...i, ...patch } : i) } : d));
   }
 
   // Reflect a confirmation change (made by ItemConfirmationControl, which has
@@ -2179,6 +2213,21 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
         onEditFlight={flightLoc ? () => openEditItem(flightLoc.dayId, flightLoc.item) : null}
         onEditHotel={hotelLoc ? () => openEditItem(hotelLoc.dayId, hotelLoc.item) : null}
         onEditBus={busLoc ? () => openEditItem(busLoc.dayId, busLoc.item) : null}
+      />
+
+      {/* Summary of Itinerary (read only). Staff always see it here; which
+          shared views show it is set in Settings. */}
+      <ItinerarySummary
+        days={days}
+        initiallyOpen={!tripInfoStartsCollapsed(days)}
+        note={(() => {
+          const shown = (Array.isArray(tour.summary_personas) ? tour.summary_personas : ["tour_host"])
+            .filter((k: string) => activePersonaKeys(tour.active_personas).includes(k))
+            .map((k: string) => personaLabel(k, tour.persona_labels));
+          return shown.length
+            ? <>Also shown on the {shown.join(", ")} view{shown.length > 1 ? "s" : ""}. Change this in Settings.</>
+            : <>Not shown on any shared view. Turn it on for a view in Settings.</>;
+        })()}
       />
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
@@ -2500,6 +2549,7 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
                   itemId={editCtx.itemId}
                   urls={editItem.confirmation_urls ?? []}
                   notRequired={!!editItem.confirmation_not_required}
+                  confirmed={!!editItem.confirmed}
                   onPatch={patch => patchConfirmation(editCtx.dayId, editCtx.itemId, patch)}
                 />
               )}

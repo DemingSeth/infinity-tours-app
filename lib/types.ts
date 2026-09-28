@@ -160,6 +160,9 @@ export interface CustomTripRow {
   value?: string | null;
   url?: string | null;
   visibility?: Record<string, boolean> | null;
+  // When true the row offers a confirmation attachment (September 2026).
+  // Stored in tour_confirmations with type "custom:<row id>".
+  confirmation?: boolean | null;
 }
 
 // Free-text overrides for the derived Flight / Hotel / Bus Trip Information
@@ -255,6 +258,9 @@ export interface TourRow {
   // When true, every Internal Note also shows on the Teacher view (tours with
   // no traveling Tour Host, where the teacher runs the trip).
   internal_notes_teacher_visible: boolean;
+  // Which viewers see the Summary of Itinerary on shared links and print
+  // (persona keys). The editor always shows it to staff.
+  summary_personas?: string[] | null;
   // Host-chosen order of the Trip Information rows (row keys such as
   // "teacher", "flight", "custom:<id>"). Missing keys append in default order.
   trip_info_row_order: string[];
@@ -279,7 +285,7 @@ export type TravelMethod = "bus" | "flight" | "subway" | "train" | "walking" | "
 // meal is covered — as a group, or included with the hotel stay); stipend /
 // disney_dining / cash each carry their own dollar amount. A meal may hold
 // several entries at once (e.g. Group Meal + Cash).
-export type MealMoneyType = "group" | "hotel_breakfast" | "delivered" | "stipend" | "disney_dining" | "cash";
+export type MealMoneyType = "group" | "hotel_breakfast" | "delivered" | "stipend" | "disney_dining" | "cash" | "not_included";
 export interface MealMoneyEntry {
   type: MealMoneyType;
   amount?: number | null;
@@ -350,7 +356,12 @@ export interface AgendaItemRow {
   contact_phone: string | null;
   contact_email: string | null;
   cost: number;
+  // Paid in Full. deposit_paid and confirmed were split out September 2026
+  // (Amy) so each can be checked off on its own.
   cost_paid: boolean;
+  deposit_paid?: boolean;
+  // Manually checked "Confirmed". An attached confirmation also counts.
+  confirmed?: boolean;
   driver_note: string | null;
   internal_note: string | null;
   // Authoritative meal-money list (see MealMoneyEntry). Multi-select.
@@ -545,6 +556,8 @@ export interface TripInfo {
   confirmationsTeacherVisible: boolean;
   // Whether teachers see every internal note (no traveling Tour Host).
   internalNotesTeacherVisible: boolean;
+  // Persona keys that see the Summary of Itinerary (default Tour Host only).
+  summaryPersonas: string[];
   // Host-chosen Trip Information row order (row keys); empty = default.
   rowOrder: string[];
   flightName: string | null;
@@ -595,7 +608,7 @@ export interface TourWithHostAndMembers extends TourRow {
 // Overview page shape: the pipeline shape plus the item fields the
 // confirmation-completeness bars need.
 export interface OverviewTour extends TourWithHostAndMembers {
-  agenda_items: Pick<AgendaItemRow, "id" | "confirmation_urls" | "confirmation_not_required">[];
+  agenda_items: Pick<AgendaItemRow, "id" | "confirmation_urls" | "confirmation_not_required" | "confirmed">[];
 }
 
 export interface AgendaDayWithItems extends AgendaDayRow {

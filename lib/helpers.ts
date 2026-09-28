@@ -31,9 +31,10 @@ export const BANNER_TEXT_SHADOW = "0 1px 6px rgba(0,0,0,0.75)";
 // dark; dot stays a hex because callers append alpha to it (`${st.dot}33`).
 export const STATUSES = [
   { id: "bid",         label: "Quote",       color: "var(--amber-text)", bg: "var(--amber-bg)",     dot: "#d97706" },
-  { id: "committed",   label: "Committed",   color: "var(--green-text)", bg: "var(--green-bg-soft)", dot: "#10b981" },
-  { id: "in-progress", label: "In Progress", color: "var(--sky-text)",   bg: "var(--sky-bg-soft)",   dot: "#3b82f6" },
-  { id: "closed",      label: "Closed",      color: "var(--text-2)",     bg: "var(--surface-3)",     dot: "#9ca3af" },
+  // Labels renamed September 2026 (Amy); the stored ids are unchanged.
+  { id: "committed",   label: "Signed",   color: "var(--green-text)", bg: "var(--green-bg-soft)", dot: "#10b981" },
+  { id: "in-progress", label: "On Tour", color: "var(--sky-text)",   bg: "var(--sky-bg-soft)",   dot: "#3b82f6" },
+  { id: "closed",      label: "Tour Complete",      color: "var(--text-2)",     bg: "var(--surface-3)",     dot: "#9ca3af" },
 ] as const;
 
 // Top-level itinerary item types. "Travel" and "Activity" have sub-types
@@ -199,6 +200,8 @@ export const MEAL_MONEY_TYPES = [
   { value: "stipend",         label: "Meal Stipend (Till Card)",  hasAmount: true  },
   { value: "disney_dining",   label: "Disney Dining Dollars",     hasAmount: true  },
   { value: "cash",            label: "Cash",                      hasAmount: true  },
+  // The meal is on the schedule but not part of the package (September 2026).
+  { value: "not_included",    label: "Not Included",              hasAmount: false },
 ] as const;
 
 export function mealMoneyHasAmount(type: string): boolean {
@@ -618,9 +621,9 @@ export function buildTripInfo({ tour, members, days, hostName, hostPhone, confir
         : []);
 
   const infoOverrides = (tour?.trip_info_overrides as TripInfo["overrides"] | null) || {};
-  const customRows = ((tour?.custom_trip_rows as { id?: string; label?: string; value?: string | null; url?: string | null; visibility?: Record<string, boolean> | null }[] | null) || [])
+  const customRows = ((tour?.custom_trip_rows as { id?: string; label?: string; value?: string | null; url?: string | null; visibility?: Record<string, boolean> | null; confirmation?: boolean | null }[] | null) || [])
     .filter(r => (r?.label ?? "").trim() || (r?.value ?? "").trim() || (r?.url ?? "").trim())
-    .map((r, i) => ({ id: r.id || `row-${i}`, label: (r.label ?? "").trim(), value: (r.value ?? "").trim() || null, url: (r.url ?? "").trim() || null, visibility: r.visibility ?? null }));
+    .map((r, i) => ({ id: r.id || `row-${i}`, label: (r.label ?? "").trim(), value: (r.value ?? "").trim() || null, url: (r.url ?? "").trim() || null, visibility: r.visibility ?? null, confirmation: r.confirmation === true }));
   const groups = ((tour?.groups as { id?: string; name?: string }[] | null) || [])
     .filter(g => g && g.id && (g.name ?? "").trim())
     .map(g => ({ id: g.id as string, name: (g.name as string).trim() }));
@@ -647,6 +650,7 @@ export function buildTripInfo({ tour, members, days, hostName, hostPhone, confir
     personaLabels: labels ?? {},
     confirmationsTeacherVisible: tour?.confirmations_teacher_visible === true,
     internalNotesTeacherVisible: tour?.internal_notes_teacher_visible === true,
+    summaryPersonas: Array.isArray(tour?.summary_personas) ? (tour.summary_personas as string[]) : ["tour_host"],
     rowOrder: Array.isArray(tour?.trip_info_row_order) ? (tour.trip_info_row_order as string[]).filter(k => typeof k === "string") : [],
     flightName: flightName || null,
     flightAddress: flight?.address || null,
@@ -1033,6 +1037,91 @@ export function initialsFrom(name: string | null | undefined, fallback = "?"): s
   if (!name) return fallback;
   return name.trim().split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase() || fallback;
 }
+
+// ─── Tour date range (calendar fallback) ──────────────────────────────────────
+// September 2026: the New Tour form only takes free-text dates ("Apr 14-18,
+// 2026"), and start_date / end_date are only set from the Trip Information
+// Departure / Return pickers, so 29 of 69 open tours never showed on the
+// calendar. This reads the free text when the real columns are empty.
+// Handles "March 12-16, 2027", "May 5 - 17, 2027", "Feb 26th-Mar 1st, 2027",
+// "April 4th- April 10th", "April 29-May 2, 2027", "02/17/27-02/22/27" and a
+// single "May 15th, 2026". With no year, the first occurrence on or after
+// (anchor - 60 days) is used, the anchor being when the tour was created.
+const MONTH_KEYS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+
+export function parseTourDateText(text: string | null | undefined, anchor: Date = new Date()): { start: Date; end: Date } | null {
+  const t = (text ?? "").trim().toLowerCase().replace(/(\d)(st|nd|rd|th)\b/g, "$1");
+  if (!t) return null;
+  const mk = (y: number, m: number, d: number) => {
+    const x = new Date(y, m, d, 12, 0, 0);
+    return x.getMonth() === m && x.getDate() === d ? x : null;
+  };
+  const fullYear = (y: string) => (y.length === 2 ? 2000 + parseInt(y, 10) : parseInt(y, 10));
+
+  // Numeric: 02/17/27-02/22/27 or 2/17/2027 - 2/22/2027 or a single 2/17/27.
+  const num = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:\s*[-\u2013]\s*(\d{1,2})\/(\d{1,2})\/(\d{2,4}))?$/);
+  if (num) {
+    const s = mk(fullYear(num[3]), parseInt(num[1], 10) - 1, parseInt(num[2], 10));
+    const e = num[4] ? mk(fullYear(num[6]), parseInt(num[4], 10) - 1, parseInt(num[5], 10)) : s;
+    return s && e && e >= s ? { start: s, end: e } : null;
+  }
+
+  // Month-name forms.
+  const re = /^([a-z]+)\.?\s+(\d{1,2})(?:\s*,?\s*(\d{4}))?(?:\s*[-\u2013]\s*(?:([a-z]+)\.?\s+)?(\d{1,2}))?(?:\s*,?\s*(\d{4}))?$/;
+  const m = t.match(re);
+  if (!m) return null;
+  const m1 = MONTH_KEYS.indexOf(m[1].slice(0, 3));
+  const m2 = m[4] ? MONTH_KEYS.indexOf(m[4].slice(0, 3)) : m1;
+  if (m1 < 0 || m2 < 0) return null;
+  const d1 = parseInt(m[2], 10);
+  const d2 = m[5] ? parseInt(m[5], 10) : d1;
+  const explicitYear = m[6] ? parseInt(m[6], 10) : m[3] ? parseInt(m[3], 10) : null;
+
+  let endYear: number;
+  if (explicitYear !== null) {
+    endYear = explicitYear;
+  } else {
+    const floor = new Date(anchor.getTime() - 60 * 86400000);
+    endYear = anchor.getFullYear();
+    const trial = mk(endYear, m1, d1);
+    if (trial && trial < floor) endYear += 1;
+    if (m2 < m1) endYear += 1; // "Dec 28-Jan 2" crosses the year
+  }
+  const startYear = m2 < m1 ? endYear - 1 : endYear;
+  const start = mk(startYear, m1, d1);
+  const end = mk(endYear, m2, d2);
+  if (!start || !end || end < start) return null;
+  return { start, end };
+}
+
+// The tour's date range: the real start_date / end_date columns first, else
+// the free-text dates. Null when neither can be read.
+export function tourDateRange(tour: { start_date?: string | null; end_date?: string | null; dates?: string | null; created_at?: string | null }): { start: Date; end: Date; fromText: boolean } | null {
+  const s = parseISODate(tour.start_date);
+  if (s) {
+    const e = parseISODate(tour.end_date) ?? s;
+    return { start: s, end: e < s ? s : e, fromText: false };
+  }
+  const anchor = tour.created_at ? new Date(tour.created_at) : new Date();
+  const r = parseTourDateText(tour.dates, Number.isNaN(anchor.getTime()) ? new Date() : anchor);
+  return r ? { ...r, fromText: true } : null;
+}
+
+// ─── Confirmed / paid status (September 2026) ────────────────────────────────
+// An item counts as confirmed when someone checked "Confirmed" OR a
+// confirmation file or link is attached. One rule for every count in the app.
+export function isItemConfirmed(item: { confirmed?: boolean | null; confirmation_urls?: string[] | null }): boolean {
+  return item.confirmed === true || (item.confirmation_urls?.length ?? 0) > 0;
+}
+
+// Payment label for an item: Paid in Full wins over Deposit Paid.
+export function paymentStatus(item: { cost_paid?: boolean | null; deposit_paid?: boolean | null }): "paid" | "deposit" | "unpaid" {
+  if (item.cost_paid) return "paid";
+  if (item.deposit_paid) return "deposit";
+  return "unpaid";
+}
+
+export const PAYMENT_LABEL = { paid: "Paid in Full", deposit: "Deposit Paid", unpaid: "Unpaid" } as const;
 
 // Parse a DATE column ('YYYY-MM-DD') to a local Date at noon (avoids TZ drift).
 export function parseISODate(value: string | null | undefined): Date | null {

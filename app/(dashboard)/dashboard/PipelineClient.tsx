@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import PipelineView from "@/components/pipeline/PipelineView";
 import NewTourModal from "@/components/pipeline/NewTourModal";
 import type { EditorViewer } from "@/lib/roles";
+import { parseTourDateText } from "@/lib/helpers";
 
 interface Props {
   initialTours: any[];
@@ -46,10 +47,15 @@ export default function PipelineClient({ initialTours, currentHostId, currentHos
     activePersonas: string[]; personaLabels: Record<string, string>;
   }) {
     const supabase = createClient();
+    // Fill the real Departure / Return dates from the typed Dates text when it
+    // can be read, so a new tour lands on the calendar right away.
+    const parsed = parseTourDateText(fields.dates);
+    const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     const { data, error } = await supabase
       .from("tours")
       .insert({
         tour_host_id: currentHostId,
+        ...(parsed ? { start_date: iso(parsed.start), end_date: iso(parsed.end) } : {}),
         name: fields.name,
         school: fields.school,
         destination: fields.destination,
@@ -129,6 +135,7 @@ export default function PipelineClient({ initialTours, currentHostId, currentHos
         groups: source.groups,
         confirmations_teacher_visible: source.confirmations_teacher_visible,
         internal_notes_teacher_visible: source.internal_notes_teacher_visible,
+        summary_personas: source.summary_personas,
         trip_info_row_order: source.trip_info_row_order,
       })
       .select("*, tour_hosts(id, name, initials), tour_members(id, type, waiver)")

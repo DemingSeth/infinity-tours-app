@@ -1,8 +1,8 @@
 "use client";
 
-import { BRAND, orderAgendaItems, orderAgendaDays, resolveIconColor } from "@/lib/helpers";
+import { BRAND, orderAgendaItems, orderAgendaDays, resolveIconColor, isItemConfirmed } from "@/lib/helpers";
 import TypeDot from "@/components/shared/TypeDot";
-import ItemConfirmationControl from "@/components/tour/itemConfirmation";
+import ItemConfirmationControl, { ItemStatusChecks } from "@/components/tour/itemConfirmation";
 import type { AgendaDayWithItems, AgendaItemWithFeedback } from "@/lib/types";
 
 interface Props {
@@ -16,8 +16,8 @@ export default function ConfirmationsTab({ tourId, days: daysProp, onDaysChange,
   // Same day ordering and numbering the itinerary uses.
   const days = orderAgendaDays(daysProp);
   const allItems = days.flatMap(d => d.agenda_items);
-  const confirmed = allItems.filter(i => (i.confirmation_urls?.length ?? 0) > 0).length;
-  const notRequired = allItems.filter(i => !(i.confirmation_urls?.length) && i.confirmation_not_required).length;
+  const confirmed = allItems.filter(i => isItemConfirmed(i)).length;
+  const notRequired = allItems.filter(i => !isItemConfirmed(i) && i.confirmation_not_required).length;
   // Only genuinely outstanding items — excludes those marked "no confirmation required".
   const unconfirmed = allItems.length - confirmed - notRequired;
 
@@ -103,11 +103,23 @@ function ConfirmationRow({ tourId, item, isOwner, topBorder, onPatch }: {
         </div>
         {/* Shared control: status, no-confirmation toggle, files, links, upload —
             reads/writes the same agenda_items record as the item edit modal. */}
+        <div style={{ marginBottom: 8 }}>
+          <ItemStatusChecks
+            itemId={item.id}
+            confirmed={!!item.confirmed}
+            hasFiles={urls.length > 0}
+            depositPaid={!!item.deposit_paid}
+            paidInFull={!!item.cost_paid}
+            isOwner={isOwner}
+            onPatch={onPatch}
+          />
+        </div>
         <ItemConfirmationControl
           tourId={tourId}
           itemId={item.id}
           urls={urls}
           notRequired={notRequired}
+          confirmed={!!item.confirmed}
           isOwner={isOwner}
           onPatch={onPatch}
         />
