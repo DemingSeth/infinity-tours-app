@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import MapFileThumb, { isPdfUrl } from "@/components/shared/MapFileThumb";
 
 // Activity photos render whole (never cropped) at their natural aspect ratio,
 // capped to a medium height. The `agenda-photo` class lets the print page tighten
@@ -45,6 +46,22 @@ export default function AgendaImages({
 
   if (!urls || urls.length === 0) return null;
 
+  // A PDF cannot be drawn in an <img>. Photos keep their normal rendering;
+  // PDFs render as a tappable file chip (see MapFileThumb).
+  const pdfUrls = urls.filter(isPdfUrl);
+  const pdfRow = pdfUrls.length > 0 && (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
+      {pdfUrls.map((url, i) => (
+        <div key={`${url}-${i}`} style={{ position: "relative" }}>
+          <MapFileThumb url={url} print={print} width={Math.max(size, 96)} height={Math.max(size, 68)} borderColor="var(--border)" />
+          {onRemove && !print && <RemoveDot onClick={() => onRemove(url)} />}
+        </div>
+      ))}
+    </div>
+  );
+  urls = urls.filter(u => !isPdfUrl(u));
+  if (urls.length === 0) return <>{pdfRow}</>;
+
   if (print) {
     // Static, eagerly-loaded whole images (no lightbox / interactivity).
     // Compact print thumbnails: a tight left-aligned row of small photos so the
@@ -58,6 +75,7 @@ export default function AgendaImages({
           // eslint-disable-next-line @next/next/no-img-element
           <img key={`${url}-${i}`} src={url} alt="Itinerary item photo" loading="eager" style={printThumbStyle} />
         ))}
+        {pdfRow}
       </div>
     );
   }
@@ -101,6 +119,7 @@ export default function AgendaImages({
           ))}
         </div>
 
+        {pdfRow}
         {lightboxIndex !== null && (
           <Lightbox urls={urls} index={lightboxIndex} onClose={() => setLightboxIndex(null)} onIndex={setLightboxIndex} />
         )}
@@ -110,6 +129,7 @@ export default function AgendaImages({
 
   // Thumbnail grid (upload/management UI).
   return (
+    <>
     <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
       {urls.map((url, i) => (
         <div key={`${url}-${i}`} style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
@@ -144,6 +164,27 @@ export default function AgendaImages({
         </div>
       ))}
     </div>
+    {pdfRow}
+    </>
+  );
+}
+
+function RemoveDot({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      title="Remove file"
+      onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClick(); }}
+      style={{
+        position: "absolute", top: -6, right: -6, width: 20, height: 20,
+        borderRadius: "50%", background: "#ef4444", color: "#fff",
+        border: "2px solid var(--surface)", cursor: "pointer", padding: 0,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        lineHeight: 1, boxShadow: "0 1px 3px rgba(0,0,0,.3)",
+      }}
+    >
+      <X size={11} strokeWidth={3} />
+    </button>
   );
 }
 

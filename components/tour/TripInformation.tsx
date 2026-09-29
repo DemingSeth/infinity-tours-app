@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronRight, Pencil, Paperclip, Upload, X, Link as LinkIcon, Plus, ImagePlus, Map, ArrowUp, ArrowDown, GripVertical } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import MapFileThumb from "@/components/shared/MapFileThumb";
 import { BRAND, formatFullDate, showTripSection, customRowVisibleTo, activePersonaKeys, personaLabel } from "@/lib/helpers";
 import type { TripInfo, Role, PersonnelRow } from "@/lib/types";
 
@@ -770,10 +771,7 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: isHost ? 8 : 0 }}>
               {mapUrls.map(url => (
                 <span key={url} style={{ position: "relative", display: "inline-block" }}>
-                  <a href={url} target="_blank" rel="noreferrer" title="Open full size">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={url} alt="Driver map" style={{ width: 120, height: 84, objectFit: "cover", borderRadius: 8, border: "1px solid var(--border)", display: "block" }} />
-                  </a>
+                  <MapFileThumb url={url} width={120} height={84} borderColor="var(--border)" />
                   {isHost && (
                     <button type="button" title="Remove map" onClick={() => removeDriverMap(url)}
                       style={{ position: "absolute", top: -6, right: -6, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "var(--red-text)", padding: 0 }}>
@@ -786,7 +784,7 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
           )}
           {isHost ? (
             <>
-              <input ref={mapInput} type="file" accept="image/*" multiple style={{ display: "none" }}
+              <input ref={mapInput} type="file" accept="image/*,application/pdf" multiple style={{ display: "none" }}
                 onChange={e => uploadDriverMap(e.target.files)} />
               <button type="button" onClick={() => mapInput.current?.click()} disabled={mapBusy}
                 style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 8, border: "1.5px dashed var(--border-strong)", background: "var(--surface)", cursor: mapBusy ? "default" : "pointer", fontSize: 12, fontWeight: 600, color: "var(--text-2)", fontFamily: "inherit", opacity: mapBusy ? 0.6 : 1 }}>

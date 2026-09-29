@@ -21,6 +21,7 @@ import {
   AGENDA_TYPE_COLORS, getAgendaTypeIcon, getSentimentIcon, getSubtypeIcon,
 } from "@/components/shared/agendaIcons";
 import AgendaImages from "@/components/shared/AgendaImages";
+import MapFileThumb from "@/components/shared/MapFileThumb";
 import NoteText from "@/components/shared/NoteText";
 import AddressText from "@/components/shared/AddressText";
 import ItinerarySummary from "@/components/tour/ItinerarySummary";
@@ -526,9 +527,11 @@ function storagePathFromUrl(url: string): string | null {
 // ── ImageUploader ────────────────────────────────────────────────────────────
 // `folder` optionally namespaces the storage path (e.g. "driver-maps") so a
 // second uploader on the same item never collides with the main images.
-function ImageUploader({ tourId, itemId, urls, onChange, folder, buttonLabel = "Upload Image", isShared }: {
+function ImageUploader({ tourId, itemId, urls, onChange, folder, buttonLabel = "Upload Image", isShared, accept = "image/*" }: {
   tourId: string; itemId: string; urls: string[]; onChange: (urls: string[]) => void;
   folder?: string; buttonLabel?: string;
+  // Driver maps also take PDFs (a Google Maps route saved as PDF).
+  accept?: string;
   // Duplicated items share image URLs with their source. When another item
   // still references the file, removing it here must not delete the storage
   // object out from under that item.
@@ -569,7 +572,7 @@ function ImageUploader({ tourId, itemId, urls, onChange, folder, buttonLabel = "
   return (
     <div>
       <AgendaImages urls={urls} size={72} onRemove={removeImage} />
-      <input ref={inputRef} type="file" accept="image/*" multiple style={{ display: "none" }}
+      <input ref={inputRef} type="file" accept={accept} multiple style={{ display: "none" }}
         onChange={e => handleFiles(e.target.files)} />
       <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading}
         style={{ marginTop: urls.length ? 10 : 0, display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 13px", borderRadius: 8, border: "1.5px dashed var(--border-strong)", background: "var(--surface)", cursor: uploading ? "default" : "pointer", fontSize: 12, fontWeight: 600, color: "var(--text-2)", fontFamily: "inherit", opacity: uploading ? 0.6 : 1 }}>
@@ -916,7 +919,7 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
           <ImageUploader tourId={tourId} itemId={itemId} urls={form.image_urls} onChange={urls => f({ image_urls: urls })} isShared={isImageShared} />
         </Field>
         <Field label="Bus Driver Maps (host & driver only)">
-          <ImageUploader tourId={tourId} itemId={itemId} urls={form.driver_map_urls} folder="driver-maps" buttonLabel="Upload Map" onChange={urls => f({ driver_map_urls: urls })} isShared={isImageShared} />
+          <ImageUploader tourId={tourId} itemId={itemId} urls={form.driver_map_urls} folder="driver-maps" buttonLabel="Upload Map" accept="image/*,application/pdf" onChange={urls => f({ driver_map_urls: urls })} isShared={isImageShared} />
           <div style={{ fontSize: 11, color: "var(--muted-2)", marginTop: 4 }}>Parking / drop-off maps for this stop. Only tour hosts and bus drivers see these.</div>
         </Field>
 
@@ -1325,10 +1328,7 @@ function ItemRow({ item, groups, personaLabels, onEdit, onRemove, onDuplicate, o
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {item.driver_map_urls.map(url => (
-                  <a key={url} href={url} target="_blank" rel="noreferrer" title="Open full size">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={url} alt="Driver map" style={{ width: 96, height: 68, objectFit: "cover", borderRadius: 8, border: "1px solid var(--red-border)", display: "block" }} />
-                  </a>
+                  <MapFileThumb key={url} url={url} width={96} height={68} />
                 ))}
               </div>
             </div>

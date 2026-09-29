@@ -12,6 +12,7 @@ import GoogleMapsLink from "@/components/shared/GoogleMapsLink";
 import { BRAND, ROLES, DEFAULT_VISIBILITY, isItemVisibleTo, personaColors, orderAgendaItems, parseAgendaDate, agendaDayDateLabel, initialCollapsedDays, tripInfoStartsCollapsed, itemMatchesGroup, resolveIconColor, canSeeInternalNote, internalNoteLabel, orderAgendaDays, paymentStatus, PAYMENT_LABEL, isItemConfirmed } from "@/lib/helpers";
 import NoteText from "@/components/shared/NoteText";
 import AddressText from "@/components/shared/AddressText";
+import MapFileThumb from "@/components/shared/MapFileThumb";
 import ItinerarySummary from "@/components/tour/ItinerarySummary";
 import { summaryVisibleTo } from "@/lib/itinerarySummary";
 import { ConfirmationFileChips } from "@/components/tour/itemConfirmation";
@@ -434,15 +435,8 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                           </div>
                           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                             {item.driver_map_urls.map(url => (
-                              print ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img key={url} className="agenda-photo" src={url} alt="Driver map" style={{ width: 150, height: 106, objectFit: "cover", borderRadius: 6, border: "1px solid var(--red-border)" }} />
-                              ) : (
-                                <a key={url} href={url} target="_blank" rel="noopener noreferrer" title="Open full size">
-                                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                                  <img src={url} alt="Driver map" style={{ width: 110, height: 78, objectFit: "cover", borderRadius: 6, border: "1px solid var(--red-border)", display: "block" }} />
-                                </a>
-                              )
+                              <MapFileThumb key={url} url={url} print={print}
+                                width={print ? 150 : 110} height={print ? 106 : 78} radius={6} />
                             ))}
                           </div>
                         </div>
