@@ -99,9 +99,23 @@ function activityFromWord(title: string): SummarySlot | null {
 
 // Worth a line in the summary? Flights always are; other travel and
 // logistics lines ("Depart for...", "Load bus", "Room checks") are not.
+// Hotel check-in always earns a line, whatever type it was entered as
+// (Amy, Sept 2026). Needs a check-in word plus a hotel type or a lodging word,
+// so "Check in for Flight" and "Check In with Universal Host" stay out.
+const CHECK_IN = /\bcheck(ing)?[- ]?in(to)?\b/i;
+const LODGING = /\b(hotel|inn|suites?|resort|lodge|motel|house|airbnb|air bnb)\b/i;
+const NOT_HOTEL_CHECK_IN = /\b(flight|driver|storage)\b/i;
+
+export function isHotelCheckIn(item: SummaryItemInput): boolean {
+  const title = (item.title ?? "").trim();
+  if (!CHECK_IN.test(title) || NOT_HOTEL_CHECK_IN.test(title)) return false;
+  return item.type === "hotel" || LODGING.test(title);
+}
+
 function isSummaryActivity(item: SummaryItemInput): boolean {
   const title = (item.title ?? "").trim();
   if (!title) return false;
+  if (isHotelCheckIn(item)) return true;
   if (SKIP_TYPES.has(item.type ?? "")) return false;
   const isFlight = /\bflight\b/i.test(title) || (item.travel_methods ?? []).includes("flight");
   if (isFlight) return !FLIGHT_LANDING.test(title);
@@ -117,7 +131,9 @@ export function mealCellText(item: SummaryItemInput): string {
   const rest = raw
     .replace(/^(group\s+)?(breakfast|brunch|lunch|dinner|supper)(\s+(stipend|stop))?\b\s*(at|@|in|-|:|–)?\s*/i, "")
     .replace(/^the\s+/i, "")
-    .trim();
+    .trim()
+    // "Dinner near Downtown Disney" -> "Near Downtown Disney".
+    .replace(/^(near|by|on)\b/i, w => w[0].toUpperCase() + w.slice(1).toLowerCase());
   const money = (item.meal_money ?? [])
     .map(m => (m.type === "stipend" ? "Stipend" : mealMoneyLabel(m.type)))
     .filter(Boolean);
@@ -134,27 +150,52 @@ export function buildItinerarySummary(days: SummaryDayInput[]): SummaryDay[] {
     const items = orderAgendaItems(day.agenda_items as (SummaryItemInput & { sort_order?: number | null })[]);
     const minutes = items.map(i => timeToMinutes(i.time ?? null));
 
-    // An untimed item takes its time from the nearest timed item before it in
-    // the day's order, else the nearest after it.
+    // Meals first, so untimed activities can be placed around them.
+    const mealSlots: (SummarySlot | null)[] = items.map(() => null);
     const nearMinutes = (i: number): number | null => {
       for (let j = i - 1; j >= 0; j--) if (minutes[j] !== null) return minutes[j];
       for (let j = i + 1; j < items.length; j++) if (minutes[j] !== null) return minutes[j];
       return null;
     };
+    items.forEach((item, i) => {
+      if (!isMeal(item)) return;
+      mealSlots[i] = mealFromWord((item.title ?? "").trim()) ?? mealFromMinutes(minutes[i] ?? nearMinutes(i) ?? NOON);
+    });
+
+    // An untimed activity is placed by where it sits in the day's order
+    // (Amy, Sept 2026: early in planning most times are blank, but the order
+    // is right). The nearest item before it that carries a signal decides:
+    // after Breakfast = Morning, after Lunch = Afternoon, after Dinner =
+    // Evening, after a timed item = that item's part of the day. With nothing
+    // before it, the nearest signal after it decides: before Lunch = Morning,
+    // before Dinner = Afternoon.
+    const AFTER_MEAL: Record<string, SummarySlot> = { breakfast: "morning", lunch: "afternoon", dinner: "evening" };
+    const BEFORE_MEAL: Record<string, SummarySlot> = { breakfast: "morning", lunch: "morning", dinner: "afternoon" };
+    const placeUntimed = (i: number): SummarySlot => {
+      for (let j = i - 1; j >= 0; j--) {
+        if (mealSlots[j]) return AFTER_MEAL[mealSlots[j]!];
+        if (minutes[j] !== null) return activityFromMinutes(minutes[j]!);
+      }
+      for (let j = i + 1; j < items.length; j++) {
+        if (mealSlots[j]) return BEFORE_MEAL[mealSlots[j]!];
+        if (minutes[j] !== null) return activityFromMinutes(minutes[j]!);
+      }
+      return "morning";
+    };
 
     items.forEach((item, i) => {
       const title = (item.title ?? "").trim();
       const own = minutes[i];
-      if (isMeal(item)) {
-        const slot = mealFromWord(title) ?? mealFromMinutes(own ?? nearMinutes(i) ?? NOON);
+      const mealSlot = mealSlots[i];
+      if (mealSlot) {
         const text = mealCellText(item);
-        if (!cells[slot].includes(text)) cells[slot].push(text);
+        if (!cells[mealSlot].includes(text)) cells[mealSlot].push(text);
         return;
       }
       if (!isSummaryActivity(item)) return;
       const slot = own !== null
         ? activityFromMinutes(own)
-        : activityFromWord(title) ?? activityFromMinutes(nearMinutes(i) ?? 9 * 60);
+        : activityFromWord(title) ?? placeUntimed(i);
       const text = title.replace(/\s+/g, " ");
       if (!cells[slot].includes(text)) cells[slot].push(text);
     });
