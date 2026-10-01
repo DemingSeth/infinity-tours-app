@@ -122,8 +122,14 @@ export default function PipelineClient({ initialTours, currentHostId, currentHos
         bus_company: source.bus_company,
         bus_driver_contact: source.bus_driver_contact,
         participant_counts: source.participant_counts,
-        participants_display_override: source.participants_display_override,
-        trip_info_overrides: source.trip_info_overrides,
+        // The typed Trip Information rows (Flight, Hotel, Bus, Departure, Return,
+        // participant count) describe one specific group's travel, and they take
+        // priority over the itinerary items. Carrying them into a copy made the
+        // copy's header keep showing the original group's flights and hotel no
+        // matter how the itinerary was edited, so a copy starts with them blank
+        // and derives those rows from its own itinerary.
+        participants_display_override: null,
+        trip_info_overrides: null,
         custom_trip_rows: source.custom_trip_rows,
         teachers: source.teachers,
         tour_hosts_list: source.tour_hosts_list,
