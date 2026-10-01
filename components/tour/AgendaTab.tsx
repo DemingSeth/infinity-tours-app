@@ -508,9 +508,25 @@ const UNDO_WINDOW_MS = 5000;
 function persistDayRenumber(supabase: ReturnType<typeof createClient>, survivors: AgendaDayWithItems[]) {
   survivors.forEach((d, i) => {
     if (d.sort_order !== i + 1 || d.day_number !== i + 1) {
-      supabase.from("agenda_days").update({ sort_order: i + 1, day_number: i + 1 }).eq("id", d.id);
+      supabase.from("agenda_days").update({ sort_order: i + 1, day_number: i + 1 }).eq("id", d.id)
+        .then(({ error }) => { if (error) console.error("[agenda_days.renumber] failed", error.message); });
     }
   });
+}
+// A Supabase query builder does nothing until it is awaited or .then()'d: the
+// request is only sent at that point. A bare `supabase.from(...).delete()...`
+// statement therefore never reaches the database, which is how deleting a day
+// used to look saved and then come back on refresh. Every fire-and-forget
+// write in this file must go through .then(); this one also tells the host
+// when the delete is refused so a day never silently reappears.
+function deleteDayRow(supabase: ReturnType<typeof createClient>, dayId: string) {
+  supabase.from("agenda_days").delete().eq("id", dayId).select("id")
+    .then(({ data, error }) => {
+      if (error || !data || data.length === 0) {
+        console.error("[agenda_days.delete] failed", { dayId, error });
+        if (typeof window !== "undefined") window.alert(`Could not delete the day: ${error?.message ?? "no row deleted (permission?)"}. Refresh the page to see the current itinerary.`);
+      }
+    });
 }
 const STORAGE_BUCKET = "agenda-images";
 const STORAGE_MARKER = `/${STORAGE_BUCKET}/`;
@@ -1454,6 +1470,17 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
   const daysRef = useRef(days);
   useEffect(() => { daysRef.current = days; });
 
+  // Unmount cleanup does not run when the page itself is refreshed or closed, so
+  // a delete still inside its undo window would be dropped. While one is
+  // pending, ask the browser to confirm leaving (the window is only 5 seconds).
+  const deletePending = !!undoDay || !!undoItem;
+  useEffect(() => {
+    if (!deletePending) return;
+    const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [deletePending]);
+
   // On unmount, commit any still-pending soft-delete so it isn't silently lost,
   // and renumber the survivors so the persisted order stays gap-free.
   useEffect(() => () => {
@@ -1461,13 +1488,14 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
     if (undoItemTimerRef.current) clearTimeout(undoItemTimerRef.current);
     const pendingItem = pendingItemDeleteRef.current;
     if (pendingItem) {
-      createClient().from("agenda_items").delete().eq("id", pendingItem.item.id);
+      createClient().from("agenda_items").delete().eq("id", pendingItem.item.id)
+        .then(({ error }) => { if (error) console.error("[agenda_items.delete] failed", error.message); });
       pendingItemDeleteRef.current = null;
     }
     const pending = pendingDeleteRef.current;
     if (!pending) return;
     const supabase = createClient();
-    supabase.from("agenda_days").delete().eq("id", pending.day.id);
+    deleteDayRow(supabase, pending.day.id);
     persistDayRenumber(supabase, daysRef.current.filter(d => d.id !== pending.day.id));
   }, []);
 
@@ -1647,7 +1675,7 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
   // so a caller can chain a follow-up optimistic update off the fresh order.
   function commitDayDelete(dayId: string, survivors: AgendaDayWithItems[], syncLocal = true): AgendaDayWithItems[] {
     const supabase = createClient();
-    supabase.from("agenda_days").delete().eq("id", dayId);
+    deleteDayRow(supabase, dayId);
     persistDayRenumber(supabase, survivors);
     const renumbered = survivors.map((d, i) => ({ ...d, sort_order: i + 1, day_number: i + 1 }));
     const changed = renumbered.some((d, i) => survivors[i].sort_order !== d.sort_order || survivors[i].day_number !== d.day_number);
