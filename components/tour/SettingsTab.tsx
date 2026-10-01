@@ -225,7 +225,9 @@ function PersonaConfig({ tour, isOwner, onTourChange, onPersonaAdded }: {
     onTourChange({ active_personas: PERSONAS.filter(x => next.includes(x.key)).map(x => x.key) });
     if (turningOn) {
       // Add the persona key (default false) to every existing item, then prompt a review.
-      createClient().rpc("add_persona_visibility", { p_tour: tour.id, p_key: key });
+      // .then() is what actually sends the request (see deleteDayRow in AgendaTab).
+      createClient().rpc("add_persona_visibility", { p_tour: tour.id, p_key: key })
+        .then(({ error }) => { if (error) console.error("[add_persona_visibility] failed", error.message); });
       onPersonaAdded(key);
     }
   }
