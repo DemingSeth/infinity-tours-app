@@ -164,7 +164,7 @@ export default function ConfirmationProgress({ tours, onOpenTour, allowAllScope 
   }, [visible]);
 
   return (
-    <section style={{ background: "var(--surface)", border: "1.5px solid var(--border-soft)", borderRadius: 14, overflow: "hidden" }}>
+    <section style={{ background: "var(--tile-bg)", border: "1.5px solid var(--tile-border)", borderRadius: 14, overflow: "hidden", boxShadow: "var(--tile-shadow)" }}>
       {/* Header: click anywhere on the row to expand or collapse. */}
       <div
         role="button"
@@ -264,9 +264,11 @@ export default function ConfirmationProgress({ tours, onOpenTour, allowAllScope 
             <div style={{ padding: "18px", fontSize: 12, color: "var(--muted-2)" }}>{filtersActive ? "No tours match these filters." : "No tours to show."}</div>
           )}
 
-          {months.map(m => {
+          {months.map((m, mi) => {
             const mpct = m.total > 0 ? Math.round((m.done / m.total) * 100) : null;
             const open = openMonths.has(m.key);
+            // Months alternate between two bands so each reads as its own block.
+            const band = mi % 2 === 0 ? "var(--band-a)" : "var(--band-b)";
             return (
               <div key={m.key} style={{ borderBottom: "1px solid var(--surface-3)" }}>
                 {/* Month summary row: click to show or hide that month's tours. */}
@@ -276,7 +278,7 @@ export default function ConfirmationProgress({ tours, onOpenTour, allowAllScope 
                   aria-expanded={open}
                   onClick={() => toggleMonth(m.key)}
                   onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleMonth(m.key); } }}
-                  style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 18px", background: "var(--surface-2)", flexWrap: "wrap", cursor: "pointer", userSelect: "none" }}
+                  style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 18px", background: band, flexWrap: "wrap", cursor: "pointer", userSelect: "none", borderLeft: `4px solid ${mi % 2 === 0 ? "var(--blue)" : "var(--border-strong)"}` }}
                 >
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 6, minWidth: 170 }}>
                     <ChevronRight size={14} style={{ color: "var(--muted)", flexShrink: 0, transform: open ? "rotate(90deg)" : "none", transition: "transform .15s" }} />

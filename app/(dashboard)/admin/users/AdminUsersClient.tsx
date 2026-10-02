@@ -200,7 +200,7 @@ export default function AdminUsersClient({
                 </tr>
               </thead>
               <tbody>
-                {rows.map(row => {
+                {rows.map((row, ri) => {
                   const isSelf = row.id === viewerId;
                   const targetIsSuper = row.role === "super_admin";
                   // A super admin row is untouchable unless the viewer is one
@@ -216,7 +216,7 @@ export default function AdminUsersClient({
                   const pending = status === "Invitation pending";
 
                   return (
-                    <tr key={row.id} style={{ borderTop: "1px solid var(--surface-3)", opacity: row.is_active ? 1 : 0.65 }}>
+                    <tr key={row.id} style={{ borderTop: "1px solid var(--border-soft)", background: ri % 2 === 1 ? "var(--row-alt)" : "transparent", opacity: row.is_active ? 1 : 0.65 }}>
                       <td style={td}>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <div style={avatar}>{row.initials || initialsFrom(row.name, "TH")}</div>
@@ -362,10 +362,11 @@ const pageTitle: React.CSSProperties = {
 };
 
 const card: React.CSSProperties = {
-  background: "var(--surface)",
-  border: "1.5px solid var(--border-soft)",
+  background: "var(--tile-bg)",
+  border: "1.5px solid var(--tile-border)",
   borderRadius: 14,
   padding: 20,
+  boxShadow: "var(--tile-shadow)",
 };
 
 const sectionTitle: React.CSSProperties = {
@@ -412,14 +413,15 @@ const th: React.CSSProperties = {
   color: "var(--muted-2)",
   textTransform: "uppercase",
   letterSpacing: 0.8,
-  padding: "0 12px 10px 0",
+  padding: "0 12px 10px",
   whiteSpace: "nowrap",
 };
 
 const td: React.CSSProperties = {
   fontSize: 13,
   color: "var(--text)",
-  padding: "12px 12px 12px 0",
+  // Even padding both sides so the striped rows have room around the text.
+  padding: "12px 12px",
   verticalAlign: "middle",
 };
 

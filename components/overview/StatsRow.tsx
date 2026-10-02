@@ -59,9 +59,9 @@ export default function StatsRow({ tours, showRevenue = true }: { tours: TourWit
           <div
             key={st.id}
             style={{
-              background: "var(--surface)", border: `1.5px solid ${st.dot}33`, borderRadius: 14,
+              background: "var(--tile-bg)", border: `1.5px solid ${st.dot}55`, borderRadius: 14,
               padding: "16px 18px", position: "relative", overflow: "hidden",
-              boxShadow: "0 1px 4px rgba(0,0,0,.04)",
+              boxShadow: "var(--tile-shadow)",
             }}
           >
             <div style={{ position: "absolute", top: 0, left: 0, width: 4, height: "100%", background: st.dot }} />
@@ -91,8 +91,8 @@ export default function StatsRow({ tours, showRevenue = true }: { tours: TourWit
         {/* Live financial tile — Revenue Received vs Pending (replaces Waiver Completion) */}
         <div
           style={{
-            background: "var(--surface)", border: "1.5px solid var(--border-soft)", borderRadius: 14,
-            padding: "14px 18px", boxShadow: "0 1px 4px rgba(0,0,0,.04)",
+            background: "var(--tile-bg)", border: "1.5px solid var(--tile-border)", borderRadius: 14,
+            padding: "14px 18px", boxShadow: "var(--tile-shadow)",
           }}
         >
           <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8 }}>

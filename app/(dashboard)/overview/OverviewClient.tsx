@@ -2,14 +2,13 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Settings, Image as ImageIcon } from "lucide-react";
+import { Image as ImageIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Modal, Btn } from "@/components/tour/ui";
 import BannerLibraryManager from "@/components/tour/BannerLibraryManager";
 import StatsRow from "@/components/overview/StatsRow";
 import CalendarView from "@/components/overview/CalendarView";
 import ConfirmationProgress from "@/components/overview/ConfirmationProgress";
-import VisibilitySettingsModal from "@/components/overview/VisibilitySettingsModal";
 import { startOfDay, tourDateRange } from "@/lib/helpers";
 import type { OverviewTour, HostRole } from "@/lib/types";
 import { isAdmin, isViewerOnTour } from "@/lib/roles";
@@ -76,7 +75,6 @@ function isUpcoming(tour: OverviewTour, today: Date): boolean {
 
 export default function OverviewClient({ tours, currentHostId, currentHostEmail, currentHostName, viewerRole }: Props) {
   const router = useRouter();
-  const [showSettings, setShowSettings] = useState(false);
   const openTour = (id: string) => router.push(`/tour/${id}`);
   const admin = isAdmin(viewerRole);
 
@@ -104,16 +102,6 @@ export default function OverviewClient({ tours, currentHostId, currentHostEmail,
               : <>Your upcoming tours · <strong>{visibleTours.length}</strong> total</>}
           </p>
         </div>
-        {admin && (
-          <button
-            onClick={() => setShowSettings(true)}
-            title="Visibility settings"
-            aria-label="Visibility settings"
-            style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: 9, border: "1.5px solid var(--border)", background: "var(--surface)", color: "var(--muted)", cursor: "pointer" }}
-          >
-            <Settings size={17} />
-          </button>
-        )}
       </header>
 
       {admin && <BannerLibraryCard currentHostId={currentHostId} />}
@@ -123,8 +111,6 @@ export default function OverviewClient({ tours, currentHostId, currentHostEmail,
           it is the list the team works from day to day. */}
       <ConfirmationProgress tours={visibleTours} onOpenTour={openTour} allowAllScope={admin} />
       <CalendarView tours={visibleTours} onOpenTour={openTour} />
-
-      {showSettings && <VisibilitySettingsModal onClose={() => setShowSettings(false)} />}
     </div>
   );
 }

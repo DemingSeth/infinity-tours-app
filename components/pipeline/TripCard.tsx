@@ -28,7 +28,10 @@ export default function TripCard({ tour, currentHostId, canEdit, isDuplicating, 
     "?";
 
   return (
-    <div style={{ background: "var(--surface)", border: "1.5px solid var(--border-soft)", borderRadius: 12, padding: 14, boxShadow: "0 1px 4px rgba(0,0,0,.04)" }}>
+    <div
+      className="trip-card"
+      style={{ background: "var(--tile-bg)", border: "1.5px solid var(--tile-border)", borderRadius: 12, padding: 14, boxShadow: "var(--tile-shadow)", transition: "box-shadow .15s, transform .15s" }}
+    >
       <div onClick={onClick} style={{ cursor: "pointer" }}>
         {/* Fjalla One ships a single 400 weight — asking for bold forces the
             browser to fake it, which renders blurry. Keep it at 400. */}

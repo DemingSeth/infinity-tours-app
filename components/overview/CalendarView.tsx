@@ -105,7 +105,7 @@ export default function CalendarView({ tours, onOpenTour }: {
     scheduled.filter(s => s.start <= day && s.end >= day).map(s => s.tour);
 
   return (
-    <section style={{ background: "var(--surface)", border: "1.5px solid var(--border-soft)", borderRadius: 14, overflow: "hidden" }}>
+    <section style={{ background: "var(--tile-bg)", border: "1.5px solid var(--tile-border)", borderRadius: 14, overflow: "hidden", boxShadow: "var(--tile-shadow)" }}>
       {/* Section header: click anywhere on the row to expand or collapse
           (August 2026 request). The month controls and mode toggle stop the
           click from bubbling so they keep working on their own. */}

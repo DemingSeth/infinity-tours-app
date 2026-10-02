@@ -63,6 +63,15 @@
   --pink-bg-soft: #fdf2f8;
   --pink-border: #f9a8d4;
   --pink-text: #be185d;
+  /* Raised tiles (October 2026): dashboard cards, pipeline cards and the team
+     table sit visibly above the cream page, and stacked rows alternate. */
+  --tile-bg: #ffffff;
+  --tile-border: #d6deea;
+  --tile-shadow: 0 1px 2px rgba(11, 25, 87, 0.08), 0 4px 14px rgba(11, 25, 87, 0.08);
+  --tile-shadow-hover: 0 2px 4px rgba(11, 25, 87, 0.1), 0 10px 24px rgba(11, 25, 87, 0.14);
+  --band-a: #e6ecf5;
+  --band-b: #f1f5fa;
+  --row-alt: #f3f6fb;
 }
 
 [data-theme="dark"] {
@@ -110,6 +119,13 @@
   --pink-bg-soft: rgba(236, 72, 153, 0.1);
   --pink-border: rgba(236, 72, 153, 0.45);
   --pink-text: #f9a8d4;
+  --tile-bg: #1e2a42;
+  --tile-border: #36456a;
+  --tile-shadow: 0 1px 2px rgba(0, 0, 0, 0.45), 0 6px 18px rgba(0, 0, 0, 0.4);
+  --tile-shadow-hover: 0 2px 4px rgba(0, 0, 0, 0.5), 0 12px 28px rgba(0, 0, 0, 0.5);
+  --band-a: #2b3855;
+  --band-b: #233049;
+  --row-alt: #24304a;
 }
 
 html,
@@ -386,4 +402,10 @@ body {
   to {
     transform: scaleX(0);
   }
+}
+
+/* Pipeline cards lift slightly on hover (shadow comes from --tile-shadow). */
+.trip-card:hover {
+  box-shadow: var(--tile-shadow-hover) !important;
+  transform: translateY(-1px);
 }
