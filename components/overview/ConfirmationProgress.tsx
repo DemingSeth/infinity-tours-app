@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ClipboardCheck, Filter, X } from "lucide-react";
+import { ChevronRight, ClipboardCheck, Filter, X } from "lucide-react";
 import { MONTH_NAMES, STATUSES, parseISODate, tourDateLabel, hostNameOf, tourDateRange, isItemConfirmed } from "@/lib/helpers";
 import StatusPill from "@/components/shared/StatusPill";
 import type { OverviewTour } from "@/lib/types";
@@ -71,6 +71,14 @@ export default function ConfirmationProgress({ tours, onOpenTour, allowAllScope 
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
   const filtersActive = !!(hostFilter || consultantFilter || statusFilter || fromDate || toDate);
+  // Months start collapsed (October 2026 request) so the section opens as a
+  // short list of month summaries; clicking a month shows just its tours.
+  const [openMonths, setOpenMonths] = useState<Set<string>>(() => new Set());
+  const toggleMonth = (key: string) => setOpenMonths(prev => {
+    const next = new Set(prev);
+    if (next.has(key)) next.delete(key); else next.add(key);
+    return next;
+  });
 
   // Host choices come from the tours themselves (account owner, else the
   // free-text host name), so the list only offers people who have tours.
@@ -142,12 +150,12 @@ export default function ConfirmationProgress({ tours, onOpenTour, allowAllScope 
   }, [visible]);
 
   const months = useMemo(() => {
-    const map = new Map<string, { label: string; tours: OverviewTour[]; done: number; total: number }>();
+    const map = new Map<string, { key: string; label: string; tours: OverviewTour[]; done: number; total: number }>();
     for (const t of visible) {
       const d = tourDateRange(t)?.start ?? null;
       const key = d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}` : "undated";
       const label = d ? `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}` : "No dates yet";
-      if (!map.has(key)) map.set(key, { label, tours: [], done: 0, total: 0 });
+      if (!map.has(key)) map.set(key, { key, label, tours: [], done: 0, total: 0 });
       const m = map.get(key)!;
       const s = confirmationStats(t);
       m.tours.push(t); m.done += s.done; m.total += s.total;
@@ -239,21 +247,47 @@ export default function ConfirmationProgress({ tours, onOpenTour, allowAllScope 
             <Bar {...overall} height={10} />
           </div>
 
+          {months.length > 1 && (() => {
+            const allOpen = months.every(m => openMonths.has(m.key));
+            return (
+              <div style={{ display: "flex", justifyContent: "flex-end", padding: "6px 18px", borderBottom: "1px solid var(--surface-3)" }}>
+                <button type="button"
+                  onClick={() => setOpenMonths(allOpen ? new Set() : new Set(months.map(m => m.key)))}
+                  style={{ background: "none", border: "none", padding: "2px 0", fontSize: 11, fontWeight: 600, color: "var(--muted)", cursor: "pointer", fontFamily: "inherit" }}>
+                  {allOpen ? "Collapse all months" : "Expand all months"}
+                </button>
+              </div>
+            );
+          })()}
+
           {visible.length === 0 && (
             <div style={{ padding: "18px", fontSize: 12, color: "var(--muted-2)" }}>{filtersActive ? "No tours match these filters." : "No tours to show."}</div>
           )}
 
           {months.map(m => {
             const mpct = m.total > 0 ? Math.round((m.done / m.total) * 100) : null;
+            const open = openMonths.has(m.key);
             return (
-              <div key={m.label} style={{ borderBottom: "1px solid var(--surface-3)" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 18px", background: "var(--surface-2)", flexWrap: "wrap" }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)", minWidth: 130 }}>{m.label}</span>
+              <div key={m.key} style={{ borderBottom: "1px solid var(--surface-3)" }}>
+                {/* Month summary row: click to show or hide that month's tours. */}
+                <div
+                  role="button"
+                  tabIndex={0}
+                  aria-expanded={open}
+                  onClick={() => toggleMonth(m.key)}
+                  onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleMonth(m.key); } }}
+                  style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 18px", background: "var(--surface-2)", flexWrap: "wrap", cursor: "pointer", userSelect: "none" }}
+                >
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, minWidth: 170 }}>
+                    <ChevronRight size={14} style={{ color: "var(--muted)", flexShrink: 0, transform: open ? "rotate(90deg)" : "none", transition: "transform .15s" }} />
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "var(--ink)" }}>{m.label}</span>
+                    <span style={{ fontSize: 11, color: "var(--muted-2)" }}>{m.tours.length} tour{m.tours.length !== 1 ? "s" : ""}</span>
+                  </span>
                   <div style={{ flex: 1, minWidth: 200 }}>
                     <Bar done={m.done} total={m.total} pct={mpct} height={6} />
                   </div>
                 </div>
-                {m.tours.map(t => {
+                {open && m.tours.map(t => {
                   const s = confirmationStats(t);
                   return (
                     <div key={t.id}
