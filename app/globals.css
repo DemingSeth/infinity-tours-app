@@ -330,6 +330,10 @@ body {
   .app-user-name {
     display: none;
   }
+  /* Request help shrinks to its icon on phones. */
+  .app-help-label {
+    display: none;
+  }
   .app-nav {
     order: 3;
     width: 100%;

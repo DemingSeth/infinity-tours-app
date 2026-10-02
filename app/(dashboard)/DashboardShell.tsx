@@ -6,6 +6,7 @@ import type { TourHostRow } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import BrandLockup from "@/components/shared/BrandLockup";
 import ThemeToggle from "@/components/shared/ThemeToggle";
+import HelpRequestButton from "@/components/shared/HelpRequestButton";
 import { KanbanSquare, LayoutGrid, FileText, Users } from "lucide-react";
 import { BRAND } from "@/lib/helpers";
 import { isAdmin } from "@/lib/roles";
@@ -112,6 +113,7 @@ export default function DashboardShell({ children, user, tourHost }: Props) {
               {tourHost?.name || user.email}
             </span>
           </div>
+          <HelpRequestButton />
           <ThemeToggle />
           <button
             onClick={() => router.push("/account")}
