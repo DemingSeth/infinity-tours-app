@@ -218,6 +218,7 @@ export default function PipelineClient({ initialTours, currentHostId, currentHos
             image_urls: item.image_urls,
             driver_map_urls: item.driver_map_urls,
             confirmation_not_required: item.confirmation_not_required,
+            summary_include: item.summary_include ?? null,
           }));
           await supabase.from("agenda_items").insert(items);
         }

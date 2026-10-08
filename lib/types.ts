@@ -362,6 +362,8 @@ export interface AgendaItemRow {
   deposit_paid?: boolean;
   // Manually checked "Confirmed". An attached confirmation also counts.
   confirmed?: boolean;
+  // Summary of Itinerary checkbox: null = automatic, true = show, false = hide.
+  summary_include?: boolean | null;
   driver_note: string | null;
   internal_note: string | null;
   // Authoritative meal-money list (see MealMoneyEntry). Multi-select.

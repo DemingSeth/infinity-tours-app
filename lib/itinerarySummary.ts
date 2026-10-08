@@ -2,8 +2,9 @@
 //
 // A read-only, at-a-glance grid built from what is already entered on the
 // itinerary days: one column per day, rows for Breakfast, Morning, Lunch,
-// Afternoon, Dinner and Evening. Nothing here is stored or editable, so the
-// summary can never disagree with the days below it. Pure functions only (no
+// Afternoon, Dinner and Evening. The grid itself is never stored, so it can
+// never disagree with the days below it; the only stored input is each item's
+// optional show/hide checkbox (summary_include). Pure functions only (no
 // React), so the same rules drive the editor, shared links and print.
 
 import { mealMoneyLabel, orderAgendaDays, orderAgendaItems, timeToMinutes, agendaWeekday } from "./helpers";
@@ -27,6 +28,10 @@ export interface SummaryItemInput {
   sort_order?: number | null;
   travel_methods?: string[] | null;
   meal_money?: { type: string }[] | null;
+  // Consultant's choice from the checkbox on the itinerary row (October 2026,
+  // Amy). null / undefined = automatic (the rules below decide); true = always
+  // show; false = never show.
+  summary_include?: boolean | null;
 }
 
 export interface SummaryDayInput {
@@ -59,8 +64,9 @@ const SKIP_TYPES = new Set(["meeting", "hotel", "instructions", "break"]);
 // Titles that describe getting somewhere, not doing something.
 const LOGISTICS = /^(depart|departs|leave|load|head|travel|return|drive|transfer|charter|bus\b|pick[- ]?up|drop|arrive|arrival|board|meet|check|room check|bed check|wake|pack|lights out|bathroom|quick stop|stop\b|stage|collect)/i;
 const PICKUP_ANYWHERE = /\bpick[- ]?up\b/i;
-// "First group depart for Alcatraz", "Train ride ends".
-const LOGISTICS_ANYWHERE = /\bdepart(s|ing)?\s+(for|to|from)\b|\bends$/i;
+// "First group depart for Alcatraz", "Train ride ends", "Students Load Bus",
+// "Choir meets at the school's parking lot".
+const LOGISTICS_ANYWHERE = /\bdepart(s|ing)?\s+(for|to|from)\b|\bends$|\b(load|loads|loading)\s+(the\s+)?(bus|buses|coach|coaches|vans?)\b|\bmeets?\s+(at|in)\b/i;
 // A flight's landing line repeats its departure line.
 const FLIGHT_LANDING = /\b(lands?|landing|arrives?|arrival)\b/i;
 
@@ -102,14 +108,36 @@ function activityFromWord(title: string): SummarySlot | null {
 // Hotel check-in always earns a line, whatever type it was entered as
 // (Amy, Sept 2026). Needs a check-in word plus a hotel type or a lodging word,
 // so "Check in for Flight" and "Check In with Universal Host" stay out.
+// "Arrive at Hotel" counts too (October 2026, American Heritage HS Choir): an
+// arrival at lodging is the day's hotel line when nobody wrote "check in".
+// The arrival form is stricter: not a return to the hotel later in the day,
+// not a luggage drop or an airport transfer, and "house" does not count as
+// lodging ("Arrive at Citizens Opera House").
 const CHECK_IN = /\bcheck(ing)?[- ]?in(to)?\b/i;
+const ARRIVAL = /\barriv(e|es|al|ing)\b/i;
+const NOT_FIRST_ARRIVAL = /\b(back|return|returning|luggage|bags|transfer|airport)\b/i;
 const LODGING = /\b(hotel|inn|suites?|resort|lodge|motel|house|airbnb|air bnb)\b/i;
+const LODGING_STRICT = /\b(hotel|inn|suites?|resort|lodge|motel|airbnb|air bnb)\b/i;
 const NOT_HOTEL_CHECK_IN = /\b(flight|driver|storage)\b/i;
 
 export function isHotelCheckIn(item: SummaryItemInput): boolean {
   const title = (item.title ?? "").trim();
-  if (!CHECK_IN.test(title) || NOT_HOTEL_CHECK_IN.test(title)) return false;
-  return item.type === "hotel" || LODGING.test(title);
+  if (NOT_HOTEL_CHECK_IN.test(title)) return false;
+  if (CHECK_IN.test(title)) return item.type === "hotel" || LODGING.test(title);
+  if (ARRIVAL.test(title) && !NOT_FIRST_ARRIVAL.test(title)) return item.type === "hotel" || LODGING_STRICT.test(title);
+  return false;
+}
+
+// What the summary would do with this item on its own, before any checkbox
+// choice. The itinerary row's checkbox shows this until someone clicks it.
+export function autoInSummary(item: SummaryItemInput): boolean {
+  return isMeal(item) || isSummaryActivity(item);
+}
+
+export function inSummary(item: SummaryItemInput): boolean {
+  if (item.summary_include === true) return true;
+  if (item.summary_include === false) return false;
+  return autoInSummary(item);
 }
 
 function isSummaryActivity(item: SummaryItemInput): boolean {
@@ -187,12 +215,16 @@ export function buildItinerarySummary(days: SummaryDayInput[]): SummaryDay[] {
       const title = (item.title ?? "").trim();
       const own = minutes[i];
       const mealSlot = mealSlots[i];
+      // A hidden meal still helps place the untimed items around it (its slot
+      // was recorded above); it just does not get a line of its own.
+      if (item.summary_include === false) return;
       if (mealSlot) {
         const text = mealCellText(item);
         if (!cells[mealSlot].includes(text)) cells[mealSlot].push(text);
         return;
       }
-      if (!isSummaryActivity(item)) return;
+      if (!title) return;
+      if (item.summary_include !== true && !isSummaryActivity(item)) return;
       const slot = own !== null
         ? activityFromMinutes(own)
         : activityFromWord(title) ?? placeUntimed(i);

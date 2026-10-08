@@ -25,6 +25,7 @@ import MapFileThumb from "@/components/shared/MapFileThumb";
 import NoteText from "@/components/shared/NoteText";
 import AddressText from "@/components/shared/AddressText";
 import ItinerarySummary from "@/components/tour/ItinerarySummary";
+import { autoInSummary } from "@/lib/itinerarySummary";
 import LinkableNoteField from "@/components/shared/LinkableNoteField";
 import ItemConfirmationControl, { ConfirmationFileChips, type ConfirmationPatch } from "@/components/tour/itemConfirmation";
 import ItineraryHeaderTile from "@/components/tour/ItineraryHeaderTile";
@@ -1158,7 +1159,35 @@ function InlineNote({ value, onSave, style, prefix, linkColor }: {
   );
 }
 
-function ItemRow({ item, groups, personaLabels, onEdit, onRemove, onDuplicate, onCopyToDays, onToggleCostPaid, onRemoveImage, onSaveField, onSaveIconColor, dragProps, isDragOver }: {
+// Summary of Itinerary checkbox (October 2026, Amy). Shows the automatic
+// choice until someone clicks it; after that the consultant's choice sticks
+// and "Auto" puts it back to the rules.
+function SummaryCheck({ item, onSet }: { item: AgendaItemWithFeedback; onSet: (v: boolean | null) => void }) {
+  const auto = autoInSummary(item);
+  const set = item.summary_include ?? null;
+  const checked = set ?? auto;
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, color: "var(--muted)" }}>
+      <label
+        title={set === null
+          ? `Summary of Itinerary: ${auto ? "shown" : "left out"} automatically. Click to change.`
+          : `Summary of Itinerary: ${set ? "always shown" : "always left out"} (set by hand).`}
+        style={{ display: "inline-flex", alignItems: "center", gap: 4, cursor: "pointer", fontWeight: set === null ? 500 : 700, color: set === null ? "var(--muted)" : "var(--text)" }}>
+        <input type="checkbox" checked={checked} onChange={e => onSet(e.target.checked)}
+          style={{ margin: 0, cursor: "pointer", accentColor: BRAND.navy }} />
+        In summary
+      </label>
+      {set !== null && set !== auto && (
+        <button onClick={() => onSet(null)} title="Let the summary decide for this item again"
+          style={{ background: "none", border: "none", padding: 0, fontSize: 10, color: "var(--muted-2)", textDecoration: "underline", cursor: "pointer", fontFamily: "inherit" }}>
+          Auto
+        </button>
+      )}
+    </span>
+  );
+}
+
+function ItemRow({ item, groups, personaLabels, onEdit, onRemove, onDuplicate, onCopyToDays, onToggleCostPaid, onRemoveImage, onSaveField, onSaveIconColor, onSetSummaryInclude, dragProps, isDragOver }: {
   item: AgendaItemWithFeedback;
   groups: TourGroup[];
   // Tour's persona label overrides — the Internal Note is headed with the name
@@ -1168,6 +1197,8 @@ function ItemRow({ item, groups, personaLabels, onEdit, onRemove, onDuplicate, o
   onSaveField: (field: "detail" | "public_note" | "internal_note", value: string) => Promise<boolean>;
   // Icon color picked from the row itself.
   onSaveIconColor: (hex: string | null) => void;
+  // Summary of Itinerary checkbox: null = automatic.
+  onSetSummaryInclude: (v: boolean | null) => void;
   onEdit: () => void; onRemove: () => void; onToggleCostPaid: () => void;
   // Duplicate = open a prefilled New Item form in this day; Copy to days =
   // pick other days to receive a copy (August 2026 request).
@@ -1322,6 +1353,7 @@ function ItemRow({ item, groups, personaLabels, onEdit, onRemove, onDuplicate, o
               );
             })()}
             {item.driver_note && <span style={{ fontSize: 10, background: "var(--red-bg-soft)", border: "1px solid var(--red-border)", color: "var(--red-text)", borderRadius: 5, padding: "0 6px", display: "inline-flex", alignItems: "center", gap: 4 }}><Bus size={11} style={{ flexShrink: 0 }} /><strong style={{ fontWeight: 700 }}>Bus Driver Note:</strong> {item.driver_note}</span>}
+            <SummaryCheck item={item} onSet={onSetSummaryInclude} />
           </div>
 
           {/* Internal note — full text, own block (no truncation), host-only view. */}
@@ -1620,6 +1652,21 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
       console.error("[agenda_items.icon_color] save failed", { itemId, error });
       onDaysChange(before);
       if (typeof window !== "undefined") window.alert(`Could not change the icon color: ${error?.message ?? "no row updated (permission?)"}`);
+    }
+  }
+
+  // Summary of Itinerary checkbox. A choice that matches what the rules would
+  // do anyway is stored as automatic (null), so later rule improvements still
+  // reach that item. Optimistic, rolls back on a refused write.
+  async function saveSummaryInclude(dayId: string, item: AgendaItemWithFeedback, v: boolean | null) {
+    const value = v === null || v === autoInSummary(item) ? null : v;
+    const before = daysRef.current;
+    onDaysChange(before.map(d => d.id === dayId ? { ...d, agenda_items: d.agenda_items.map(i => i.id === item.id ? { ...i, summary_include: value } : i) } : d));
+    const { data, error } = await createClient().from("agenda_items").update({ summary_include: value }).eq("id", item.id).select("id");
+    if (error || !data || data.length === 0) {
+      console.error("[agenda_items.summary_include] save failed", { itemId: item.id, error });
+      onDaysChange(before);
+      if (typeof window !== "undefined") window.alert(`Could not change the summary setting: ${error?.message ?? "no row updated (permission?)"}`);
     }
   }
 
@@ -2443,6 +2490,7 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
                       onRemoveImage={url => removeItemImage(day.id, item, url)}
                       onSaveField={(field, v) => saveItemField(day.id, item.id, field, v)}
                       onSaveIconColor={hex => saveIconColor(day.id, item.id, hex)}
+                      onSetSummaryInclude={v => saveSummaryInclude(day.id, item, v)}
                       isDragOver={dragOverIdx?.dayId === day.id && dragOverIdx.index === itemIdx}
                       dragProps={{
                         onDragStart: e => {

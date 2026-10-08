@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { BRAND, ROLES, DEFAULT_VISIBILITY, PERSONAS, activePersonaKeys, personaColors, personaLabel, BANNER_OVERLAY_GRADIENT } from "@/lib/helpers";
@@ -9,10 +9,86 @@ import FocalPointPicker from "@/components/tour/FocalPointPicker";
 import BannerLibraryPicker from "@/components/tour/BannerLibraryPicker";
 import BannerLibraryManager from "@/components/tour/BannerLibraryManager";
 import SaveStatusBar from "@/components/shared/SaveStatusBar";
-import type { TourRow, TourGroup } from "@/lib/types";
+import type { TourRow, TourGroup, PersonnelRow } from "@/lib/types";
 import { Tag, X, Plus } from "lucide-react";
 
 const ROLES_TYPED = ROLES as Record<string, { label: string; color: string; bg: string }>;
+
+// Transfer ownership (October 2026, Amy): when a different consultant takes
+// over a tour, an admin moves the record to them. The new owner gets full
+// edit rights and the tour moves to their My Tours. The previous owner keeps
+// access only if they are still listed as a Tour Host or Tour Consultant.
+// The database refuses an owner change from anyone but an admin.
+function OwnershipTransfer({ tour }: { tour: TourRow }) {
+  const [people, setPeople] = useState<PersonnelRow[]>([]);
+  const [pick, setPick] = useState("");
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const { data } = await createClient().rpc("list_personnel");
+      if (active && Array.isArray(data)) setPeople(data as PersonnelRow[]);
+    })();
+    return () => { active = false; };
+  }, []);
+
+  // The tour page joins the owner's tour_hosts row onto the tour.
+  const joinedOwner = (tour as TourRow & { tour_hosts?: { name?: string } | null }).tour_hosts?.name;
+  const currentName = joinedOwner ?? people.find(p => p.id === tour.tour_host_id)?.name ?? "Unknown";
+  const options = people.filter(p => p.id !== tour.tour_host_id).sort((a, b) => a.name.localeCompare(b.name));
+  const target = options.find(p => p.id === pick);
+
+  async function transfer() {
+    if (!target) return;
+    setBusy(true);
+    const { error } = await createClient().rpc("admin_transfer_tour", { p_tour: tour.id, p_new_owner: target.id });
+    setBusy(false);
+    if (error) {
+      window.alert(`Could not transfer the tour: ${error.message}`);
+      return;
+    }
+    window.location.reload();
+  }
+
+  return (
+    <div style={{ background: "var(--surface)", border: "1.5px solid var(--border-soft)", borderRadius: 14, padding: 20 }}>
+      <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 15, fontWeight: 400, color: "var(--ink)", marginBottom: 6 }}>Tour Owner</div>
+      <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 12px", lineHeight: 1.6 }}>
+        Owned by <strong style={{ color: "var(--text)" }}>{currentName}</strong>. When another consultant takes over this tour, transfer it to them: they get full edit rights and it moves to their My Tours. Admin only.
+      </p>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        <select value={pick} onChange={e => { setPick(e.target.value); setConfirming(false); }}
+          style={{ padding: "8px 10px", borderRadius: 8, border: "1.5px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13, fontFamily: "inherit", minWidth: 220 }}>
+          <option value="">Choose the new owner</option>
+          {options.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+        {!confirming && (
+          <button disabled={!target} onClick={() => setConfirming(true)}
+            style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: target ? BRAND.navy : "var(--surface-3)", color: target ? "#fff" : "var(--muted)", fontSize: 13, fontWeight: 700, cursor: target ? "pointer" : "default", fontFamily: "inherit" }}>
+            Transfer
+          </button>
+        )}
+      </div>
+      {confirming && target && (
+        <div style={{ marginTop: 12, background: "var(--amber-bg)", color: "var(--amber-text)", borderRadius: 10, padding: "10px 12px", fontSize: 12, lineHeight: 1.6 }}>
+          Transfer this tour from {currentName} to {target.name}? {currentName} keeps access only if listed as a Tour Host or Tour Consultant in Trip Information.
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            <button disabled={busy} onClick={transfer}
+              style={{ padding: "6px 12px", borderRadius: 7, border: "none", background: BRAND.navy, color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+              {busy ? "Transferring..." : `Yes, transfer to ${target.name}`}
+            </button>
+            <button disabled={busy} onClick={() => setConfirming(false)}
+              style={{ padding: "6px 12px", borderRadius: 7, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // Multi-group tours (band, choir, drama, orchestra ...): define the groups
 // here, then tag itinerary items with them. Untagged items apply to everyone;
@@ -317,6 +393,9 @@ export default function SettingsTab({ tour, isOwner, viewerIsAdmin, currentUserI
           <BannerLibraryManager currentHostId={currentUserId} />
         </div>
       )}
+
+      {/* Tour Owner: admin only transfer to another consultant */}
+      {viewerIsAdmin && <OwnershipTransfer tour={tour} />}
 
       {/* Banner Image — choose from the library */}
       <BannerUploader tour={tour} isOwner={isOwner} onTourChange={onTourChange} />
