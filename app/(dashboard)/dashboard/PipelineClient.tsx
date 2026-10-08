@@ -127,9 +127,11 @@ export default function PipelineClient({ initialTours, currentHostId, currentHos
         // priority over the itinerary items. Carrying them into a copy made the
         // copy's header keep showing the original group's flights and hotel no
         // matter how the itinerary was edited, so a copy starts with them blank
-        // and derives those rows from its own itinerary.
+        // and derives those rows from its own itinerary. trip_info_overrides is
+        // NOT NULL in the database, so "blank" is an empty object, never null
+        // (a null here rejected every duplicate, October 2026).
         participants_display_override: null,
-        trip_info_overrides: null,
+        trip_info_overrides: {},
         custom_trip_rows: source.custom_trip_rows,
         teachers: source.teachers,
         tour_hosts_list: source.tour_hosts_list,
@@ -147,7 +149,11 @@ export default function PipelineClient({ initialTours, currentHostId, currentHos
       .select("*, tour_hosts(id, name, initials), tour_members(id, type, waiver)")
       .single();
 
-    if (error || !newTour) { setDuplicating(null); return; }
+    if (error || !newTour) {
+      setDuplicating(null);
+      alert(`Could not duplicate this tour${error?.message ? `: ${error.message}` : "."}`);
+      return;
+    }
 
     // Copy agenda days + items
     const { data: days } = await supabase
