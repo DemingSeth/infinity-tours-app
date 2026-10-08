@@ -384,7 +384,12 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
 
   async function removeConf(id: string) {
     const supabase = createClient();
-    await supabase.from("tour_confirmations").delete().eq("id", id);
+    const { data, error } = await supabase.from("tour_confirmations").delete().eq("id", id).select("id");
+    if (error || !data || data.length === 0) {
+      console.error("[tour_confirmations.delete] failed", error);
+      window.alert(`Could not remove the confirmation: ${error?.message ?? "no row removed (permission?)"}`);
+      return;
+    }
     setConfs(prev => prev.filter(r => r.id !== id));
   }
 

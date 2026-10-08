@@ -184,9 +184,9 @@ function NotesLog({ tourId, isOwner }: { tourId: string; isOwner: boolean }) {
       const text = editText.trim();
       const original = notes.find(n => n.id === editingId)?.text ?? "";
       if (text && text !== original.trim()) {
-        const { error } = await supabase
-          .from("tour_notes").update({ text, updated_at: new Date().toISOString() }).eq("id", editingId);
-        if (error) { setSaveError("Not saved yet, still trying"); return; }
+        const { data: upd, error } = await supabase
+          .from("tour_notes").update({ text, updated_at: new Date().toISOString() }).eq("id", editingId).select("id");
+        if (error || !upd || upd.length === 0) { setSaveError("Not saved yet, still trying"); return; }
         setNotes(prev => prev.map(n => n.id === editingId ? { ...n, text } : n));
         setSaveError(null);
         setSavedAt(new Date());
@@ -199,9 +199,9 @@ function NotesLog({ tourId, isOwner }: { tourId: string; isOwner: boolean }) {
     if (!text) return;
 
     if (autoNoteId) {
-      const { error } = await supabase
-        .from("tour_notes").update({ text, priority: draftPriority, updated_at: new Date().toISOString() }).eq("id", autoNoteId);
-      if (error) { setSaveError("Not saved yet, still trying"); return; }
+      const { data: upd, error } = await supabase
+        .from("tour_notes").update({ text, priority: draftPriority, updated_at: new Date().toISOString() }).eq("id", autoNoteId).select("id");
+      if (error || !upd || upd.length === 0) { setSaveError("Not saved yet, still trying"); return; }
       setSaveError(null);
       setSavedAt(new Date());
       return;
@@ -294,10 +294,11 @@ function NotesLog({ tourId, isOwner }: { tourId: string; isOwner: boolean }) {
   async function changePriority(id: string, priority: NotePriority) {
     const prev = notes;
     setNotes(cur => cur.map(n => n.id === id ? { ...n, priority } : n));
-    const { error } = await createClient().from("tour_notes").update({ priority }).eq("id", id);
-    if (error) {
-      console.error("[tour_notes.priority] failed", error.message);
+    const { data, error } = await createClient().from("tour_notes").update({ priority }).eq("id", id).select("id");
+    if (error || !data || data.length === 0) {
+      console.error("[tour_notes.priority] failed", error?.message);
       setNotes(prev); // roll back
+      window.alert(`Could not change the priority: ${error?.message ?? "no row updated (permission?)"}`);
     }
   }
 
@@ -340,9 +341,10 @@ function NotesLog({ tourId, isOwner }: { tourId: string; isOwner: boolean }) {
 
   async function deleteNote(id: string) {
     writeStored(editKey(id), null);
-    const { error } = await createClient().from("tour_notes").delete().eq("id", id);
-    if (error) {
-      console.error("[tour_notes.delete] failed", error.message);
+    const { data, error } = await createClient().from("tour_notes").delete().eq("id", id).select("id");
+    if (error || !data || data.length === 0) {
+      console.error("[tour_notes.delete] failed", error?.message);
+      window.alert(`Could not delete the note: ${error?.message ?? "no row removed (permission?)"}`);
       return;
     }
     setNotes(prev => prev.filter(n => n.id !== id));
@@ -546,6 +548,11 @@ export default function OverviewTab({ tour, members, isOwner, onChange, saving =
     const driverPhone = (form.bus_driver_contact?.phone || "").trim();
     onChange({
       ...form,
+      // Date columns refuse an empty string. The form loads a missing date as
+      // "" for the input, so a blank date must go back as null, or every tour
+      // without both dates could never save Trip Details (October 2026).
+      start_date: form.start_date || null,
+      end_date: form.end_date || null,
       bus_company: (form.bus_company || "").trim() || null,
       bus_driver_contact: driverName || driverPhone ? { name: driverName || null, phone: driverPhone || null } : null,
     });

@@ -162,9 +162,13 @@ export default function PipelineClient({ initialTours, currentHostId, currentHos
       .eq("tour_id", tourId)
       .order("sort_order");
 
+    // Count anything that fails to copy, so a partial copy is announced instead
+    // of opening with silently empty days.
+    let copyProblems = 0;
+    let firstProblem = "";
     if (days?.length) {
       for (const day of days) {
-        const { data: newDay } = await supabase
+        const { data: newDay, error: dayErr } = await supabase
           .from("agenda_days")
           .insert({
             tour_id: newTour.id,
@@ -176,7 +180,12 @@ export default function PipelineClient({ initialTours, currentHostId, currentHos
           .select("id")
           .single();
 
-        if (newDay && day.agenda_items?.length) {
+        if (!newDay) {
+          copyProblems++;
+          firstProblem ||= dayErr?.message ?? "a day was not copied";
+          continue;
+        }
+        if (day.agenda_items?.length) {
           const items = day.agenda_items.map((item: any) => ({
             day_id: newDay.id,
             tour_id: newTour.id,
@@ -220,13 +229,20 @@ export default function PipelineClient({ initialTours, currentHostId, currentHos
             confirmation_not_required: item.confirmation_not_required,
             summary_include: item.summary_include ?? null,
           }));
-          await supabase.from("agenda_items").insert(items);
+          const { error: itemsErr } = await supabase.from("agenda_items").insert(items);
+          if (itemsErr) {
+            copyProblems++;
+            firstProblem ||= itemsErr.message;
+          }
         }
       }
     }
 
     setTours(prev => [newTour, ...prev]);
     setDuplicating(null);
+    if (copyProblems) {
+      alert(`The copy was created, but ${copyProblems} day${copyProblems === 1 ? "" : "s"} did not copy completely (${firstProblem}). Check the itinerary before using it.`);
+    }
     router.push(`/tour/${newTour.id}`);
   }
 

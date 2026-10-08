@@ -1791,11 +1791,18 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
       const prev = days.find(o => o.id === d.id);
       return prev?.sort_order !== d.sort_order || prev?.day_number !== d.day_number;
     });
+    const before = days;
     onDaysChange(next);
     const supabase = createClient();
-    await Promise.all(
-      changed.map(d => supabase.from("agenda_days").update({ sort_order: d.sort_order, day_number: d.day_number }).eq("id", d.id)),
+    const results = await Promise.all(
+      changed.map(d => supabase.from("agenda_days").update({ sort_order: d.sort_order, day_number: d.day_number }).eq("id", d.id).select("id")),
     );
+    const failed = results.find(r => r.error || !r.data || r.data.length === 0);
+    if (failed) {
+      console.error("[agenda_days.move] save failed", failed.error);
+      onDaysChange(before);
+      window.alert(`Could not move the day: ${failed.error?.message ?? "no row updated (permission?)"}`);
+    }
   }
 
 
@@ -1804,7 +1811,12 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
     const d = new Date(isoDate + "T12:00:00");
     const formatted = formatAgendaDate(d);
     const supabase = createClient();
-    await supabase.from("agenda_days").update({ date: formatted }).eq("id", dayId);
+    const { data, error } = await supabase.from("agenda_days").update({ date: formatted }).eq("id", dayId).select("id");
+    if (error || !data || data.length === 0) {
+      console.error("[agenda_days.date] save failed", { dayId, error });
+      window.alert(`Could not change the day's date: ${error?.message ?? "no row updated (permission?)"}`);
+      return;
+    }
     onDaysChange(days.map(dy => dy.id === dayId ? { ...dy, date: formatted } : dy));
     setEditingDayId(null);
   }
@@ -1973,7 +1985,14 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
   async function removeItemImage(dayId: string, item: AgendaItemWithFeedback, url: string) {
     const next = (item.image_urls || []).filter(u => u !== url);
     const supabase = createClient();
-    await supabase.from("agenda_items").update({ image_urls: next }).eq("id", item.id);
+    // Confirm the item really let go of the photo BEFORE deleting the file, or a
+    // refused write would leave the item pointing at a file that no longer exists.
+    const { data, error } = await supabase.from("agenda_items").update({ image_urls: next }).eq("id", item.id).select("id");
+    if (error || !data || data.length === 0) {
+      console.error("[agenda_items.image_urls] remove failed", { itemId: item.id, error });
+      window.alert(`Could not remove the photo: ${error?.message ?? "no row updated (permission?)"}`);
+      return;
+    }
     onDaysChange(days.map(d => d.id === dayId ? { ...d, agenda_items: d.agenda_items.map(i => i.id === item.id ? { ...i, image_urls: next } : i) } : d));
     if (isImageShared(url, item.id)) return;
     const path = storagePathFromUrl(url);

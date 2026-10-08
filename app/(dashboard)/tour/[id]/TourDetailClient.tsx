@@ -80,7 +80,11 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
     0,
   );
 
-  async function handleTourChange(patch: Record<string, any>) {
+  async function handleTourChange(rawPatch: Record<string, any>) {
+    // Date columns refuse "" (a cleared date input). Send null instead, whichever
+    // screen the patch came from.
+    const patch = { ...rawPatch };
+    for (const k of ["start_date", "end_date"]) if (k in patch && !patch[k]) patch[k] = null;
     const prevStartDate = tour.start_date;
     const prevTour = tour;
     const optimistic = { ...tour, ...patch };
@@ -115,9 +119,15 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
   // profile phone inline from the Itinerary tab, so scope the write to their
   // own tour_hosts record (id === auth user id).
   async function handleHostPhoneChange(phone: string | null) {
+    const prevTour = tour;
     setTour((t: any) => (t.tour_hosts ? { ...t, tour_hosts: { ...t.tour_hosts, phone } } : t));
     const supabase = createClient();
-    await supabase.from("tour_hosts").update({ phone }).eq("id", currentUserId);
+    const { data, error } = await supabase.from("tour_hosts").update({ phone }).eq("id", currentUserId).select("id");
+    if (error || !data || data.length === 0) {
+      console.error("[tour_hosts.phone] save failed", error);
+      setTour(prevTour);
+      window.alert(`Could not save your phone: ${error?.message ?? "no row updated (permission?)"}`);
+    }
   }
 
   async function applyCascade(newStartDate: string) {
@@ -128,11 +138,20 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
       d.setDate(d.getDate() + i);
       return { id: day.id, date: formatAgendaDate(d) };
     });
-    await Promise.all(updates.map((u: { id: string; date: string }) =>
-      supabase.from("agenda_days").update({ date: u.date }).eq("id", u.id)
+    const results = await Promise.all(updates.map((u: { id: string; date: string }) =>
+      supabase.from("agenda_days").update({ date: u.date }).eq("id", u.id).select("id")
     ));
-    setDays((prev: any[]) => prev.map((day: any, i: number) => ({ ...day, date: updates[i].date })));
     setCascadePrompt(null);
+    const failed = results.filter(r => r.error || !r.data || r.data.length === 0);
+    // Reflect only the days that actually saved, and say so if any did not.
+    setDays((prev: any[]) => prev.map((day: any, i: number) => {
+      const r = results[i];
+      return r && !r.error && r.data && r.data.length > 0 ? { ...day, date: updates[i].date } : day;
+    }));
+    if (failed.length) {
+      console.error("[agenda_days.cascade] some dates failed", failed.map(f => f.error));
+      window.alert(`${failed.length} day date${failed.length === 1 ? "" : "s"} could not be updated: ${failed[0].error?.message ?? "no row updated (permission?)"}`);
+    }
   }
 
   return (

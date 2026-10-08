@@ -54,10 +54,18 @@ export default function PostTripTab({ tour, days, initialPostTrip, initialReview
     setSaving(true);
     const supabase = createClient();
     if (postTrip?.id) {
-      await supabase.from("post_trip").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", postTrip.id);
+      const { data, error } = await supabase.from("post_trip").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", postTrip.id).select("id");
+      if (error || !data || data.length === 0) {
+        console.error("[post_trip.update] failed", error);
+        window.alert(`Could not save the post-trip notes: ${error?.message ?? "no row updated (permission?)"}`);
+      }
     } else {
-      const { data } = await supabase.from("post_trip").insert({ tour_id: tour.id, completed: false, ...patch }).select().single();
+      const { data, error } = await supabase.from("post_trip").insert({ tour_id: tour.id, completed: false, ...patch }).select().single();
       if (data) setPostTrip(data);
+      else {
+        console.error("[post_trip.insert] failed", error);
+        window.alert(`Could not save the post-trip notes: ${error?.message ?? "not saved (permission?)"}`);
+      }
     }
     setSaving(false);
     setSaved(true);

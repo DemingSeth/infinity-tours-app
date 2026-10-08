@@ -89,7 +89,14 @@ export default function BannerLibraryManager({ currentHostId }: { currentHostId:
   async function remove(img: BannerImageLibraryRow) {
     if (!window.confirm(`Delete "${img.label}" from the library?`)) return;
     const supabase = createClient();
-    await supabase.from("banner_image_library").delete().eq("id", img.id);
+    // Only delete the file once the library row is really gone, or a refused
+    // delete would leave a library entry pointing at a missing image.
+    const { data, error } = await supabase.from("banner_image_library").delete().eq("id", img.id).select("id");
+    if (error || !data || data.length === 0) {
+      console.error("[banner_image_library.delete] failed", error);
+      window.alert(`Could not delete the image: ${error?.message ?? "no row removed (permission?)"}`);
+      return;
+    }
     setImages(prev => prev.filter(i => i.id !== img.id));
     const p = storagePathFromUrl(img.url);
     if (p) { try { await supabase.storage.from(STORAGE_BUCKET).remove([p]); } catch { /* ignore */ } }

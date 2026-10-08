@@ -49,12 +49,14 @@ export default function QuoteEditorClient({ quoteId, initialData }: { quoteId: s
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(async () => {
       const supabase = createClient();
-      const { error } = await supabase
+      const { data: rows, error } = await supabase
         .from("quotes")
         .update({ data, updated_at: new Date().toISOString() })
-        .eq("id", quoteId);
-      setSaveState(error ? "error" : "saved");
-      if (error) console.error("Quote autosave failed", error.message);
+        .eq("id", quoteId)
+        .select("id");
+      const ok = !error && !!rows && rows.length > 0;
+      setSaveState(ok ? "saved" : "error");
+      if (!ok) console.error("Quote autosave failed", error?.message ?? "no row updated");
     }, 700);
     return () => {
       if (timer.current) clearTimeout(timer.current);
