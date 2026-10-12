@@ -8,7 +8,24 @@ import { BRAND } from "@/lib/helpers";
 import { Modal, Btn } from "@/components/tour/ui";
 import type { BannerImageLibraryRow } from "@/lib/types";
 
-const cityOf = (s: string | null | undefined) => (s ?? "").split(",")[0].trim().toLowerCase();
+// Destination text is typed freely on both tours and library images, so the
+// same place shows up as "New York, NY", "New York City, NY", "Brooklyn, NY",
+// "Washington DC" vs "Washington D.C.", or "Anahiem". Match on a forgiving key:
+// lowercase, punctuation dropped, a trailing "city" dropped, then a few known
+// metro areas folded together (October 2026, Amy).
+const METRO_ALIASES: Record<string, string> = {
+  "new york": "nyc", "nyc": "nyc", "brooklyn": "nyc", "manhattan": "nyc", "queens": "nyc",
+  "washington": "dc", "washington dc": "dc", "dc": "dc",
+  "anaheim": "anaheim", "anahiem": "anaheim", "anaheim california": "anaheim",
+  "disneyland": "anaheim", "los angeles": "anaheim", "southern california": "anaheim",
+  "salt lake": "slc", "slc": "slc",
+};
+
+function placeKey(s: string | null | undefined): string {
+  let city = (s ?? "").split(",")[0].toLowerCase().replace(/\./g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+  city = city.replace(/ city$/, "").trim();
+  return METRO_ALIASES[city] ?? city;
+}
 
 export default function BannerLibraryPicker({ tourDestination, currentUrl, onSelect, onClose }: {
   tourDestination?: string | null;
@@ -31,12 +48,35 @@ export default function BannerLibraryPicker({ tourDestination, currentUrl, onSel
   }, []);
 
   // Matching-destination images first, then everything else.
-  const tourCity = cityOf(tourDestination);
-  const matches = (img: BannerImageLibraryRow) => !!tourCity && cityOf(img.destination) === tourCity;
+  const tourCity = placeKey(tourDestination);
+  const matches = (img: BannerImageLibraryRow) => !!tourCity && placeKey(img.destination) === tourCity;
   const ordered = [...images].sort((a, b) => Number(matches(b)) - Number(matches(a)));
 
   return (
     <Modal title="Choose Banner Image" onClose={onClose} wide>
+      {/* Select / Cancel stay pinned to the top of the dialog while the host
+          scrolls the library (October 2026, Amy: the library outgrew a button
+          row at the bottom). Sticky against the modal overlay, which is the
+          scroll container. */}
+      <div style={{ position: "sticky", top: 0, zIndex: 2, background: "var(--surface)", margin: "-8px -24px 14px", padding: "10px 24px", borderBottom: "1px solid var(--border-soft)", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <span style={{ fontSize: 12, color: "var(--muted-2)", marginRight: "auto" }}>
+          {selected ? "Photo selected" : "Pick a photo"}
+        </span>
+        {currentUrl && (
+          <button
+            type="button"
+            onClick={() => { onSelect(null); onClose(); }}
+            style={{ background: "none", border: "none", color: "var(--red-text)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "underline" }}
+          >
+            Remove Banner
+          </button>
+        )}
+        <Btn variant="muted" onClick={onClose}>Cancel</Btn>
+        <Btn onClick={() => { onSelect(selected); onClose(); }} disabled={!selected}>
+          <Check size={13} />Select
+        </Btn>
+      </div>
+
       {loading ? (
         <div style={{ padding: "30px 0", textAlign: "center", color: "var(--muted-2)", fontSize: 13 }}>Loading library…</div>
       ) : images.length === 0 ? (
@@ -74,22 +114,6 @@ export default function BannerLibraryPicker({ tourDestination, currentUrl, onSel
           })}
         </div>
       )}
-
-      <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 20, flexWrap: "wrap" }}>
-        <Btn onClick={() => { onSelect(selected); onClose(); }} disabled={!selected}>
-          <Check size={13} />Select
-        </Btn>
-        <Btn variant="muted" onClick={onClose}>Cancel</Btn>
-        {currentUrl && (
-          <button
-            type="button"
-            onClick={() => { onSelect(null); onClose(); }}
-            style={{ marginLeft: "auto", background: "none", border: "none", color: "var(--red-text)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "underline" }}
-          >
-            Remove Banner
-          </button>
-        )}
-      </div>
 
       <style jsx>{`
         .banner-picker-grid {
