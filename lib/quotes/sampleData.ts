@@ -68,6 +68,13 @@ export function blankTripQuote(): QuoteData {
   };
 }
 
+/** Content for a duplicated quote: same quote, name marked as a copy. */
+export function duplicateQuoteData(data: QuoteData): QuoteData {
+  const copy: QuoteData = JSON.parse(JSON.stringify(data));
+  copy.group = `${(data.group || "Untitled quote").trim()} (copy)`;
+  return copy;
+}
+
 /** Fill any missing pricing fields so older or imported data always edits safely. */
 export function withPricingDefaults(data: QuoteData): QuoteData {
   if (data.layout !== "pricing") return data;

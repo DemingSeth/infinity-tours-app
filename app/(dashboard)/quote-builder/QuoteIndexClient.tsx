@@ -2,9 +2,9 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, Plus, Trash2, Upload, Map as MapIcon } from "lucide-react";
+import { FileText, Plus, Trash2, Upload, Copy, Map as MapIcon } from "lucide-react";
 import type { QuoteRow } from "@/lib/quotes/types";
-import { blankQuote } from "@/lib/quotes/sampleData";
+import { blankQuote, duplicateQuoteData } from "@/lib/quotes/sampleData";
 import { createClient } from "@/lib/supabase/client";
 import { BRAND } from "@/lib/helpers";
 import { IMPORT_NOTES_KEY } from "@/lib/quotes/importNotes";
@@ -26,6 +26,7 @@ export default function QuoteIndexClient({ quotes: initialQuotes, currentUserId 
   const [creating, setCreating] = useState(false);
   const [importing, setImporting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [copyingId, setCopyingId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function newQuote() {
@@ -66,6 +67,25 @@ export default function QuoteIndexClient({ quotes: initialQuotes, currentUserId 
       setImporting(false);
       if (fileRef.current) fileRef.current.value = "";
     }
+  }
+
+  // Duplicate: a new quote with the same content, owned by whoever copies it
+  // and not linked to any itinerary. Opens straight into the editor.
+  async function duplicateQuote(q: QuoteRow) {
+    if (copyingId) return;
+    setCopyingId(q.id);
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("quotes")
+      .insert({ data: duplicateQuoteData(q.data), created_by: currentUserId })
+      .select("id")
+      .single();
+    if (error || !data) {
+      setCopyingId(null);
+      alert(`Could not duplicate the quote${error?.message ? `: ${error.message}` : "."}`);
+      return;
+    }
+    router.push(`/quote-builder/${data.id}`);
   }
 
   async function deleteQuote(q: QuoteRow) {
@@ -155,6 +175,16 @@ export default function QuoteIndexClient({ quotes: initialQuotes, currentUserId 
               <div style={{ fontSize: 11, color: "#94a3b8", flexShrink: 0 }}>
                 Updated {formatDate(q.updated_at)}
               </div>
+              <button
+                type="button"
+                title="Duplicate quote"
+                aria-label={`Duplicate ${q.data?.group || "quote"}`}
+                disabled={copyingId === q.id}
+                onClick={e => { e.stopPropagation(); duplicateQuote(q); }}
+                style={{ flexShrink: 0, background: "none", border: "1px solid transparent", borderRadius: 6, padding: 6, cursor: "pointer", color: "#3c8d9a", display: "flex", opacity: copyingId === q.id ? 0.5 : 1 }}
+              >
+                <Copy size={15} />
+              </button>
               <button
                 type="button"
                 title="Delete quote"

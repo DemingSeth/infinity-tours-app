@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ChevronLeft, ChevronRight, Download, Trash2, Map as MapIcon, X } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Download, Trash2, Copy, Map as MapIcon, X } from "lucide-react";
 import type { QuoteData } from "@/lib/quotes/types";
-import { blankQuote, blankTripQuote, sampleQuote, samplePricingQuote, withPricingDefaults } from "@/lib/quotes/sampleData";
+import { blankQuote, blankTripQuote, sampleQuote, samplePricingQuote, withPricingDefaults, duplicateQuoteData } from "@/lib/quotes/sampleData";
 import { createTourFromQuote } from "@/lib/quotes/quoteToTour";
 import { IMPORT_NOTES_KEY } from "@/lib/quotes/importNotes";
 import { createClient } from "@/lib/supabase/client";
@@ -72,6 +72,23 @@ export default function QuoteEditorClient({ quoteId, initialData, tourId, curren
       return;
     }
     router.push("/quote-builder");
+  }
+
+  const [copying, setCopying] = useState(false);
+  async function duplicateQuote() {
+    setCopying(true);
+    const supabase = createClient();
+    const { data: row, error } = await supabase
+      .from("quotes")
+      .insert({ data: duplicateQuoteData(data), created_by: currentUserId })
+      .select("id")
+      .single();
+    if (error || !row) {
+      setCopying(false);
+      alert(`Could not duplicate the quote${error?.message ? `: ${error.message}` : "."}`);
+      return;
+    }
+    router.push(`/quote-builder/${row.id}`);
   }
 
   async function makeItinerary() {
@@ -237,6 +254,10 @@ export default function QuoteEditorClient({ quoteId, initialData, tourId, curren
           </button>
           <button type="button" onClick={() => window.open(`/quote-builder/${quoteId}/pdf`, "_blank")} style={{ ...toolbarBtn, color: "#3a93a0", background: "rgba(255,255,255,0.94)", border: "1px solid #cfe3e6" }}>
             <Download size={13} /> Download PDF
+          </button>
+          <button type="button" onClick={duplicateQuote} disabled={copying} title="Duplicate this quote"
+            style={{ ...toolbarBtn, color: "#3a93a0", background: "rgba(255,255,255,0.94)", border: "1px solid #cfe3e6", opacity: copying ? 0.7 : 1 }}>
+            <Copy size={13} /> {copying ? "Copying…" : "Duplicate"}
           </button>
           <button type="button" onClick={deleteQuote} disabled={deleting} title="Delete this quote"
             style={{ ...toolbarBtn, color: "#9a3b2e", background: "rgba(255,255,255,0.94)", border: "1px solid #ecd2cc", padding: "8px 10px", opacity: deleting ? 0.7 : 1 }}>
