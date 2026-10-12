@@ -61,7 +61,11 @@ export default function PricingQuoteDocument({ data }: { data: QuoteData }) {
   const addOns = p.addOns.filter(a => filled(a.label) || filled(a.price));
   const breakdown = p.costBreakdown.filter(c => filled(c.label) || filled(c.amount));
   const plan = p.paymentPlan.filter(x => filled(x.amount) || filled(x.due));
-  const days = data.days.filter(d => filled(d.date) || d.rows.some(r => filled(r.text)));
+  // Keep each day's position in data.days so a click can jump to its editor card.
+  const days = data.days
+    .map((d, index) => ({ ...d, index }))
+    .filter(d => filled(d.date) || d.rows.some(r => filled(r.text)));
+  const watermark = data.watermark !== false;
   const hotelLines = p.hotelDetails.split("\n").map(l => l.trim()).filter(Boolean);
   const hasSummary = filled(p.estimatedCost) || filled(p.paymentNote) || addOns.length > 0;
 
@@ -85,9 +89,28 @@ export default function PricingQuoteDocument({ data }: { data: QuoteData }) {
         }
       `}</style>
 
+      {/* WATERMARK: the Infinity mark, large and slanted behind the right
+          column, as on the Piktochart quotes. Clipped to the page; the
+          content below sits above it. The image path is site-relative; the PDF
+          export sets a base address so it resolves there too. */}
+      {watermark && (
+        <div aria-hidden style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none", zIndex: 0 }}>
+          {/* A plain img (not next/image): this component is also rendered to
+              static HTML for the server PDF export. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/infinity-mark-light.png"
+            alt=""
+            style={{ position: "absolute", width: 460, right: -110, top: 560, transform: "rotate(-26deg)", opacity: 0.9 }}
+          />
+        </div>
+      )}
+
       {/* HERO: photo as a CSS background so it paints in print and PDF. */}
       <div
+        data-edit="header"
         style={{
+          zIndex: 1,
           position: "relative",
           height: 212,
           overflow: "hidden",
@@ -122,11 +145,11 @@ export default function PricingQuoteDocument({ data }: { data: QuoteData }) {
       </div>
 
       {/* BODY */}
-      <div style={{ display: "flex", alignItems: "stretch", padding: "26px 30px 18px" }}>
+      <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "stretch", padding: "26px 30px 18px" }}>
         {/* Left column */}
         <div style={{ width: 230, flex: "none", paddingRight: 22, borderRight: "2px solid #4d4d4d" }}>
           {inclusions.length > 0 && (
-            <div style={{ marginBottom: 24 }}>
+            <div data-edit="inclusions" style={{ marginBottom: 24 }}>
               <div style={heading}>Trip Inclusions</div>
               <ul style={{ margin: 0, paddingLeft: 16 }}>
                 {inclusions.map((t, i) => <li key={i} style={{ ...bodyText, marginBottom: 1 }}><Linked text={t} /></li>)}
@@ -135,7 +158,7 @@ export default function PricingQuoteDocument({ data }: { data: QuoteData }) {
           )}
 
           {hasSummary && (
-            <div style={{ marginBottom: 24 }}>
+            <div data-edit="summary" style={{ marginBottom: 24 }}>
               <div style={heading}>Payment Summary</div>
               {filled(p.estimatedCost) && (
                 <div style={{ display: "flex", alignItems: "baseline", gap: 12, margin: "2px 0 8px" }}>
@@ -145,7 +168,7 @@ export default function PricingQuoteDocument({ data }: { data: QuoteData }) {
               )}
               {filled(p.paymentNote) && <div style={bodyText}>{p.paymentNote}</div>}
               {addOns.length > 0 && (
-                <div style={{ marginTop: 18 }}>
+                <div data-edit="addons" style={{ marginTop: 18 }}>
                   <div style={{ fontFamily: OSWALD, fontSize: 13, color: BODY, letterSpacing: ".3px", marginBottom: 4 }}>Possible add-ons:</div>
                   {addOns.map((a, i) => (
                     <div key={i} style={bodyText}>
@@ -158,7 +181,7 @@ export default function PricingQuoteDocument({ data }: { data: QuoteData }) {
           )}
 
           {breakdown.length > 0 && (
-            <div>
+            <div data-edit="breakdown">
               <div style={heading}>Cost Breakdown</div>
               <ul style={{ margin: 0, paddingLeft: 16 }}>
                 {breakdown.map((c, i) => (
@@ -174,8 +197,8 @@ export default function PricingQuoteDocument({ data }: { data: QuoteData }) {
         {/* Right: days, then hotel details, flowing in two columns */}
         <div style={{ flex: 1, paddingLeft: 24 }}>
           <div style={{ columnCount: 2, columnGap: 24 }}>
-            {days.map((d, i) => (
-              <div key={i} style={{ breakInside: "avoid", marginBottom: 18 }}>
+            {days.map((d) => (
+              <div key={d.index} data-edit={`day-${d.index}`} style={{ breakInside: "avoid", marginBottom: 18 }}>
                 <div style={{ background: BLUE, color: "#fff", fontFamily: OSWALD, fontWeight: 500, fontSize: 14, letterSpacing: ".4px", textAlign: "center", padding: "5px 6px", marginBottom: 8 }}>
                   {d.date}
                 </div>
@@ -188,7 +211,7 @@ export default function PricingQuoteDocument({ data }: { data: QuoteData }) {
               </div>
             ))}
             {(hotelLines.length > 0 || filled(p.roomsNote)) && (
-              <div style={{ breakInside: "avoid", marginBottom: 18 }}>
+              <div data-edit="hotel" style={{ breakInside: "avoid", marginBottom: 18 }}>
                 <div style={heading}>Hotel Details</div>
                 {hotelLines.map((l, i) => <div key={i} style={bodyText}><Linked text={l} /></div>)}
                 {filled(p.roomsNote) && <div style={value}>{p.roomsNote}</div>}
@@ -200,7 +223,7 @@ export default function PricingQuoteDocument({ data }: { data: QuoteData }) {
 
       {/* STUDENT PAYMENT PLAN */}
       {(plan.length > 0 || filled(p.paymentPlanNote)) && (
-        <div style={{ margin: "0 30px", padding: "14px 0 16px", borderTop: "1px solid #3a3a3a" }}>
+        <div data-edit="plan" style={{ position: "relative", zIndex: 1, margin: "0 30px", padding: "14px 0 16px", borderTop: "1px solid #3a3a3a" }}>
           <div style={{ display: "flex", alignItems: "flex-start", gap: 22 }}>
             <div style={{ flex: "none", background: PALE_BLUE, color: INK, fontFamily: OSWALD, fontWeight: 500, fontSize: 12.5, letterSpacing: ".3px", padding: "7px 12px", marginTop: 10 }}>
               Student Payment Plan
@@ -225,8 +248,8 @@ export default function PricingQuoteDocument({ data }: { data: QuoteData }) {
       )}
 
       {/* FOOTER */}
-      <div style={{ height: 6, background: BLUE_DARK }} />
-      <div style={{ background: BLUE, padding: "18px 30px", display: "flex", alignItems: "center", gap: 28 }}>
+      <div style={{ position: "relative", zIndex: 1, height: 6, background: BLUE_DARK }} />
+      <div data-edit="terms" style={{ position: "relative", zIndex: 1, background: BLUE, padding: "18px 30px", display: "flex", alignItems: "center", gap: 28 }}>
         <div style={{ flex: "none" }}>
           <div style={{ fontFamily: OSWALD, fontWeight: 500, fontSize: 28, letterSpacing: "4px", color: "#fff", lineHeight: 0.9 }}>INFINITY</div>
           <div style={{ fontFamily: OSWALD, fontWeight: 300, fontSize: 9, letterSpacing: "4px", color: "rgba(255,255,255,.92)", marginTop: 4 }}>TOURS + EVENTS</div>

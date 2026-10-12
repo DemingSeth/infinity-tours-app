@@ -167,6 +167,34 @@ export default function QuoteEditorClient({ quoteId, initialData, tourId, curren
 
   const isPricing = data.layout === "pricing";
 
+  // Click a part of the document to jump to its section in the editor panel:
+  // scroll it into view, flash it, and put the cursor in its first field.
+  function jumpTo(key: string) {
+    const go = () => {
+      const target = document.getElementById(`qp-${key}`);
+      if (!target) return;
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+      const card = target.closest("[id^='qp-day-']") as HTMLElement | null;
+      const flashEl = card ?? target;
+      flashEl.classList.remove("qp-flash");
+      void flashEl.offsetWidth; // restart the animation on repeat clicks
+      flashEl.classList.add("qp-flash");
+      // The first field at or after the section heading.
+      let field: Element | null = target.matches("input, textarea") ? target : target.querySelector("input, textarea");
+      for (let el = target.nextElementSibling; !field && el; el = el.nextElementSibling) {
+        field = el.matches("input:not([type=checkbox]), textarea") ? el : el.querySelector("input:not([type=checkbox]), textarea");
+      }
+      (field as HTMLInputElement | null)?.focus({ preventScroll: true });
+    };
+    if (!panelOpen) { setPanelOpen(true); setTimeout(go, 60); } else go();
+  }
+
+  function onDocumentClick(e: React.MouseEvent) {
+    const el = (e.target as HTMLElement).closest("[data-edit]") as HTMLElement | null;
+    if (!el || (e.target as HTMLElement).closest("a")) return; // links still open
+    jumpTo(el.dataset.edit!);
+  }
+
   function loadSample() {
     const name = isPricing ? "Corner Canyon" : "Cantorum";
     if (confirm(`Load the ${name} sample content? This replaces the current content.`)) {
@@ -283,7 +311,19 @@ export default function QuoteEditorClient({ quoteId, initialData, tourId, curren
               )}
             </div>
           )}
-          <QuoteDocument data={data} />
+          <div className={isPricing ? "inf-editable" : undefined} onClick={isPricing ? onDocumentClick : undefined}>
+            <QuoteDocument data={data} />
+          </div>
+          <style>{`
+            @media screen {
+              .inf-editable [data-edit] { cursor: pointer; transition: outline-color .15s; outline: 2px dashed transparent; outline-offset: 3px; }
+              .inf-editable [data-edit]:hover { outline-color: rgba(74,123,224,.55); }
+              .inf-editable [data-edit]:hover [data-edit]:not(:hover) { outline-color: transparent; }
+              .inf-editable [data-edit]:hover:has([data-edit]:hover) { outline-color: transparent; }
+            }
+            @keyframes qpFlash { 0% { background-color: #fff3c4; } 100% { background-color: transparent; } }
+            .qp-flash { animation: qpFlash 1.4s ease-out; border-radius: 6px; }
+          `}</style>
         </div>
       </div>
     </div>

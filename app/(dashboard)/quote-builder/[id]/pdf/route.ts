@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { isAdmin } from "@/lib/roles";
+import { canUseQuoteBuilder } from "@/lib/roles";
 import { renderQuoteHtml } from "@/lib/quotes/renderQuoteHtml";
 import { renderHtmlToPdf } from "@/lib/pdf/renderHtmlToPdf";
 import type { QuoteData } from "@/lib/quotes/types";
@@ -8,7 +8,7 @@ import type { QuoteData } from "@/lib/quotes/types";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
   const supabase = await createClient();
@@ -21,10 +21,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   // never sees this request and it has to enforce the flag itself.
   const { data: viewerHost } = await supabase
     .from("tour_hosts")
-    .select("role, is_active")
+    .select("email, is_active")
     .eq("id", user.id)
     .single();
-  if (!viewerHost?.is_active || !isAdmin(viewerHost.role)) {
+  if (!canUseQuoteBuilder(viewerHost)) {
     return new Response("Forbidden", { status: 403 });
   }
 
@@ -37,7 +37,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (error || !quote) return new Response("Not found", { status: 404 });
 
   const data = (quote as { data: QuoteData }).data;
-  const html = await renderQuoteHtml(data);
+  const html = await renderQuoteHtml(data, new URL(req.url).origin);
   // Render as a single page sized to the content so the two-column day layout
   // balances and never fragments/cuts off, regardless of day count.
   const pdf = await renderHtmlToPdf(html, { fitContentHeight: true });

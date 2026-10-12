@@ -33,6 +33,8 @@ export type QuoteLayout = "pricing" | "trip";
 
 export type QuoteData = {
   layout?: QuoteLayout;
+  /** Slanted Infinity logo watermark behind a pricing quote. Unset = on. */
+  watermark?: boolean;
   pricing?: PricingSection;
   group: string;
   destination: string;

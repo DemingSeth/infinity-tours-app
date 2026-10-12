@@ -1,6 +1,6 @@
 import { getDocumentProxy } from "unpdf";
 import { createClient } from "@/lib/supabase/server";
-import { isAdmin } from "@/lib/roles";
+import { canUseQuoteBuilder } from "@/lib/roles";
 import { parseQuotePdf, type PdfTextItem } from "@/lib/quotes/parseQuotePdf";
 import { blankQuote, blankPricing } from "@/lib/quotes/sampleData";
 import { tourPhotoMatcher } from "@/lib/bannerTags";
@@ -20,11 +20,11 @@ export async function POST(req: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "Please sign in again." }, { status: 401 });
 
-  // Admin only, like the rest of the Quote Builder. A Route Handler does not
-  // run the dashboard layout, so it checks is_active itself.
-  const { data: viewer } = await supabase.from("tour_hosts").select("role, is_active").eq("id", user.id).single();
-  if (!viewer?.is_active || !isAdmin(viewer.role)) {
-    return Response.json({ error: "Only admins can use the Quote Builder." }, { status: 403 });
+  // Same access as the rest of the Quote Builder (Seth, Mike, Greta). A Route
+  // Handler does not run the dashboard layout, so it checks is_active itself.
+  const { data: viewer } = await supabase.from("tour_hosts").select("email, is_active").eq("id", user.id).single();
+  if (!canUseQuoteBuilder(viewer)) {
+    return Response.json({ error: "The Quote Builder is not available on your account." }, { status: 403 });
   }
 
   let file: File | null = null;

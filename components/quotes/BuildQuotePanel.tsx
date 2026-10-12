@@ -184,9 +184,9 @@ export default function BuildQuotePanel({ data, onChange, onExport, onImport, on
       </div>
 
       {/* Scrollable body */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "16px 18px 28px", fontFamily: MULISH }}>
+      <div id="qp-scroll" style={{ flex: 1, overflowY: "auto", padding: "16px 18px 28px", fontFamily: MULISH }}>
         {/* Header */}
-        <div style={{ ...groupTitle, marginTop: 2 }}>Header</div>
+        <div id="qp-header" style={{ ...groupTitle, marginTop: 2 }}>Header</div>
         <label style={label}>Group name</label>
         <input style={input} value={data.group} onChange={(e) => update((d) => { d.group = e.target.value; })} />
         <div style={{ display: "flex", gap: 10 }}>
@@ -274,7 +274,13 @@ export default function BuildQuotePanel({ data, onChange, onExport, onImport, on
 
         {isPricing && (<>
           {/* Trip Inclusions */}
-          <div style={groupTitle}>Trip Inclusions</div>
+          {/* Background option */}
+          <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, fontSize: 12.5, color: "#4d4d4d", cursor: "pointer" }}>
+            <input type="checkbox" checked={data.watermark !== false} onChange={(e) => update((d) => { d.watermark = e.target.checked; })} />
+            Infinity logo watermark in the background
+          </label>
+
+          <div id="qp-inclusions" style={groupTitle}>Trip Inclusions</div>
           {pr.inclusions.map((t, i) => (
             <div key={i} style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6 }}>
               <input style={{ ...input, fontSize: 12, padding: "5px 8px" }} placeholder="e.g. 2 Day Disney Park Hopper" value={t} onChange={(e) => updateP((p) => { p.inclusions[i] = e.target.value; })} />
@@ -284,12 +290,12 @@ export default function BuildQuotePanel({ data, onChange, onExport, onImport, on
           <button type="button" style={addBtn} onClick={() => updateP((p) => { p.inclusions.push(""); })}>+ Add inclusion</button>
 
           {/* Payment Summary */}
-          <div style={groupTitle}>Payment Summary</div>
+          <div id="qp-summary" style={groupTitle}>Payment Summary</div>
           <label style={label}>Estimated tour cost (per traveler)</label>
           <input style={input} placeholder="$1700" value={pr.estimatedCost} onChange={(e) => updateP((p) => { p.estimatedCost = e.target.value; })} />
           <label style={label}>Payment note</label>
           <textarea style={textarea} rows={2} value={pr.paymentNote} onChange={(e) => updateP((p) => { p.paymentNote = e.target.value; })} />
-          <label style={{ ...label, marginTop: 12 }}>Possible add-ons</label>
+          <label id="qp-addons" style={{ ...label, marginTop: 12 }}>Possible add-ons</label>
           {pr.addOns.map((a, i) => (
             <div key={i} style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6 }}>
               <input style={{ ...input, flex: 1, fontSize: 12, padding: "5px 8px" }} placeholder="Add-on" value={a.label} onChange={(e) => updateP((p) => { p.addOns[i]!.label = e.target.value; })} />
@@ -300,7 +306,7 @@ export default function BuildQuotePanel({ data, onChange, onExport, onImport, on
           <button type="button" style={addBtn} onClick={() => updateP((p) => { p.addOns.push({ label: "", price: "" }); })}>+ Add add-on</button>
 
           {/* Cost Breakdown */}
-          <div style={groupTitle}>Cost Breakdown</div>
+          <div id="qp-breakdown" style={groupTitle}>Cost Breakdown</div>
           {pr.costBreakdown.map((c, i) => (
             <div key={i} style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6 }}>
               <input style={{ ...input, flex: 1, fontSize: 12, padding: "5px 8px" }} placeholder="Category" value={c.label} onChange={(e) => updateP((p) => { p.costBreakdown[i]!.label = e.target.value; })} />
@@ -312,7 +318,7 @@ export default function BuildQuotePanel({ data, onChange, onExport, onImport, on
           <TotalCheck label="The cost breakdown" parts={pr.costBreakdown.map(c => c.amount)} target={pr.estimatedCost} />
 
           {/* Hotel Details */}
-          <div style={groupTitle}>Hotel Details</div>
+          <div id="qp-hotel" style={groupTitle}>Hotel Details</div>
           <textarea style={textarea} rows={3} placeholder={"4 nights at Anaheim Resort Suites\n101 E. Katella Avenue Anaheim, CA\nBreakfast included daily"} value={pr.hotelDetails} onChange={(e) => updateP((p) => { p.hotelDetails = e.target.value; })} />
           <label style={label}>Rooms note</label>
           <input style={input} placeholder="Quote Priced for 31 rooms" value={pr.roomsNote} onChange={(e) => updateP((p) => { p.roomsNote = e.target.value; })} />
@@ -324,7 +330,7 @@ export default function BuildQuotePanel({ data, onChange, onExport, onImport, on
           Add a link inside any line with <span style={{ fontFamily: "monospace", background: "#efece2", padding: "1px 4px", borderRadius: 3 }}>[label](https://…)</span>
         </div>
         {data.days.map((day, di) => (
-          <div key={di} style={{ border: "1px solid #e1ddd3", borderRadius: 8, padding: 10, marginBottom: 10, background: "#fff" }}>
+          <div key={di} id={`qp-day-${di}`} style={{ border: "1px solid #e1ddd3", borderRadius: 8, padding: 10, marginBottom: 10, background: "#fff" }}>
             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
               <input
                 style={{ flex: 1, boxSizing: "border-box", fontFamily: OSWALD, fontWeight: 500, letterSpacing: ".4px", fontSize: 13, padding: "6px 8px", border: "1px solid #d8d6cc", borderRadius: 6, color: "#4d4d4d", background: "#fff" }}
@@ -352,7 +358,7 @@ export default function BuildQuotePanel({ data, onChange, onExport, onImport, on
 
         {isPricing && (<>
           {/* Student Payment Plan */}
-          <div style={groupTitle}>Student Payment Plan</div>
+          <div id="qp-plan" style={groupTitle}>Student Payment Plan</div>
           {pr.paymentPlan.map((x, i) => (
             <div key={i} style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6 }}>
               <input style={{ ...input, width: 86, flex: "none", fontSize: 12, padding: "5px 8px" }} placeholder={`Payment ${i + 1}`} value={x.label} onChange={(e) => updateP((p) => { p.paymentPlan[i]!.label = e.target.value; })} />
@@ -367,7 +373,7 @@ export default function BuildQuotePanel({ data, onChange, onExport, onImport, on
           <textarea style={textarea} rows={2} value={pr.paymentPlanNote} onChange={(e) => updateP((p) => { p.paymentPlanNote = e.target.value; })} />
 
           {/* Terms */}
-          <div style={groupTitle}>Terms (footer)</div>
+          <div id="qp-terms" style={groupTitle}>Terms (footer)</div>
           <textarea style={textarea} rows={4} value={pr.terms} onChange={(e) => updateP((p) => { p.terms = e.target.value; })} />
         </>)}
       </div>

@@ -10,7 +10,9 @@ import type { QuoteData } from "./types";
 // QuoteDocument's font stacks reference the next/font CSS variables first and
 // fall back to the literal family names ('Oswald' / 'Mulish' / 'Pinyon
 // Script'), which the Google Fonts <link> below resolves.
-export async function renderQuoteHtml(data: QuoteData): Promise<string> {
+// baseUrl (the app's origin) lets site-relative assets such as the pricing
+// quote's logo watermark load, since the PDF renderer starts from a blank page.
+export async function renderQuoteHtml(data: QuoteData, baseUrl?: string): Promise<string> {
   // Dynamic import: Next/Turbopack forbids a static `react-dom/server` import
   // anywhere in the App Router module graph. This only runs in the nodejs PDF
   // route, never on the client.
@@ -20,6 +22,7 @@ export async function renderQuoteHtml(data: QuoteData): Promise<string> {
 <html lang="en">
 <head>
 <meta charset="utf-8" />
+${baseUrl ? `<base href="${baseUrl.replace(/"/g, "")}/" />` : ""}
 <meta name="viewport" content="width=816" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

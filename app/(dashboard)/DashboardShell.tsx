@@ -9,7 +9,7 @@ import ThemeToggle from "@/components/shared/ThemeToggle";
 import HelpRequestButton from "@/components/shared/HelpRequestButton";
 import { KanbanSquare, LayoutGrid, FileText, Users } from "lucide-react";
 import { BRAND } from "@/lib/helpers";
-import { isAdmin } from "@/lib/roles";
+import { isAdmin, canUseQuoteBuilder } from "@/lib/roles";
 
 interface Props {
   children: React.ReactNode;
@@ -41,7 +41,8 @@ export default function DashboardShell({ children, user, tourHost }: Props) {
   const navLinks = [
     { href: "/overview", label: "Overview", Icon: LayoutGrid },
     ...BASE_NAV_LINKS,
-    ...(SHOW_QUOTE_BUILDER_NAV && admin
+    // Quote Builder: Seth, Mike and Greta only for now (canUseQuoteBuilder).
+    ...(SHOW_QUOTE_BUILDER_NAV && canUseQuoteBuilder(tourHost)
       ? [{ href: "/quote-builder", label: "Quote Builder", Icon: FileText }]
       : []),
     ...(admin ? [{ href: "/admin/users", label: "Team Access", Icon: Users }] : []),
