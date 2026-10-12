@@ -253,6 +253,7 @@ function BannerUploader({ tour, isOwner, onTourChange }: {
       {picking && (
         <BannerLibraryPicker
           tourDestination={tour.destination}
+          tourName={tour.name}
           currentUrl={tour.banner_image_url}
           onSelect={chooseImage}
           onClose={() => setPicking(false)}

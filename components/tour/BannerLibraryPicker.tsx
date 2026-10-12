@@ -1,34 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import { Check } from "lucide-react";
+import { Check, Search, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { BRAND } from "@/lib/helpers";
 import { Modal, Btn } from "@/components/tour/ui";
+import { tourPhotoMatcher, photoMatchesSearch, imageTags } from "@/lib/bannerTags";
 import type { BannerImageLibraryRow } from "@/lib/types";
 
-// Destination text is typed freely on both tours and library images, so the
-// same place shows up as "New York, NY", "New York City, NY", "Brooklyn, NY",
-// "Washington DC" vs "Washington D.C.", or "Anahiem". Match on a forgiving key:
-// lowercase, punctuation dropped, a trailing "city" dropped, then a few known
-// metro areas folded together (October 2026, Amy).
-const METRO_ALIASES: Record<string, string> = {
-  "new york": "nyc", "nyc": "nyc", "brooklyn": "nyc", "manhattan": "nyc", "queens": "nyc",
-  "washington": "dc", "washington dc": "dc", "dc": "dc",
-  "anaheim": "anaheim", "anahiem": "anaheim", "anaheim california": "anaheim",
-  "disneyland": "anaheim", "los angeles": "anaheim", "southern california": "anaheim",
-  "salt lake": "slc", "slc": "slc",
-};
+// How many photos "All photos" shows before "Show all": two rows at the
+// desktop's three columns, three rows on a phone's two.
+const COLLAPSED_COUNT = 6;
 
-function placeKey(s: string | null | undefined): string {
-  let city = (s ?? "").split(",")[0].toLowerCase().replace(/\./g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
-  city = city.replace(/ city$/, "").trim();
-  return METRO_ALIASES[city] ?? city;
-}
-
-export default function BannerLibraryPicker({ tourDestination, currentUrl, onSelect, onClose }: {
+export default function BannerLibraryPicker({ tourDestination, tourName, currentUrl, onSelect, onClose }: {
   tourDestination?: string | null;
+  tourName?: string | null;
   currentUrl?: string | null;
   onSelect: (url: string | null) => void;
   onClose: () => void;
@@ -36,6 +23,8 @@ export default function BannerLibraryPicker({ tourDestination, currentUrl, onSel
   const [images, setImages] = useState<BannerImageLibraryRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<string | null>(currentUrl ?? null);
+  const [query, setQuery] = useState("");
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -47,21 +36,80 @@ export default function BannerLibraryPicker({ tourDestination, currentUrl, onSel
     return () => { active = false; };
   }, []);
 
-  // Matching-destination images first, then everything else.
-  const tourCity = placeKey(tourDestination);
-  const matches = (img: BannerImageLibraryRow) => !!tourCity && placeKey(img.destination) === tourCity;
-  const ordered = [...images].sort((a, b) => Number(matches(b)) - Number(matches(a)));
+  // Suggested = photos tagged for this tour's place (by destination or name).
+  // Everything else goes under All photos, with the tour's current banner
+  // pulled to the front so it is never hidden behind "Show all".
+  const { suggested, rest } = useMemo(() => {
+    const matches = tourPhotoMatcher(tourDestination, tourName);
+    const suggested = images.filter(matches);
+    const rest = images.filter(img => !matches(img));
+    const cur = rest.findIndex(img => img.url === currentUrl);
+    if (cur > 0) rest.unshift(...rest.splice(cur, 1));
+    return { suggested, rest };
+  }, [images, tourDestination, tourName, currentUrl]);
+
+  const searching = query.trim().length > 0;
+  const results = searching ? images.filter(img => photoMatchesSearch(img, query)) : [];
+  const visibleRest = showAll ? rest : rest.slice(0, COLLAPSED_COUNT);
+
+  const tile = (img: BannerImageLibraryRow) => {
+    const isSel = selected === img.url;
+    const tags = imageTags(img);
+    return (
+      <button
+        key={img.id}
+        type="button"
+        onClick={() => setSelected(img.url)}
+        style={{ background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}
+      >
+        <div style={{ position: "relative", width: "100%", aspectRatio: "4 / 3", borderRadius: 10, overflow: "hidden", border: `2px solid ${isSel ? BRAND.blue : "var(--border)"}`, background: "var(--surface-3)" }}>
+          <Image src={img.url} alt={img.label} fill sizes="200px" style={{ objectFit: "cover" }} />
+          {isSel && (
+            <span style={{ position: "absolute", top: 6, right: 6, width: 22, height: 22, borderRadius: "50%", background: BRAND.blue, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 4px rgba(0,0,0,.3)" }}>
+              <Check size={14} strokeWidth={3} />
+            </span>
+          )}
+        </div>
+        <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", marginTop: 6, lineHeight: 1.3 }}>{img.label}</div>
+        {tags.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 3, marginTop: 3 }}>
+            {tags.map(t => (
+              <span key={t} style={{ fontSize: 10, color: "var(--text-2)", background: "var(--border-soft)", borderRadius: 5, padding: "1px 6px" }}>{t}</span>
+            ))}
+          </div>
+        )}
+      </button>
+    );
+  };
+
+  const sectionLabel = (text: string, count: number) => (
+    <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-2)", textTransform: "uppercase", letterSpacing: 0.5, margin: "4px 0 10px" }}>
+      {text} <span style={{ color: "var(--muted-2)", fontWeight: 600 }}>({count})</span>
+    </div>
+  );
 
   return (
     <Modal title="Choose Banner Image" onClose={onClose} wide>
-      {/* Select / Cancel stay pinned to the top of the dialog while the host
-          scrolls the library (October 2026, Amy: the library outgrew a button
-          row at the bottom). Sticky against the modal overlay, which is the
-          scroll container. */}
-      <div style={{ position: "sticky", top: 0, zIndex: 2, background: "var(--surface)", margin: "-8px -24px 14px", padding: "10px 24px", borderBottom: "1px solid var(--border-soft)", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-        <span style={{ fontSize: 12, color: "var(--muted-2)", marginRight: "auto" }}>
-          {selected ? "Photo selected" : "Pick a photo"}
-        </span>
+      {/* Search, Select and Cancel stay pinned to the top of the dialog while
+          the host scrolls the library (October 2026, Amy). Sticky against the
+          modal overlay, which is the scroll container. */}
+      <div style={{ position: "sticky", top: 0, zIndex: 2, background: "var(--surface)", margin: "-8px -24px 16px", padding: "10px 24px", borderBottom: "1px solid var(--border-soft)", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <div style={{ position: "relative", flex: "1 1 180px", minWidth: 0 }}>
+          <Search size={13} style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)", color: "var(--muted-2)" }} />
+          <input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            onKeyDown={e => { if (e.key === "Escape" && query) { e.stopPropagation(); setQuery(""); } }}
+            placeholder="Search photos (e.g. beach, Boston)"
+            style={{ width: "100%", boxSizing: "border-box", padding: "7px 28px 7px 28px", fontSize: 12.5, border: "1px solid var(--border)", borderRadius: 8, background: "var(--surface-2)", color: "var(--text)", fontFamily: "inherit" }}
+          />
+          {query && (
+            <button type="button" onClick={() => setQuery("")} title="Clear search"
+              style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--muted-2)", padding: 2, display: "flex" }}>
+              <X size={13} />
+            </button>
+          )}
+        </div>
         {currentUrl && (
           <button
             type="button"
@@ -81,38 +129,39 @@ export default function BannerLibraryPicker({ tourDestination, currentUrl, onSel
         <div style={{ padding: "30px 0", textAlign: "center", color: "var(--muted-2)", fontSize: 13 }}>Loading library…</div>
       ) : images.length === 0 ? (
         <div style={{ background: "var(--surface-2)", border: "2px dashed var(--border)", borderRadius: 12, padding: "32px 20px", textAlign: "center", color: "var(--muted-2)", fontSize: 13 }}>
-          No images in the library yet. An admin (Mike or Greta) can add approved images.
+          No images in the library yet. An admin can add approved images from the Banner Library on Overview.
         </div>
+      ) : searching ? (
+        <>
+          {sectionLabel("Search results", results.length)}
+          {results.length === 0 ? (
+            <div style={{ padding: "18px 0", color: "var(--muted-2)", fontSize: 13 }}>No photos match &ldquo;{query.trim()}&rdquo;.</div>
+          ) : (
+            <div className="banner-picker-grid">{results.map(tile)}</div>
+          )}
+        </>
       ) : (
-        <div className="banner-picker-grid">
-          {ordered.map(img => {
-            const isSel = selected === img.url;
-            return (
-              <button
-                key={img.id}
-                type="button"
-                onClick={() => setSelected(img.url)}
-                style={{ background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left", fontFamily: "inherit" }}
-              >
-                <div style={{ position: "relative", width: "100%", aspectRatio: "4 / 3", borderRadius: 10, overflow: "hidden", border: `2px solid ${isSel ? BRAND.blue : "var(--border)"}`, background: "var(--surface-3)" }}>
-                  <Image src={img.url} alt={img.label} fill sizes="200px" style={{ objectFit: "cover" }} />
-                  {matches(img) && (
-                    <span style={{ position: "absolute", top: 6, left: 6, background: "rgba(46,196,182,.9)", color: "#fff", fontSize: 9, fontWeight: 700, borderRadius: 5, padding: "2px 6px", textTransform: "uppercase", letterSpacing: 0.4 }}>
-                      Match
-                    </span>
-                  )}
-                  {isSel && (
-                    <span style={{ position: "absolute", top: 6, right: 6, width: 22, height: 22, borderRadius: "50%", background: BRAND.blue, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 4px rgba(0,0,0,.3)" }}>
-                      <Check size={14} strokeWidth={3} />
-                    </span>
-                  )}
+        <>
+          {suggested.length > 0 && (
+            <div style={{ marginBottom: 22 }}>
+              {sectionLabel("Suggested for this tour", suggested.length)}
+              <div className="banner-picker-grid">{suggested.map(tile)}</div>
+            </div>
+          )}
+          {rest.length > 0 && (
+            <>
+              {sectionLabel(suggested.length > 0 ? "All other photos" : "All photos", rest.length)}
+              <div className="banner-picker-grid">{visibleRest.map(tile)}</div>
+              {rest.length > COLLAPSED_COUNT && (
+                <div style={{ textAlign: "center", marginTop: 14 }}>
+                  <Btn variant="muted" onClick={() => setShowAll(v => !v)}>
+                    {showAll ? "Show fewer" : `Show all ${rest.length} photos`}
+                  </Btn>
                 </div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", marginTop: 6, lineHeight: 1.3 }}>{img.label}</div>
-                {img.destination && <div style={{ fontSize: 10.5, color: "var(--muted-2)", marginTop: 1 }}>{img.destination}</div>}
-              </button>
-            );
-          })}
-        </div>
+              )}
+            </>
+          )}
+        </>
       )}
 
       <style jsx>{`

@@ -2,10 +2,59 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Trash2 } from "lucide-react";
+import { Trash2, X, Tag } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { I, Inp, Btn } from "@/components/tour/ui";
+import { imageTags } from "@/lib/bannerTags";
 import type { BannerImageLibraryRow } from "@/lib/types";
+
+// Place tags on a library photo (October 2026, Amy): several per photo, e.g.
+// Disneyland, Anaheim, Southern California. The banner picker suggests a photo
+// when a tag matches the tour's destination or name. Type a tag and press
+// Enter or a comma; the x on a chip removes it.
+function cleanTags(list: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of list) {
+    const t = raw.replace(/\s+/g, " ").trim();
+    const k = t.toLowerCase();
+    if (t && !seen.has(k)) { seen.add(k); out.push(t); }
+  }
+  return out;
+}
+
+function TagInput({ tags, onChange, placeholder }: { tags: string[]; onChange: (t: string[]) => void; placeholder?: string }) {
+  const [draft, setDraft] = useState("");
+  const commit = (text: string) => {
+    const parts = text.split(",");
+    if (parts.some(p => p.trim())) onChange(cleanTags([...tags, ...parts]));
+    setDraft("");
+  };
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, alignItems: "center", border: "1px solid var(--border)", borderRadius: 8, padding: "4px 6px", background: "var(--surface)", minHeight: 34 }}>
+      {tags.map(t => (
+        <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, color: "var(--text-2)", background: "var(--border-soft)", borderRadius: 5, padding: "2px 4px 2px 7px" }}>
+          {t}
+          <button type="button" title={`Remove ${t}`} onClick={() => onChange(tags.filter(x => x !== t))}
+            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted-2)", padding: 0, display: "flex" }}>
+            <X size={11} />
+          </button>
+        </span>
+      ))}
+      <input
+        value={draft}
+        onChange={e => { const v = e.target.value; if (v.includes(",")) commit(v); else setDraft(v); }}
+        onKeyDown={e => {
+          if (e.key === "Enter") { e.preventDefault(); commit(draft); }
+          else if (e.key === "Backspace" && !draft && tags.length) onChange(tags.slice(0, -1));
+        }}
+        onBlur={() => { if (draft.trim()) commit(draft); }}
+        placeholder={tags.length ? "Add another" : placeholder}
+        style={{ flex: "1 1 120px", minWidth: 90, border: "none", outline: "none", background: "transparent", fontSize: 12.5, color: "var(--text)", fontFamily: "inherit", padding: "3px 2px" }}
+      />
+    </div>
+  );
+}
 
 const STORAGE_BUCKET = "banner-images";
 const STORAGE_MARKER = `/${STORAGE_BUCKET}/`;
@@ -20,7 +69,11 @@ export default function BannerLibraryManager({ currentHostId }: { currentHostId:
   const [loading, setLoading] = useState(true);
   const [file, setFile] = useState<File | null>(null);
   const [label, setLabel] = useState("");
-  const [destination, setDestination] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
+  // Tag editing on an existing photo: which one is open, and its draft.
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTags, setEditTags] = useState<string[]>([]);
+  const [savingTags, setSavingTags] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -68,7 +121,8 @@ export default function BannerLibraryManager({ currentHostId }: { currentHostId:
       .insert({
         url: pub.publicUrl,
         label: label.trim(),
-        destination: destination.trim() || null,
+        tags,
+        destination: tags[0] ?? null,
         uploaded_by: currentHostId,
       })
       .select()
@@ -82,8 +136,28 @@ export default function BannerLibraryManager({ currentHostId }: { currentHostId:
     }
 
     setImages(prev => [row as BannerImageLibraryRow, ...prev]);
-    setFile(null); setLabel(""); setDestination(""); setError(null); setBusy(false);
+    setFile(null); setLabel(""); setTags([]); setError(null); setBusy(false);
     if (inputRef.current) inputRef.current.value = "";
+  }
+
+  async function saveTags(img: BannerImageLibraryRow) {
+    if (savingTags) return;
+    setSavingTags(true);
+    const next = cleanTags(editTags);
+    const supabase = createClient();
+    // Confirm a row actually changed: a write RLS refuses returns no error.
+    const { data, error } = await supabase
+      .from("banner_image_library")
+      .update({ tags: next, destination: next[0] ?? null })
+      .eq("id", img.id)
+      .select("id");
+    setSavingTags(false);
+    if (error || !data || data.length === 0) {
+      window.alert(`Could not save the tags: ${error?.message ?? "no row updated (only admins can edit the library)"}`);
+      return;
+    }
+    setImages(prev => prev.map(i => i.id === img.id ? { ...i, tags: next, destination: next[0] ?? null } : i));
+    setEditingId(null);
   }
 
   async function remove(img: BannerImageLibraryRow) {
@@ -114,7 +188,12 @@ export default function BannerLibraryManager({ currentHostId }: { currentHostId:
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
           <Inp value={label} onChange={e => setLabel(e.target.value)} placeholder="Label (e.g. Anaheim - Convention Center)" style={{ flex: "1 1 220px" }} />
-          <Inp value={destination} onChange={e => setDestination(e.target.value)} placeholder="Destination tag (e.g. Anaheim, CA)" style={{ flex: "1 1 160px" }} />
+        </div>
+        <div style={{ marginTop: 8 }}>
+          <TagInput tags={tags} onChange={setTags} placeholder="Location tags (e.g. Disneyland, Anaheim, Southern California)" />
+          <div style={{ fontSize: 11, color: "var(--muted-2)", marginTop: 4, lineHeight: 1.4 }}>
+            Tours whose destination or name mentions one of these tags get this photo as a suggestion.
+          </div>
         </div>
         {error && (
           <div style={{ marginTop: 8, background: "var(--red-bg)", color: "var(--red-text)", border: "1px solid var(--red-border)", borderRadius: 8, padding: "8px 10px", fontSize: 12, lineHeight: 1.45 }}>
@@ -147,8 +226,24 @@ export default function BannerLibraryManager({ currentHostId }: { currentHostId:
                 </button>
               </div>
               <div style={{ fontSize: 12, fontWeight: 600, color: "var(--ink)", marginTop: 6, lineHeight: 1.3 }}>{img.label}</div>
-              {img.destination && (
-                <span style={{ display: "inline-block", fontSize: 10, color: "var(--text-2)", background: "var(--border-soft)", borderRadius: 5, padding: "1px 6px", marginTop: 3 }}>{img.destination}</span>
+              {editingId === img.id ? (
+                <div style={{ marginTop: 5 }}>
+                  <TagInput tags={editTags} onChange={setEditTags} placeholder="Add a tag" />
+                  <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                    <Btn onClick={() => saveTags(img)} disabled={savingTags}>{savingTags ? "Saving…" : "Save"}</Btn>
+                    <Btn variant="muted" onClick={() => setEditingId(null)}>Cancel</Btn>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 3, alignItems: "center", marginTop: 3 }}>
+                  {imageTags(img).map(t => (
+                    <span key={t} style={{ fontSize: 10, color: "var(--text-2)", background: "var(--border-soft)", borderRadius: 5, padding: "1px 6px" }}>{t}</span>
+                  ))}
+                  <button type="button" onClick={() => { setEditingId(img.id); setEditTags(imageTags(img)); }}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "none", border: "none", cursor: "pointer", color: "var(--muted)", fontSize: 10.5, fontWeight: 600, padding: "1px 2px", fontFamily: "inherit" }}>
+                    <Tag size={11} />{imageTags(img).length ? "Edit tags" : "Add tags"}
+                  </button>
+                </div>
               )}
             </div>
           ))}

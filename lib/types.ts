@@ -516,6 +516,8 @@ export interface BannerImageLibraryRow {
   url: string;
   label: string;
   destination: string | null;
+  /** Place tags (October 2026). Seeded from destination; the picker matches these. */
+  tags: string[] | null;
   uploaded_by: string | null;
   created_at: string;
 }
