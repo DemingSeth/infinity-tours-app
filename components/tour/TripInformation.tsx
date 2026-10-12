@@ -12,6 +12,14 @@ const STORAGE_BUCKET = "agenda-images";
 
 type ConfItem = { id?: string; type: string; label: string | null; file_url: string };
 
+// Name shown for a pasted link: its site, e.g. "drive.google.com link".
+function linkLabel(url: string): string {
+  try {
+    const host = new URL(/^https?:\/\//i.test(url) ? url : `https://${url}`).hostname.replace(/^www\./, "");
+    return host ? `${host} link` : "Link";
+  } catch { return "Link"; }
+}
+
 // `id` = tour_hosts.id when picked from the staff dropdown (grants edit access).
 // `url` = optional link on the name (Tour Host bio). Hosts only for now.
 type PersonForm = { name: string; contact: string; id?: string | null; url?: string };
@@ -334,7 +342,9 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
     return () => { active = false; };
   }, [tourId]);
 
-  const confByType = (t: string) => confs.find(c => c.type === t) ?? null;
+  // Every document attached to a row, oldest first so the list reads in the
+  // order they were added (October 2026, Linda: rows used to hold only one).
+  const confsByType = (t: string) => confs.filter(c => c.type === t).slice().reverse();
 
   async function saveConfRow(type: string, label: string, fileUrl: string) {
     if (!tourId) return;
@@ -348,35 +358,38 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
       console.error("Confirmation insert failed", error.message);
       if (typeof window !== "undefined") window.alert(`Could not save confirmation: ${error.message}`);
     } else if (row) {
-      // One confirmation per type/tour: drop any prior row of this type.
-      await supabase.from("tour_confirmations").delete().eq("tour_id", tourId).eq("type", type).neq("id", (row as any).id);
-      setConfs(prev => [row as ConfItem, ...prev.filter(r => r.type !== type)]);
+      // A row can hold several documents, so nothing earlier is replaced.
+      setConfs(prev => [row as ConfItem, ...prev]);
     }
   }
 
-  async function uploadConf(type: string, label: string, file: File | undefined) {
-    if (!file || !tourId) return;
+  // Several files can be picked at once; each is stored under its own file
+  // name so the row lists them apart.
+  async function uploadConf(type: string, files: FileList | null) {
+    if (!files || files.length === 0 || !tourId) return;
     setBusyType(type);
     const supabase = createClient();
-    const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const path = `${tourId}/tour-confirmations/${type}-${Date.now()}-${safe}`;
-    const { error: upErr } = await supabase.storage.from(STORAGE_BUCKET).upload(path, file, { cacheControl: "3600", upsert: false });
-    if (upErr) {
-      console.error("Confirmation upload failed", upErr.message);
-      if (typeof window !== "undefined") window.alert(`Upload failed: ${upErr.message}. Very large files (over ~50MB) cannot be uploaded — try a smaller PDF or image.`);
-    } else {
+    for (const file of Array.from(files)) {
+      const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `${tourId}/tour-confirmations/${type}-${Date.now()}-${safe}`;
+      const { error: upErr } = await supabase.storage.from(STORAGE_BUCKET).upload(path, file, { cacheControl: "3600", upsert: false });
+      if (upErr) {
+        console.error("Confirmation upload failed", upErr.message);
+        if (typeof window !== "undefined") window.alert(`Upload of ${file.name} failed: ${upErr.message}. Very large files (over about 50MB) cannot be uploaded; try a smaller PDF or image.`);
+        continue;
+      }
       const { data: pub } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
-      await saveConfRow(type, label, pub.publicUrl);
+      await saveConfRow(type, file.name, pub.publicUrl);
     }
     setBusyType(null);
     const el = fileInputs.current[type]; if (el) el.value = "";
   }
 
-  async function addConfLink(type: string, label: string) {
+  async function addConfLink(type: string) {
     const url = linkEntryVal.trim();
     if (!url) return;
     setBusyType(type);
-    await saveConfRow(type, label, externalHref(url));
+    await saveConfRow(type, linkLabel(url), externalHref(url));
     setBusyType(null);
     setLinkEntryType(null);
     setLinkEntryVal("");
@@ -445,66 +458,81 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
   // Inline confirmation attachment area for a transport row. Accepts uploaded
   // files AND external links (e.g. Google Drive).
   function renderConf(type: string, label: string) {
-    // Confirmation attachments are file links — nothing to click on paper.
+    // Confirmation attachments are file links, nothing to click on paper.
     if (print) return null;
-    const c = confByType(type);
-    const isExternal = !!c && !c.file_url.includes(`/${STORAGE_BUCKET}/`);
+    const list = confsByType(type);
+    const isExternal = (c: ConfItem) => !c.file_url.includes(`/${STORAGE_BUCKET}/`);
+    // Older rows were saved with the row's own label ("Flight Confirmation");
+    // newer ones carry the file name. Show whichever is there.
+    const nameOf = (c: ConfItem, i: number) =>
+      (c.label?.trim() || (list.length > 1 ? `${label} ${i + 1}` : label));
     if (!isHost) {
       // Participant view: confirmation links are for the Tour Host, and for the
       // Teacher view only when the host has turned that on (August 2026
       // request). Students, chaperones and bus drivers never see them.
       const persona = viewerPersona ?? (viewerRole === "coordinator" ? "tour_host" : viewerRole);
       const allowed = persona === "tour_host" || (persona === "teacher" && info.confirmationsTeacherVisible);
-      if (!allowed) return null;
-      // A single view link, only when a file/link exists.
-      if (!c) return null;
+      if (!allowed || list.length === 0) return null;
       return (
-        <a href={c.file_url} target="_blank" rel="noreferrer"
-          style={{ marginTop: 6, display: "inline-flex", alignItems: "center", gap: 6, color: "var(--sky-text)", fontWeight: 600, fontSize: 12, textDecoration: "none" }}>
-          {isExternal ? <LinkIcon size={13} /> : <Paperclip size={13} />} View {label}
-        </a>
+        <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 4 }}>
+          {list.map((c, i) => (
+            <a key={c.id ?? c.file_url} href={c.file_url} target="_blank" rel="noreferrer"
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "var(--sky-text)", fontWeight: 600, fontSize: 12, textDecoration: "none" }}>
+              {isExternal(c) ? <LinkIcon size={13} /> : <Paperclip size={13} />} View {nameOf(c, i)}
+            </a>
+          ))}
+        </div>
       );
     }
     return (
-      <div style={confBoxStyle}>
-        {isExternal ? <LinkIcon size={14} color="#16a34a" style={{ flexShrink: 0 }} /> : <Paperclip size={14} style={{ flexShrink: 0, color: c ? "#16a34a" : "var(--muted-2)" }} />}
-        <span style={{ flex: 1, minWidth: 0, color: c ? "var(--text)" : "var(--muted-2)" }}>
-          {c ? (isExternal ? `${label} (link)` : label) : "No confirmation attached"}
-        </span>
-        {c ? (
-          <>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        {list.map((c, i) => (
+          <div key={c.id ?? c.file_url} style={confBoxStyle}>
+            {isExternal(c)
+              ? <LinkIcon size={14} color="#16a34a" style={{ flexShrink: 0 }} />
+              : <Paperclip size={14} style={{ flexShrink: 0, color: "#16a34a" }} />}
+            <span style={{ flex: 1, minWidth: 0, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={nameOf(c, i)}>
+              {nameOf(c, i)}
+            </span>
             <a href={c.file_url} target="_blank" rel="noreferrer" style={{ ...linkStyle, fontSize: 12 }}>View</a>
-            <button type="button" title="Remove confirmation" onClick={() => c.id && removeConf(c.id)}
+            <button type="button" title="Remove this document" onClick={() => c.id && removeConf(c.id)}
               style={{ ...confBtnStyle, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--red-text)" }}>
               <X size={12} /> Remove
             </button>
-          </>
-        ) : linkEntryType === type ? (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flex: 2 }}>
-            <input autoFocus value={linkEntryVal} placeholder="Paste a link (e.g. Google Drive)"
-              onChange={e => setLinkEntryVal(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter") addConfLink(type, label); if (e.key === "Escape") { setLinkEntryType(null); setLinkEntryVal(""); } }}
-              style={{ ...inputStyle, fontSize: 11, padding: "4px 6px", flex: 1 }} />
-            <button type="button" onClick={() => addConfLink(type, label)} disabled={busyType === type}
-              style={{ ...confBtnStyle, background: BRAND.blue, border: "none", color: "#fff" }}>Save</button>
-            <button type="button" onClick={() => { setLinkEntryType(null); setLinkEntryVal(""); }}
-              style={{ ...confBtnStyle, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--muted)" }}>Cancel</button>
-          </span>
-        ) : (
-          <>
-            <input ref={el => { fileInputs.current[type] = el; }} type="file" accept="image/*,.pdf" style={{ display: "none" }}
-              onChange={e => uploadConf(type, label, e.target.files?.[0])} />
-            <button type="button" onClick={() => fileInputs.current[type]?.click()} disabled={busyType === type}
-              style={{ ...confBtnStyle, background: "var(--surface-3)", border: "1px solid var(--border)", color: "var(--text-2)" }}>
-              <Upload size={12} /> {busyType === type ? "Uploading…" : "Upload"}
-            </button>
-            <button type="button" title="Attach a link instead of a file (e.g. Google Drive)"
-              onClick={() => { setLinkEntryType(type); setLinkEntryVal(""); }}
-              style={{ ...confBtnStyle, background: "var(--surface-3)", border: "1px solid var(--border)", color: "var(--text-2)" }}>
-              <LinkIcon size={12} /> Link
-            </button>
-          </>
-        )}
+          </div>
+        ))}
+        <div style={confBoxStyle}>
+          {linkEntryType === type ? (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flex: 1 }}>
+              <input autoFocus value={linkEntryVal} placeholder="Paste a link (e.g. Google Drive)"
+                onChange={e => setLinkEntryVal(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") addConfLink(type); if (e.key === "Escape") { setLinkEntryType(null); setLinkEntryVal(""); } }}
+                style={{ ...inputStyle, fontSize: 11, padding: "4px 6px", flex: 1 }} />
+              <button type="button" onClick={() => addConfLink(type)} disabled={busyType === type}
+                style={{ ...confBtnStyle, background: BRAND.blue, border: "none", color: "#fff" }}>Save</button>
+              <button type="button" onClick={() => { setLinkEntryType(null); setLinkEntryVal(""); }}
+                style={{ ...confBtnStyle, background: "var(--surface)", border: "1px solid var(--border)", color: "var(--muted)" }}>Cancel</button>
+            </span>
+          ) : (
+            <>
+              <Paperclip size={14} style={{ flexShrink: 0, color: "var(--muted-2)" }} />
+              <span style={{ flex: 1, minWidth: 0, color: "var(--muted-2)" }}>
+                {list.length === 0 ? "No confirmation attached" : "Add another document"}
+              </span>
+              <input ref={el => { fileInputs.current[type] = el; }} type="file" multiple accept="image/*,.pdf" style={{ display: "none" }}
+                onChange={e => uploadConf(type, e.target.files)} />
+              <button type="button" onClick={() => fileInputs.current[type]?.click()} disabled={busyType === type}
+                style={{ ...confBtnStyle, background: "var(--surface-3)", border: "1px solid var(--border)", color: "var(--text-2)" }}>
+                <Upload size={12} /> {busyType === type ? "Uploading…" : "Upload"}
+              </button>
+              <button type="button" title="Attach a link instead of a file (e.g. Google Drive)"
+                onClick={() => { setLinkEntryType(type); setLinkEntryVal(""); }}
+                style={{ ...confBtnStyle, background: "var(--surface-3)", border: "1px solid var(--border)", color: "var(--text-2)" }}>
+                <LinkIcon size={12} /> Link
+              </button>
+            </>
+          )}
+        </div>
       </div>
     );
   }
