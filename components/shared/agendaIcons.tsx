@@ -142,9 +142,10 @@ export const AGENDA_TYPE_ICONS: Record<string, AgendaIcon> = {
 // Muted, dusty versions of the original hues (September 2026): an itinerary
 // shows a lot of these at once, and full-strength colors came across too
 // strongly. Same hue and the same separation between types, half the shout.
-// Dining keeps amber and Hotel keeps teal. Meal money is pink, and pink is
-// already the Meeting Point icon, so the Dining icon cannot match its chips
-// without two icons reading the same (September 2026, Linda).
+// Dining keeps amber and Hotel keeps teal (September 2026, Linda).
+// Meeting Point defaults to the Slate gray from the icon color picker
+// (October 2026, Amy): hosts color code meeting points per group (band, choir,
+// a flight's check-in), so the uncolored default should carry no hue of its own.
 export const AGENDA_TYPE_COLORS: Record<string, string> = {
   travel: "#3C69B4",
   activity: "#613DB3",
@@ -152,7 +153,7 @@ export const AGENDA_TYPE_COLORS: Record<string, string> = {
   hotel: "#36928A",
   free: "#71757D",
   break: "#A16436",
-  meeting: "#AD4277",
+  meeting: "#5D6673",
   instructions: "#358BA0",
   general: "#6D7682",
 };
