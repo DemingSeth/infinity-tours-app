@@ -8,7 +8,32 @@ export type HotelCity = { city: string; items: HotelItem[] };
 export type ScheduleRow = { time: string; text: string };
 export type QuoteDay = { date: string; rows: ScheduleRow[]; overnight?: string };
 
+// Pricing quote sections (October 2026). Mirrors Infinity's Piktochart quote:
+// inclusions, the estimated cost per traveler, add-ons, cost breakdown, hotel
+// details, the student payment plan and the terms footer. Amounts are kept as
+// the text the host types ("$1700", "+Varies") so nothing is reformatted.
+export type AddOn = { label: string; price: string };
+export type CostLine = { label: string; amount: string };
+export type PaymentInstallment = { label: string; amount: string; due: string };
+export type PricingSection = {
+  inclusions: string[];
+  estimatedCost: string;
+  paymentNote: string;
+  addOns: AddOn[];
+  costBreakdown: CostLine[];
+  hotelDetails: string;
+  roomsNote: string;
+  paymentPlan: PaymentInstallment[];
+  paymentPlanNote: string;
+  terms: string;
+};
+
+/** "pricing" = the Piktochart-style quote; absent or "trip" = the original trip info sheet. */
+export type QuoteLayout = "pricing" | "trip";
+
 export type QuoteData = {
+  layout?: QuoteLayout;
+  pricing?: PricingSection;
   group: string;
   destination: string;
   year: string;

@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import type { QuoteData } from "@/lib/quotes/types";
 import { parseLinks } from "@/lib/quotes/parseLinks";
+import PricingQuoteDocument from "@/components/quotes/PricingQuoteDocument";
 
 // Font stacks resolve to the route-scoped next/font CSS variables (see
 // app/(dashboard)/quote-builder/fonts.ts), falling back to literal family names.
@@ -56,6 +57,9 @@ const sectionTitle: CSSProperties = {
 // The print-ready quote document. Fixed 816px (US Letter @96dpi). Pure
 // presentation — all content comes from `data`.
 export default function QuoteDocument({ data }: { data: QuoteData }) {
+  // Pricing quotes (October 2026) have their own layout; older quotes keep
+  // the trip info sheet below.
+  if (data.layout === "pricing") return <PricingQuoteDocument data={data} />;
   const destLine = `${data.destination || ""} ${data.year || ""}`.trim();
 
   return (

@@ -1,10 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Download, Trash2, Map as MapIcon, X } from "lucide-react";
 import type { QuoteData } from "@/lib/quotes/types";
-import { blankQuote, sampleQuote } from "@/lib/quotes/sampleData";
+import { blankQuote, blankTripQuote, sampleQuote, samplePricingQuote, withPricingDefaults } from "@/lib/quotes/sampleData";
+import { createTourFromQuote } from "@/lib/quotes/quoteToTour";
+import { IMPORT_NOTES_KEY } from "@/lib/quotes/importNotes";
 import { createClient } from "@/lib/supabase/client";
 import QuoteDocument from "@/components/quotes/QuoteDocument";
 import QuoteHeroPicker from "@/components/quotes/QuoteHeroPicker";
@@ -29,9 +31,64 @@ const toolbarBtn: React.CSSProperties = {
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
-export default function QuoteEditorClient({ quoteId, initialData }: { quoteId: string; initialData: QuoteData }) {
+const noopSubscribe = () => () => {};
+
+export default function QuoteEditorClient({ quoteId, initialData, tourId, currentUserId }: {
+  quoteId: string; initialData: QuoteData; tourId: string | null; currentUserId: string;
+}) {
   const router = useRouter();
-  const [data, setData] = useState<QuoteData>(initialData);
+  const [data, setData] = useState<QuoteData>(() => withPricingDefaults(initialData));
+  const [linkedTourId, setLinkedTourId] = useState<string | null>(tourId);
+  const [converting, setConverting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  // After a PDF import: lines the importer could not place. The note lives in
+  // sessionStorage until the host dismisses it or leaves the page.
+  const importRaw = useSyncExternalStore(
+    noopSubscribe,
+    () => { try { return sessionStorage.getItem(IMPORT_NOTES_KEY(quoteId)); } catch { return null; } },
+    () => null,
+  );
+  const [importDismissed, setImportDismissed] = useState(false);
+  let importNotes: string[] | null = null;
+  if (!importDismissed && importRaw !== null) {
+    try { importNotes = JSON.parse(importRaw) as string[]; } catch { importNotes = []; }
+  }
+  function dismissImportNotes() {
+    setImportDismissed(true);
+    try { sessionStorage.removeItem(IMPORT_NOTES_KEY(quoteId)); } catch { /* ignore */ }
+  }
+  useEffect(() => () => { try { sessionStorage.removeItem(IMPORT_NOTES_KEY(quoteId)); } catch { /* ignore */ } }, [quoteId]);
+
+  async function deleteQuote() {
+    const note = linkedTourId ? " The itinerary made from it is not affected." : "";
+    if (!confirm(`Delete this quote? This cannot be undone.${note}`)) return;
+    setDeleting(true);
+    if (timer.current) clearTimeout(timer.current);
+    const supabase = createClient();
+    const { data: rows, error } = await supabase.from("quotes").delete().eq("id", quoteId).select("id");
+    if (error || !rows || rows.length === 0) {
+      setDeleting(false);
+      alert(`Could not delete the quote: ${error?.message ?? "only an admin can delete quotes"}`);
+      return;
+    }
+    router.push("/quote-builder");
+  }
+
+  async function makeItinerary() {
+    if (linkedTourId) { router.push(`/tour/${linkedTourId}`); return; }
+    const dayCount = data.days.filter(d => d.date.trim() || d.rows.some(r => r.text.trim())).length;
+    if (!confirm(`Create an itinerary from this quote? It becomes a new tour on your pipeline, marked Signed, with ${dayCount} day${dayCount === 1 ? "" : "s"} from the quote. You can edit everything afterwards.`)) return;
+    setConverting(true);
+    try {
+      const { tourId: newId, problems } = await createTourFromQuote(createClient(), { id: quoteId, data }, currentUserId);
+      setLinkedTourId(newId);
+      if (problems.length) alert(`The itinerary was created, but a few parts did not copy:\n\n${problems.join("\n")}\n\nAdd those by hand on the itinerary.`);
+      router.push(`/tour/${newId}`);
+    } catch (e) {
+      alert(`Could not create the itinerary: ${(e as Error).message}`);
+      setConverting(false);
+    }
+  }
   const [panelOpen, setPanelOpen] = useState(true);
   const [saveState, setSaveState] = useState<SaveState>("idle");
 
@@ -91,16 +148,19 @@ export default function QuoteEditorClient({ quoteId, initialData }: { quoteId: s
     reader.readAsText(file);
   }
 
+  const isPricing = data.layout === "pricing";
+
   function loadSample() {
-    if (confirm("Load the Cantorum sample content? This replaces the current content.")) {
+    const name = isPricing ? "Corner Canyon" : "Cantorum";
+    if (confirm(`Load the ${name} sample content? This replaces the current content.`)) {
       // Preserve any already-uploaded hero on this quote.
-      setData((d) => ({ ...sampleQuote(), heroPhotoUrl: d.heroPhotoUrl }));
+      setData((d) => ({ ...(isPricing ? samplePricingQuote() : sampleQuote()), heroPhotoUrl: d.heroPhotoUrl }));
     }
   }
 
   function newQuote() {
     if (confirm("Start a new blank quote? This clears the current content.")) {
-      setData((d) => ({ ...blankQuote(), heroPhotoUrl: d.heroPhotoUrl }));
+      setData((d) => ({ ...(isPricing ? blankQuote() : blankTripQuote()), heroPhotoUrl: d.heroPhotoUrl }));
     }
   }
 
@@ -170,12 +230,40 @@ export default function QuoteEditorClient({ quoteId, initialData }: { quoteId: s
             <ArrowLeft size={13} /> Quotes
           </button>
           <QuoteHeroPicker heroPhotoUrl={data.heroPhotoUrl} onChange={setHero} />
+          <button type="button" onClick={makeItinerary} disabled={converting}
+            title={linkedTourId ? "Open the itinerary made from this quote" : "Create an itinerary (a new tour) from this quote"}
+            style={{ ...toolbarBtn, color: "#2f6b3c", background: "rgba(255,255,255,0.94)", border: "1px solid #cfe6d4", opacity: converting ? 0.7 : 1 }}>
+            <MapIcon size={13} /> {converting ? "Creating…" : linkedTourId ? "Open Itinerary" : "Make Itinerary"}
+          </button>
           <button type="button" onClick={() => window.open(`/quote-builder/${quoteId}/pdf`, "_blank")} style={{ ...toolbarBtn, color: "#3a93a0", background: "rgba(255,255,255,0.94)", border: "1px solid #cfe3e6" }}>
             <Download size={13} /> Download PDF
           </button>
+          <button type="button" onClick={deleteQuote} disabled={deleting} title="Delete this quote"
+            style={{ ...toolbarBtn, color: "#9a3b2e", background: "rgba(255,255,255,0.94)", border: "1px solid #ecd2cc", padding: "8px 10px", opacity: deleting ? 0.7 : 1 }}>
+            <Trash2 size={13} />
+          </button>
         </div>
 
-        <QuoteDocument data={data} />
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
+          {importNotes && (
+            <div className="inf-screen-only" style={{ width: 816, boxSizing: "border-box", background: "#fffbea", border: "1px solid #f0dca0", borderRadius: 10, padding: "12px 14px", fontSize: 13, color: "#6b5310", lineHeight: 1.5, position: "relative", marginTop: 34 }}>
+              <button type="button" onClick={dismissImportNotes} aria-label="Dismiss"
+                style={{ position: "absolute", top: 8, right: 8, background: "none", border: "none", cursor: "pointer", color: "#8a6d1a", display: "flex" }}>
+                <X size={15} />
+              </button>
+              <strong>Imported from your PDF.</strong> Please check every section against the original before sending, especially prices, payment dates and the day-by-day plan. The header photo was picked from the Banner Library; use Replace photo to change it.
+              {importNotes.length > 0 && (
+                <div style={{ marginTop: 8 }}>
+                  These lines could not be placed and need to be added by hand:
+                  <ul style={{ margin: "4px 0 0", paddingLeft: 18 }}>
+                    {importNotes.map((l, i) => <li key={i}>{l}</li>)}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+          <QuoteDocument data={data} />
+        </div>
       </div>
     </div>
   );

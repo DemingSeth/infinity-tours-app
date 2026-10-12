@@ -1,7 +1,8 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import type { QuoteData } from "@/lib/quotes/types";
+import type { QuoteData, PricingSection } from "@/lib/quotes/types";
+import { blankPricing } from "@/lib/quotes/sampleData";
 
 // The right-docked authoring drawer. Field groups mirror QuoteData exactly and
 // every edit produces a new QuoteData via `onChange`, so the document updates
@@ -112,6 +113,32 @@ const footerBtn: CSSProperties = {
   cursor: "pointer",
 };
 
+const textarea: CSSProperties = { ...input, fontSize: 12, padding: "6px 8px", resize: "vertical", lineHeight: 1.45 };
+
+// "$1,700", "+ $770", "$ 350" -> 1700 / 770 / 350; null when there is no number.
+function money(s: string): number | null {
+  const m = s.replace(/,/g, "").match(/-?\d+(?:\.\d+)?/);
+  return m ? Number(m[0]) : null;
+}
+const fmt = (n: number) => `$${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+
+// Pricing mistakes are expensive, so the panel checks that the cost breakdown
+// and the payment plan each add up to the estimated cost.
+function TotalCheck({ label, parts, target }: { label: string; parts: string[]; target: string }) {
+  const nums = parts.map(money).filter((n): n is number => n !== null);
+  const goal = money(target);
+  if (nums.length === 0 || goal === null) return null;
+  const sum = nums.reduce((a, b) => a + b, 0);
+  const diff = Math.round((sum - goal) * 100) / 100;
+  const ok = diff === 0;
+  return (
+    <div style={{ marginTop: 8, fontSize: 11.5, lineHeight: 1.4, padding: "6px 9px", borderRadius: 6, background: ok ? "#edf7ef" : "#fdf3e6", color: ok ? "#2f6b3c" : "#8a5a14", border: `1px solid ${ok ? "#cfe6d4" : "#f0d9b5"}` }}>
+      {label} adds up to <strong>{fmt(sum)}</strong>
+      {ok ? ", matching the estimated cost." : <>, which is {fmt(Math.abs(diff))} {diff > 0 ? "more" : "less"} than the estimated cost of {fmt(goal)}.</>}
+    </div>
+  );
+}
+
 type Props = {
   data: QuoteData;
   onChange: (next: QuoteData) => void;
@@ -127,6 +154,15 @@ export default function BuildQuotePanel({ data, onChange, onExport, onImport, on
     const draft: QuoteData = JSON.parse(JSON.stringify(data));
     mutate(draft);
     onChange(draft);
+  }
+  const isPricing = data.layout === "pricing";
+  const pr: PricingSection = { ...blankPricing(), ...(data.pricing ?? {}) };
+  // Edit the pricing block, creating it with defaults if an older quote lacks it.
+  function updateP(mutate: (p: PricingSection) => void) {
+    update((d) => {
+      d.pricing = { ...blankPricing(), ...(d.pricing ?? {}) };
+      mutate(d.pricing);
+    });
   }
 
   return (
@@ -163,6 +199,7 @@ export default function BuildQuotePanel({ data, onChange, onExport, onImport, on
             <input style={input} value={data.year} onChange={(e) => update((d) => { d.year = e.target.value; })} />
           </div>
         </div>
+        {!isPricing && (<>
         <div style={{ display: "flex", gap: 10 }}>
           <div style={{ flex: 1 }}>
             <label style={label}>Tour host</label>
@@ -233,6 +270,53 @@ export default function BuildQuotePanel({ data, onChange, onExport, onImport, on
         <label style={label}>Activities — label / URL</label>
         <input style={{ ...input, fontSize: 13, padding: "6px 8px" }} value={data.activitiesLink.label} onChange={(e) => update((d) => { d.activitiesLink.label = e.target.value; })} />
         <input style={urlInput} placeholder="https://" value={data.activitiesLink.url} onChange={(e) => update((d) => { d.activitiesLink.url = e.target.value; })} />
+        </>)}
+
+        {isPricing && (<>
+          {/* Trip Inclusions */}
+          <div style={groupTitle}>Trip Inclusions</div>
+          {pr.inclusions.map((t, i) => (
+            <div key={i} style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6 }}>
+              <input style={{ ...input, fontSize: 12, padding: "5px 8px" }} placeholder="e.g. 2 Day Disney Park Hopper" value={t} onChange={(e) => updateP((p) => { p.inclusions[i] = e.target.value; })} />
+              <button type="button" style={{ ...delX, fontSize: 16, padding: "3px 4px" }} onClick={() => updateP((p) => { p.inclusions.splice(i, 1); })}>&times;</button>
+            </div>
+          ))}
+          <button type="button" style={addBtn} onClick={() => updateP((p) => { p.inclusions.push(""); })}>+ Add inclusion</button>
+
+          {/* Payment Summary */}
+          <div style={groupTitle}>Payment Summary</div>
+          <label style={label}>Estimated tour cost (per traveler)</label>
+          <input style={input} placeholder="$1700" value={pr.estimatedCost} onChange={(e) => updateP((p) => { p.estimatedCost = e.target.value; })} />
+          <label style={label}>Payment note</label>
+          <textarea style={textarea} rows={2} value={pr.paymentNote} onChange={(e) => updateP((p) => { p.paymentNote = e.target.value; })} />
+          <label style={{ ...label, marginTop: 12 }}>Possible add-ons</label>
+          {pr.addOns.map((a, i) => (
+            <div key={i} style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6 }}>
+              <input style={{ ...input, flex: 1, fontSize: 12, padding: "5px 8px" }} placeholder="Add-on" value={a.label} onChange={(e) => updateP((p) => { p.addOns[i]!.label = e.target.value; })} />
+              <input style={{ ...input, width: 86, flex: "none", fontSize: 12, padding: "5px 8px" }} placeholder="+ $770" value={a.price} onChange={(e) => updateP((p) => { p.addOns[i]!.price = e.target.value; })} />
+              <button type="button" style={{ ...delX, fontSize: 16, padding: "3px 4px" }} onClick={() => updateP((p) => { p.addOns.splice(i, 1); })}>&times;</button>
+            </div>
+          ))}
+          <button type="button" style={addBtn} onClick={() => updateP((p) => { p.addOns.push({ label: "", price: "" }); })}>+ Add add-on</button>
+
+          {/* Cost Breakdown */}
+          <div style={groupTitle}>Cost Breakdown</div>
+          {pr.costBreakdown.map((c, i) => (
+            <div key={i} style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6 }}>
+              <input style={{ ...input, flex: 1, fontSize: 12, padding: "5px 8px" }} placeholder="Category" value={c.label} onChange={(e) => updateP((p) => { p.costBreakdown[i]!.label = e.target.value; })} />
+              <input style={{ ...input, width: 86, flex: "none", fontSize: 12, padding: "5px 8px" }} placeholder="$400" value={c.amount} onChange={(e) => updateP((p) => { p.costBreakdown[i]!.amount = e.target.value; })} />
+              <button type="button" style={{ ...delX, fontSize: 16, padding: "3px 4px" }} onClick={() => updateP((p) => { p.costBreakdown.splice(i, 1); })}>&times;</button>
+            </div>
+          ))}
+          <button type="button" style={addBtn} onClick={() => updateP((p) => { p.costBreakdown.push({ label: "", amount: "" }); })}>+ Add line</button>
+          <TotalCheck label="The cost breakdown" parts={pr.costBreakdown.map(c => c.amount)} target={pr.estimatedCost} />
+
+          {/* Hotel Details */}
+          <div style={groupTitle}>Hotel Details</div>
+          <textarea style={textarea} rows={3} placeholder={"4 nights at Anaheim Resort Suites\n101 E. Katella Avenue Anaheim, CA\nBreakfast included daily"} value={pr.hotelDetails} onChange={(e) => updateP((p) => { p.hotelDetails = e.target.value; })} />
+          <label style={label}>Rooms note</label>
+          <input style={input} placeholder="Quote Priced for 31 rooms" value={pr.roomsNote} onChange={(e) => updateP((p) => { p.roomsNote = e.target.value; })} />
+        </>)}
 
         {/* Daily Itinerary */}
         <div style={{ ...groupTitle, margin: "20px 0 6px" }}>Daily Itinerary</div>
@@ -258,11 +342,34 @@ export default function BuildQuotePanel({ data, onChange, onExport, onImport, on
               </div>
             ))}
             <button type="button" style={subAddBtn} onClick={() => update((d) => { d.days[di]!.rows.push({ time: "", text: "" }); })}>+ Row</button>
+            {!isPricing && (<>
             <label style={{ ...label, margin: "10px 0 2px" }}>Overnight</label>
             <input style={{ ...input, fontSize: 12, padding: "5px 8px" }} placeholder="Overnight stay (optional, supports links)" value={day.overnight ?? ""} onChange={(e) => update((d) => { d.days[di]!.overnight = e.target.value; })} />
+            </>)}
           </div>
         ))}
         <button type="button" style={{ ...addBtn, padding: "7px 13px" }} onClick={() => update((d) => { d.days.push({ date: "New Day", rows: [{ time: "", text: "" }], overnight: "" }); })}>+ Add day</button>
+
+        {isPricing && (<>
+          {/* Student Payment Plan */}
+          <div style={groupTitle}>Student Payment Plan</div>
+          {pr.paymentPlan.map((x, i) => (
+            <div key={i} style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6 }}>
+              <input style={{ ...input, width: 86, flex: "none", fontSize: 12, padding: "5px 8px" }} placeholder={`Payment ${i + 1}`} value={x.label} onChange={(e) => updateP((p) => { p.paymentPlan[i]!.label = e.target.value; })} />
+              <input style={{ ...input, width: 70, flex: "none", fontSize: 12, padding: "5px 8px" }} placeholder="$500" value={x.amount} onChange={(e) => updateP((p) => { p.paymentPlan[i]!.amount = e.target.value; })} />
+              <input style={{ ...input, flex: 1, fontSize: 12, padding: "5px 8px" }} placeholder="Due date" value={x.due} onChange={(e) => updateP((p) => { p.paymentPlan[i]!.due = e.target.value; })} />
+              <button type="button" style={{ ...delX, fontSize: 16, padding: "3px 4px" }} onClick={() => updateP((p) => { p.paymentPlan.splice(i, 1); })}>&times;</button>
+            </div>
+          ))}
+          <button type="button" style={addBtn} onClick={() => updateP((p) => { p.paymentPlan.push({ label: `Payment ${p.paymentPlan.length + 1}`, amount: "", due: "" }); })}>+ Add payment</button>
+          <TotalCheck label="The payment plan" parts={pr.paymentPlan.map(x => x.amount)} target={pr.estimatedCost} />
+          <label style={label}>Payment plan note</label>
+          <textarea style={textarea} rows={2} value={pr.paymentPlanNote} onChange={(e) => updateP((p) => { p.paymentPlanNote = e.target.value; })} />
+
+          {/* Terms */}
+          <div style={groupTitle}>Terms (footer)</div>
+          <textarea style={textarea} rows={4} value={pr.terms} onChange={(e) => updateP((p) => { p.terms = e.target.value; })} />
+        </>)}
       </div>
 
       {/* Sticky footer: Export / Import / Sample / New */}

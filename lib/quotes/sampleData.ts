@@ -1,12 +1,29 @@
-import type { QuoteData } from "./types";
+import type { QuoteData, PricingSection } from "./types";
 
-// A fresh, empty quote. Used by the "New" action and when creating a quote row.
-export function blankQuote(): QuoteData {
-  const year = String(new Date().getFullYear());
+export function blankPricing(): PricingSection {
   return {
-    group: "Group Name",
-    destination: "Destination",
-    year,
+    inclusions: [""],
+    estimatedCost: "",
+    paymentNote: "Payment will be made to the School Finance Office (see plan below).",
+    addOns: [{ label: "Single Chaperone Occupancy", price: "" }, { label: "Optional Travel Insurance", price: "+Varies" }],
+    costBreakdown: [
+      { label: "Transportation", amount: "" },
+      { label: "Hotel accommodations", amount: "" },
+      { label: "Meals", amount: "" },
+      { label: "Activities/Workshops", amount: "" },
+    ],
+    hotelDetails: "",
+    roomsNote: "",
+    paymentPlan: [{ label: "Payment 1", amount: "", due: "" }],
+    paymentPlanNote: "All payments are non-refundable. All students are obligated to make ALL above payments even if they decide later not to attend.",
+    terms: "Itinerary is subject to change. All payments are non-refundable. Failure to make payments by deadlines may result in tour withdrawal.",
+  };
+}
+
+// The original trip info sheet fields, still part of every quote so older
+// quotes (layout "trip") keep rendering.
+function blankTripFields(): Omit<QuoteData, "group" | "destination" | "year" | "days" | "heroPhotoUrl"> {
+  return {
     hostName: "",
     hostPhone: "",
     embassyName: "US Embassy",
@@ -18,8 +35,93 @@ export function blankQuote(): QuoteData {
     roomingLink: { label: "Rooming List", url: "" },
     activitiesLink: { label: "Activities Schedule with Names", url: "" },
     hotels: [{ city: "CITY", items: [{ name: "", addr: "", url: "" }] }],
+  };
+}
+
+// A fresh, empty quote. New quotes use the pricing layout (October 2026),
+// matching Infinity's Piktochart quotes.
+export function blankQuote(): QuoteData {
+  const y = new Date().getFullYear();
+  return {
+    ...blankTripFields(),
+    layout: "pricing",
+    pricing: blankPricing(),
+    group: "Group Name",
+    destination: "Destination",
+    year: `${y}-${y + 1} School Year`,
     days: [{ date: "Day 1", rows: [{ time: "", text: "" }], overnight: "" }],
     heroPhotoUrl: "",
+  };
+}
+
+/** A blank quote in the original trip info sheet layout. */
+export function blankTripQuote(): QuoteData {
+  const year = String(new Date().getFullYear());
+  return {
+    ...blankTripFields(),
+    layout: "trip",
+    group: "Group Name",
+    destination: "Destination",
+    year,
+    days: [{ date: "Day 1", rows: [{ time: "", text: "" }], overnight: "" }],
+    heroPhotoUrl: "",
+  };
+}
+
+/** Fill any missing pricing fields so older or imported data always edits safely. */
+export function withPricingDefaults(data: QuoteData): QuoteData {
+  if (data.layout !== "pricing") return data;
+  return { ...data, pricing: { ...blankPricing(), ...(data.pricing ?? {}) } };
+}
+
+// The Corner Canyon pricing quote (from Infinity's Piktochart export), used
+// by "Sample" on a pricing quote.
+export function samplePricingQuote(): QuoteData {
+  const day = (date: string, lines: string[]) => ({ date, rows: lines.map(text => ({ time: "", text })), overnight: "" });
+  return {
+    ...blankTripFields(),
+    layout: "pricing",
+    group: "Corner Canyon HS Band and Orchestra",
+    destination: "Anaheim, California",
+    year: "2026-2027 School Year",
+    heroPhotoUrl: "",
+    pricing: {
+      inclusions: [
+        "5 Days, 4 Nights", "56 Passenger Charter Buses (3)", "All Meals Included",
+        "Hotel accommodations with Breakfast", "2 Day Disney Park Hopper", "Disney Soundtrack Workshop",
+        "Clinic at Cal State University Long Beach", "LA Philharmonic Concert", "Medieval Times Dinner & Show",
+        "The Lion King on Broadway", "Hard Rock Cafe Group Meal", "Infinity Tour Host",
+      ],
+      estimatedCost: "$1700",
+      paymentNote: "Payment will be made to the School Finance Office (see plan below).",
+      addOns: [
+        { label: "Single Chaperone Occupancy", price: "+ $770" },
+        { label: "Optional Travel Insurance", price: "+Varies" },
+      ],
+      costBreakdown: [
+        { label: "Transportation", amount: "$400" },
+        { label: "Hotel accommodations", amount: "$350" },
+        { label: "Meals", amount: "$270" },
+        { label: "Activities/Workshops", amount: "$680" },
+      ],
+      hotelDetails: "4 nights at Anaheim Resort Suites\n101 E. Katella Avenue Anaheim, CA\nBreakfast included daily",
+      roomsNote: "Quote Priced for 31 rooms",
+      paymentPlan: [
+        { label: "Payment 1", amount: "$500", due: "September 21st" },
+        { label: "Payment 2", amount: "$500", due: "October 19th" },
+        { label: "Payment 3", amount: "$350", due: "November 16th" },
+        { label: "Payment 4", amount: "$350", due: "December 14th" },
+      ],
+      paymentPlanNote: "All payments are non-refundable. All students are obligated to make ALL above payments even if they decide later not to attend.",
+      terms: "Itinerary is subject to change. All payments are non-refundable. Failure to make payments by deadlines may result in tour withdrawal. Quote based on 122 paying participants with 129 total. Signed Service agreement due by May 20, 2026 at 3pm to secure quote.",
+    },
+    days: [
+      day("Wednesday, Feb 10th", ["Meet at School", "Depart for Anaheim", "Lunch en route", "Medieval Times Show & Dinner", "Arrive at Hotel/Check in"]),
+      day("Thursday, Feb 11th", ["Breakfast at the Hotel", "California Adventures", "Soundtrack Workshop", "Disney Dining Card", "Return to Hotel"]),
+      day("Friday, Feb 12th", ["Breakfast at Hotel", "Disneyland", "Disney Dining Card", "Return to Hotel"]),
+      day("Saturday, Feb 13th", ["Breakfast at Hotel", "Clinic at Cal State University", "Lunch", "LA Philharmonic Concert", "Hard Rock Cafe Group Meal", "The Lion King on Broadway", "Return to Hotel"]),
+      day("Sunday, Feb 14th", ["Breakfast at Hotel", "Depart for home", "Lunch and Dinner en route", "Return to School"]),
+    ],
   };
 }
 
@@ -30,6 +132,7 @@ const DET =
 
 export function sampleQuote(): QuoteData {
   return {
+    layout: "trip",
     group: "Cantorum Chamber Choir",
     destination: "United Kingdom",
     year: "2022",

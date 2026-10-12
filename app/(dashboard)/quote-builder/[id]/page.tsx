@@ -30,5 +30,6 @@ export default async function QuoteEditorPage({ params }: { params: Promise<{ id
   if (!quote) redirect("/quote-builder");
 
   const row = quote as QuoteRow;
-  return <QuoteEditorClient quoteId={row.id} initialData={row.data} />;
+  // A linked itinerary may have been deleted since (tour_id is then null).
+  return <QuoteEditorClient quoteId={row.id} initialData={row.data} tourId={row.tour_id} currentUserId={user.id} />;
 }
