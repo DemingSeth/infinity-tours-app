@@ -24,7 +24,7 @@ export async function POST(req: Request) {
   // Handler does not run the dashboard layout, so it checks is_active itself.
   const { data: viewer } = await supabase.from("tour_hosts").select("role, is_active").eq("id", user.id).single();
   if (!canUseQuoteBuilder(viewer)) {
-    return Response.json({ error: "The Quote Builder is not available on your account." }, { status: 403 });
+    return Response.json({ error: "The Quote Page is not available on your account." }, { status: 403 });
   }
 
   let file: File | null = null;

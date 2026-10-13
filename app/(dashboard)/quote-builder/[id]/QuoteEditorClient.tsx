@@ -33,8 +33,10 @@ type SaveState = "idle" | "saving" | "saved" | "error";
 
 const noopSubscribe = () => () => {};
 
-export default function QuoteEditorClient({ quoteId, initialData, tourId, currentUserId }: {
+export default function QuoteEditorClient({ quoteId, initialData, tourId, currentUserId, canEdit, ownerName }: {
   quoteId: string; initialData: QuoteData; tourId: string | null; currentUserId: string;
+  /** Only the person who made a quote edits it; everyone else views and can duplicate. */
+  canEdit: boolean; ownerName: string;
 }) {
   const router = useRouter();
   const [data, setData] = useState<QuoteData>(() => withPricingDefaults(initialData));
@@ -118,6 +120,7 @@ export default function QuoteEditorClient({ quoteId, initialData, tourId, curren
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    if (!canEdit) return; // view only: never write someone else's quote
     if (skipNext.current) {
       skipNext.current = false;
       return;
@@ -138,7 +141,7 @@ export default function QuoteEditorClient({ quoteId, initialData, tourId, curren
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };
-  }, [data, quoteId]);
+  }, [data, quoteId, canEdit]);
 
   const setHero = useCallback((heroPhotoUrl: string) => {
     setData((d) => ({ ...d, heroPhotoUrl }));
@@ -231,7 +234,7 @@ export default function QuoteEditorClient({ quoteId, initialData, tourId, curren
       )}
 
       {/* LEFT: persistent Build Quote form column (collapsible) */}
-      {panelOpen && (
+      {canEdit && panelOpen && (
         <BuildQuotePanel
           data={data}
           onChange={setData}
@@ -244,7 +247,7 @@ export default function QuoteEditorClient({ quoteId, initialData, tourId, curren
 
       {/* Collapse toggle — always rendered and pinned to the panel edge, so the
           panel can never end up closed with no way to reopen it. */}
-      <button
+      {canEdit && <button
         type="button"
         className="inf-screen-only"
         onClick={() => setPanelOpen((o) => !o)}
@@ -270,7 +273,7 @@ export default function QuoteEditorClient({ quoteId, initialData, tourId, curren
         }}
       >
         {panelOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
-      </button>
+      </button>}
 
       {/* RIGHT: live document preview on the warm-gray backdrop. alignItems
           flex-start keeps the page at its natural content height (no stretch to
@@ -287,15 +290,15 @@ export default function QuoteEditorClient({ quoteId, initialData, tourId, curren
           <button type="button" onClick={() => router.push("/quote-builder")} style={{ ...toolbarBtn, color: "#5b6b5f", background: "rgba(255,255,255,0.94)", border: "1px solid #d6dcd6" }}>
             <ArrowLeft size={13} /> Quotes
           </button>
-          <button type="button" onClick={() => setPickingPhoto(true)} title="Choose the header photo from the Banner Library"
+          {canEdit && <button type="button" onClick={() => setPickingPhoto(true)} title="Choose the header photo from the Banner Library"
             style={{ ...toolbarBtn, color: "#3a93a0", background: "rgba(255,255,255,0.94)", border: "1px solid #cfe3e6" }}>
             <ImageIcon size={13} /> {data.heroPhotoUrl ? "Change Photo" : "Choose Photo"}
-          </button>
-          <button type="button" onClick={makeItinerary} disabled={converting}
+          </button>}
+          {(canEdit || linkedTourId) && <button type="button" onClick={makeItinerary} disabled={converting}
             title={linkedTourId ? "Open the itinerary made from this quote" : "Create an itinerary (a new tour) from this quote"}
             style={{ ...toolbarBtn, color: "#2f6b3c", background: "rgba(255,255,255,0.94)", border: "1px solid #cfe6d4", opacity: converting ? 0.7 : 1 }}>
             <MapIcon size={13} /> {converting ? "Creating…" : linkedTourId ? "Open Itinerary" : "Make Itinerary"}
-          </button>
+          </button>}
           <button type="button" onClick={() => window.open(`/quote-builder/${quoteId}/pdf`, "_blank")} style={{ ...toolbarBtn, color: "#3a93a0", background: "rgba(255,255,255,0.94)", border: "1px solid #cfe3e6" }}>
             <Download size={13} /> Download PDF
           </button>
@@ -303,20 +306,25 @@ export default function QuoteEditorClient({ quoteId, initialData, tourId, curren
             style={{ ...toolbarBtn, color: "#3a93a0", background: "rgba(255,255,255,0.94)", border: "1px solid #cfe3e6", opacity: copying ? 0.7 : 1 }}>
             <Copy size={13} /> {copying ? "Copying…" : "Duplicate"}
           </button>
-          <button type="button" onClick={deleteQuote} disabled={deleting} title="Delete this quote"
+          {canEdit && <button type="button" onClick={deleteQuote} disabled={deleting} title="Delete this quote"
             style={{ ...toolbarBtn, color: "#9a3b2e", background: "rgba(255,255,255,0.94)", border: "1px solid #ecd2cc", padding: "8px 10px", opacity: deleting ? 0.7 : 1 }}>
             <Trash2 size={13} />
-          </button>
+          </button>}
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
+          {!canEdit && (
+            <div className="inf-screen-only" style={{ width: 816, boxSizing: "border-box", background: "#eef4fb", border: "1px solid #c9dbf2", borderRadius: 10, padding: "12px 14px", fontSize: 13, color: "#23406b", lineHeight: 1.5, marginTop: 34 }}>
+              <strong>Viewing {ownerName}&rsquo;s quote.</strong> Only {ownerName} can change it. Use <strong>Duplicate</strong> to make your own copy as a starting point.
+            </div>
+          )}
           {importNotes && (
             <div className="inf-screen-only" style={{ width: 816, boxSizing: "border-box", background: "#fffbea", border: "1px solid #f0dca0", borderRadius: 10, padding: "12px 14px", fontSize: 13, color: "#6b5310", lineHeight: 1.5, position: "relative", marginTop: 34 }}>
               <button type="button" onClick={dismissImportNotes} aria-label="Dismiss"
                 style={{ position: "absolute", top: 8, right: 8, background: "none", border: "none", cursor: "pointer", color: "#8a6d1a", display: "flex" }}>
                 <X size={15} />
               </button>
-              <strong>Imported from your PDF.</strong> Please check every section against the original before sending, especially prices, payment dates and the day-by-day plan. The header photo was picked from the Banner Library; use Replace photo to change it.
+              <strong>Imported from your PDF.</strong> Please check every section against the original before sending, especially prices, payment dates and the day-by-day plan. The header photo was picked from the Banner Library; use Change Photo to pick another.
               {importNotes.length > 0 && (
                 <div style={{ marginTop: 8 }}>
                   These lines could not be placed and need to be added by hand:
@@ -327,7 +335,7 @@ export default function QuoteEditorClient({ quoteId, initialData, tourId, curren
               )}
             </div>
           )}
-          <div className={isPricing ? "inf-editable" : undefined} onClick={isPricing ? onDocumentClick : undefined}>
+          <div className={isPricing && canEdit ? "inf-editable" : undefined} onClick={isPricing && canEdit ? onDocumentClick : undefined}>
             <QuoteDocument data={data} />
           </div>
           <style>{`

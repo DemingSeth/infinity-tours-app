@@ -180,7 +180,7 @@ export default function BuildQuotePanel({ data, onChange, onExport, onImport, on
     >
       {/* Header bar */}
       <div style={{ flex: "none", display: "flex", alignItems: "center", padding: "14px 18px", background: "#3c8d9a", color: "#fff" }}>
-        <div style={{ fontFamily: OSWALD, fontWeight: 600, letterSpacing: "1px", textTransform: "uppercase", fontSize: 15 }}>Build Quote</div>
+        <div style={{ fontFamily: OSWALD, fontWeight: 600, letterSpacing: "1px", textTransform: "uppercase", fontSize: 15 }}>Quote Page</div>
       </div>
 
       {/* Scrollable body */}

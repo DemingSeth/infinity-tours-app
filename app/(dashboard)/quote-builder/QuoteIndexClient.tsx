@@ -20,9 +20,18 @@ const headerBtn: React.CSSProperties = {
   padding: "9px 15px", fontSize: 13, fontWeight: 600, fontFamily: "inherit",
 };
 
-export default function QuoteIndexClient({ quotes: initialQuotes, currentUserId }: { quotes: QuoteRow[]; currentUserId: string }) {
+// Same model as the Tour Pipeline: everyone with Quote Page access sees every
+// quote and can duplicate any of them as a starting point; only the person who
+// made a quote can edit or delete it.
+export default function QuoteIndexClient({ quotes: initialQuotes, currentUserId, ownerNames }: {
+  quotes: QuoteRow[]; currentUserId: string; ownerNames: Record<string, string>;
+}) {
   const router = useRouter();
   const [quotes, setQuotes] = useState(initialQuotes);
+  const hasOwn = initialQuotes.some(q => q.created_by === currentUserId);
+  const [scope, setScope] = useState<"mine" | "all">(hasOwn ? "mine" : "all");
+  const shown = scope === "mine" ? quotes.filter(q => q.created_by === currentUserId) : quotes;
+  const ownerOf = (q: QuoteRow) => (q.created_by && ownerNames[q.created_by]) || "Former staff";
   const [creating, setCreating] = useState(false);
   const [importing, setImporting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -98,7 +107,7 @@ export default function QuoteIndexClient({ quotes: initialQuotes, currentUserId 
     const { data, error } = await supabase.from("quotes").delete().eq("id", q.id).select("id");
     setDeletingId(null);
     if (error || !data || data.length === 0) {
-      alert(`Could not delete the quote: ${error?.message ?? "only an admin can delete quotes"}`);
+      alert(`Could not delete the quote: ${error?.message ?? "only the person who made it can delete it"}`);
       return;
     }
     setQuotes(prev => prev.filter(x => x.id !== q.id));
@@ -108,8 +117,8 @@ export default function QuoteIndexClient({ quotes: initialQuotes, currentUserId 
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 20 }}>
         <div>
-          <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 700, fontSize: 26, color: BRAND.navy, margin: 0 }}>Quote Builder</h1>
-          <p style={{ fontSize: 13, color: "#64748b", margin: "4px 0 0" }}>Print-ready, branded tour quotes.</p>
+          <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 700, fontSize: 26, color: BRAND.navy, margin: 0 }}>Quote Page</h1>
+          <p style={{ fontSize: 13, color: "#64748b", margin: "4px 0 0" }}>The client-facing quote page for each tour, print-ready and on brand.</p>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <input ref={fileRef} type="file" accept="application/pdf,.pdf" style={{ display: "none" }} onChange={e => importPdf(e.target.files?.[0])} />
@@ -133,13 +142,29 @@ export default function QuoteIndexClient({ quotes: initialQuotes, currentUserId 
         </div>
       </div>
 
-      {quotes.length === 0 ? (
+      <div style={{ display: "inline-flex", background: "#f1f5f9", borderRadius: 8, padding: 3, marginBottom: 14 }}>
+        {(["mine", "all"] as const).map(k => (
+          <button key={k} type="button" onClick={() => setScope(k)}
+            style={{ border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 12.5, fontWeight: 600, fontFamily: "inherit", cursor: "pointer",
+              background: scope === k ? "#fff" : "transparent", color: scope === k ? BRAND.navy : "#64748b", boxShadow: scope === k ? "0 1px 3px rgba(0,0,0,.08)" : "none" }}>
+            {k === "mine" ? "My Quotes" : "All Quotes"}
+          </button>
+        ))}
+      </div>
+
+      {shown.length === 0 && quotes.length > 0 ? (
+        <div style={{ background: "#fff", border: "2px dashed #e2e8f0", borderRadius: 12, padding: "36px 20px", textAlign: "center", color: "#94a3b8", fontSize: 14 }}>
+          You have not made any quotes yet. Start one with <strong>New Quote</strong> or <strong>Upload PDF</strong>, or duplicate one from <button type="button" onClick={() => setScope("all")} style={{ border: "none", background: "none", padding: 0, color: BRAND.teal, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", fontSize: 14 }}>All Quotes</button>.
+        </div>
+      ) : quotes.length === 0 ? (
         <div style={{ background: "#fff", border: "2px dashed #e2e8f0", borderRadius: 12, padding: "48px 20px", textAlign: "center", color: "#94a3b8", fontSize: 14 }}>
           No quotes yet. Click <strong>New Quote</strong> to build one, or <strong>Upload PDF</strong> to start from an existing quote.
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {quotes.map((q) => (
+          {shown.map((q) => {
+            const mine = q.created_by === currentUserId;
+            return (
             <div
               key={q.id}
               role="button"
@@ -157,6 +182,9 @@ export default function QuoteIndexClient({ quotes: initialQuotes, currentUserId 
                 </div>
                 <div style={{ fontSize: 12, color: "#64748b", marginTop: 2, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                   <span>{[q.data?.destination, q.data?.year].filter(Boolean).join(" ") || "No destination yet"}</span>
+                  {!mine && (
+                    <span style={{ fontSize: 10.5, color: "#475569", background: "#eef2f7", borderRadius: 5, padding: "1px 6px" }}>by {ownerOf(q)}</span>
+                  )}
                   {q.data?.layout !== "pricing" && (
                     <span style={{ fontSize: 10.5, color: "#64748b", background: "#f1f5f9", borderRadius: 5, padding: "1px 6px" }}>Trip sheet</span>
                   )}
@@ -185,7 +213,7 @@ export default function QuoteIndexClient({ quotes: initialQuotes, currentUserId 
               >
                 <Copy size={15} />
               </button>
-              <button
+              {mine ? <button
                 type="button"
                 title="Delete quote"
                 aria-label={`Delete ${q.data?.group || "quote"}`}
@@ -194,9 +222,10 @@ export default function QuoteIndexClient({ quotes: initialQuotes, currentUserId 
                 style={{ flexShrink: 0, background: "none", border: "1px solid transparent", borderRadius: 6, padding: 6, cursor: "pointer", color: "#b91c1c", display: "flex" }}
               >
                 <Trash2 size={15} />
-              </button>
+              </button> : <span style={{ width: 29, flexShrink: 0 }} />}
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

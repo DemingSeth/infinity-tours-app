@@ -15,7 +15,7 @@ const ROLE_LABELS: Record<HostRole, string> = {
 
 const ROLE_HINTS: Record<HostRole, string> = {
   host: "Runs their own tours.",
-  admin: "Runs tours, plus the Quote Builder and this screen.",
+  admin: "Runs tours, plus the Quote Page and this screen.",
   super_admin: "Everything an admin can do, plus managing other super admins.",
 };
 

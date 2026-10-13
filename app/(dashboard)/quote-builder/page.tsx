@@ -26,5 +26,13 @@ export default async function QuoteBuilderPage() {
     .select("id, tour_id, data, created_by, created_at, updated_at")
     .order("updated_at", { ascending: false });
 
-  return <QuoteIndexClient quotes={(quotes ?? []) as QuoteRow[]} currentUserId={user.id} />;
+  // Names for "by ..." on colleagues' quotes. Quote Page users are admins,
+  // whose RLS lets them read every staff record.
+  const ownerIds = [...new Set((quotes ?? []).map(q => q.created_by).filter((id): id is string => !!id))];
+  const { data: owners } = ownerIds.length
+    ? await supabase.from("tour_hosts").select("id, name").in("id", ownerIds)
+    : { data: [] as { id: string; name: string | null }[] };
+  const ownerNames = Object.fromEntries((owners ?? []).map(o => [o.id, o.name || "Staff"]));
+
+  return <QuoteIndexClient quotes={(quotes ?? []) as QuoteRow[]} currentUserId={user.id} ownerNames={ownerNames} />;
 }

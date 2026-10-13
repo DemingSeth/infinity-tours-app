@@ -31,5 +31,12 @@ export default async function QuoteEditorPage({ params }: { params: Promise<{ id
 
   const row = quote as QuoteRow;
   // A linked itinerary may have been deleted since (tour_id is then null).
-  return <QuoteEditorClient quoteId={row.id} initialData={row.data} tourId={row.tour_id} currentUserId={user.id} />;
+  // Same model as itineraries: only the person who made a quote edits it.
+  const canEdit = row.created_by === user.id;
+  let ownerName = "another staff member";
+  if (!canEdit && row.created_by) {
+    const { data: owner } = await supabase.from("tour_hosts").select("name").eq("id", row.created_by).maybeSingle();
+    if (owner?.name) ownerName = owner.name;
+  }
+  return <QuoteEditorClient quoteId={row.id} initialData={row.data} tourId={row.tour_id} currentUserId={user.id} canEdit={canEdit} ownerName={ownerName} />;
 }

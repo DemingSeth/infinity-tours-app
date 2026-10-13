@@ -43,7 +43,7 @@ export default function DashboardShell({ children, user, tourHost }: Props) {
     ...BASE_NAV_LINKS,
     // Quote Builder: active admins (canUseQuoteBuilder).
     ...(SHOW_QUOTE_BUILDER_NAV && canUseQuoteBuilder(tourHost)
-      ? [{ href: "/quote-builder", label: "Quote Builder", Icon: FileText }]
+      ? [{ href: "/quote-builder", label: "Quote Page", Icon: FileText }]
       : []),
     ...(admin ? [{ href: "/admin/users", label: "Team Access", Icon: Users }] : []),
   ];
