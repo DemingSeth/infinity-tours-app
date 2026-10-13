@@ -12,11 +12,11 @@ export default async function QuoteBuilderPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // Quote Builder is limited to Seth, Mike and Greta for now
-  // (canUseQuoteBuilder); everyone else is sent back to the dashboard.
+  // Quote Builder: active admins only (canUseQuoteBuilder); everyone else is
+  // sent back to the dashboard.
   const { data: viewerHost } = await supabase
     .from("tour_hosts")
-    .select("email, is_active")
+    .select("role, is_active")
     .eq("id", user.id)
     .single();
   if (!canUseQuoteBuilder(viewerHost)) redirect("/dashboard");

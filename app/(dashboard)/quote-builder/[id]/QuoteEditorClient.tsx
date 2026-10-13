@@ -2,14 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ChevronLeft, ChevronRight, Download, Trash2, Copy, Map as MapIcon, X } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Download, Trash2, Copy, Map as MapIcon, X, Image as ImageIcon } from "lucide-react";
 import type { QuoteData } from "@/lib/quotes/types";
 import { blankQuote, blankTripQuote, sampleQuote, samplePricingQuote, withPricingDefaults, duplicateQuoteData } from "@/lib/quotes/sampleData";
 import { createTourFromQuote } from "@/lib/quotes/quoteToTour";
 import { IMPORT_NOTES_KEY } from "@/lib/quotes/importNotes";
 import { createClient } from "@/lib/supabase/client";
 import QuoteDocument from "@/components/quotes/QuoteDocument";
-import QuoteHeroPicker from "@/components/quotes/QuoteHeroPicker";
+import BannerLibraryPicker from "@/components/tour/BannerLibraryPicker";
 import BuildQuotePanel from "@/components/quotes/BuildQuotePanel";
 
 const OSWALD = "var(--font-oswald), 'Oswald', sans-serif";
@@ -40,6 +40,9 @@ export default function QuoteEditorClient({ quoteId, initialData, tourId, curren
   const [data, setData] = useState<QuoteData>(() => withPricingDefaults(initialData));
   const [linkedTourId, setLinkedTourId] = useState<string | null>(tourId);
   const [converting, setConverting] = useState(false);
+  // Header photos come from the approved Banner Library (the same photos the
+  // itineraries use; admins add new ones from Overview), not free uploads.
+  const [pickingPhoto, setPickingPhoto] = useState(false);
   const [deleting, setDeleting] = useState(false);
   // After a PDF import: lines the importer could not place. The note lives in
   // sessionStorage until the host dismisses it or leaves the page.
@@ -217,6 +220,16 @@ export default function QuoteEditorClient({ quoteId, initialData, tourId, curren
     // 24px padding so the columns fill the area below the 56px top nav; each
     // column scrolls independently.
     <div style={{ position: "relative", display: "flex", height: "calc(100dvh - 56px)", margin: -24, overflow: "hidden", background: "#dcdad3" }}>
+      {pickingPhoto && (
+        <BannerLibraryPicker
+          tourDestination={data.destination}
+          tourName={data.group}
+          currentUrl={data.heroPhotoUrl || null}
+          onSelect={(url) => setHero(url ?? "")}
+          onClose={() => setPickingPhoto(false)}
+        />
+      )}
+
       {/* LEFT: persistent Build Quote form column (collapsible) */}
       {panelOpen && (
         <BuildQuotePanel
@@ -274,7 +287,10 @@ export default function QuoteEditorClient({ quoteId, initialData, tourId, curren
           <button type="button" onClick={() => router.push("/quote-builder")} style={{ ...toolbarBtn, color: "#5b6b5f", background: "rgba(255,255,255,0.94)", border: "1px solid #d6dcd6" }}>
             <ArrowLeft size={13} /> Quotes
           </button>
-          <QuoteHeroPicker heroPhotoUrl={data.heroPhotoUrl} onChange={setHero} />
+          <button type="button" onClick={() => setPickingPhoto(true)} title="Choose the header photo from the Banner Library"
+            style={{ ...toolbarBtn, color: "#3a93a0", background: "rgba(255,255,255,0.94)", border: "1px solid #cfe3e6" }}>
+            <ImageIcon size={13} /> {data.heroPhotoUrl ? "Change Photo" : "Choose Photo"}
+          </button>
           <button type="button" onClick={makeItinerary} disabled={converting}
             title={linkedTourId ? "Open the itinerary made from this quote" : "Create an itinerary (a new tour) from this quote"}
             style={{ ...toolbarBtn, color: "#2f6b3c", background: "rgba(255,255,255,0.94)", border: "1px solid #cfe6d4", opacity: converting ? 0.7 : 1 }}>

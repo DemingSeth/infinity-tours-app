@@ -5,9 +5,11 @@ import PricingQuoteDocument from "@/components/quotes/PricingQuoteDocument";
 
 // Font stacks resolve to the route-scoped next/font CSS variables (see
 // app/(dashboard)/quote-builder/fonts.ts), falling back to literal family names.
-const OSWALD = "var(--font-oswald), 'Oswald', sans-serif";
-const MULISH = "var(--font-mulish), 'Mulish', sans-serif";
-const PINYON = "var(--font-pinyon), 'Pinyon Script', cursive";
+// var() fallbacks matter: without one, an undefined variable (the server PDF
+// export has no next/font class) voids the whole font-family.
+const OSWALD = "var(--font-oswald, 'Oswald'), 'Oswald', sans-serif";
+const MULISH = "var(--font-mulish, 'Mulish'), 'Mulish', sans-serif";
+const PINYON = "var(--font-pinyon, 'Pinyon Script'), 'Pinyon Script', cursive";
 
 const LINK_TEAL = "#3a93a0";
 

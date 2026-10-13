@@ -20,9 +20,9 @@ export async function POST(req: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "Please sign in again." }, { status: 401 });
 
-  // Same access as the rest of the Quote Builder (Seth, Mike, Greta). A Route
+  // Same access as the rest of the Quote Builder (active admins). A Route
   // Handler does not run the dashboard layout, so it checks is_active itself.
-  const { data: viewer } = await supabase.from("tour_hosts").select("email, is_active").eq("id", user.id).single();
+  const { data: viewer } = await supabase.from("tour_hosts").select("role, is_active").eq("id", user.id).single();
   if (!canUseQuoteBuilder(viewer)) {
     return Response.json({ error: "The Quote Builder is not available on your account." }, { status: 403 });
   }

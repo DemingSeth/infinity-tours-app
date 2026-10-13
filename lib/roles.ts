@@ -93,20 +93,10 @@ export function isViewerOnTour(
   return personListIncludes(tour.consultants, viewer) || personListIncludes(tour.tour_hosts_list, viewer);
 }
 
-// Quote Builder access (October 2026): limited to Seth, Mike and Greta while
-// the quote format is being finished, not every admin. Keep this list in step
-// with public.can_use_quote_builder() in the database
-// (supabase/migrations/20261012_quote_builder_access.sql), which is the real
-// gate on the quotes table. To open it to another person, add their login
-// email in both places.
-export const QUOTE_BUILDER_EMAILS = [
-  "seth@aileverageautomation.com",
-  "mike@infinitytours.us",
-  "greta@infinitytours.us",
-] as const;
-
-export function canUseQuoteBuilder(host?: { email?: string | null; is_active?: boolean | null } | null): boolean {
+// Quote Builder access (October 2026): active admins (Seth, Mike, Greta, Amy,
+// Heidi), not Tour Hosts. The database gate is public.can_use_quote_builder()
+// (supabase/migrations/20261012_quote_builder_access.sql), built on is_admin().
+export function canUseQuoteBuilder(host?: { role?: string | null; is_active?: boolean | null } | null): boolean {
   if (!host || host.is_active === false) return false;
-  const email = (host.email ?? "").trim().toLowerCase();
-  return (QUOTE_BUILDER_EMAILS as readonly string[]).includes(email);
+  return isAdmin(host.role);
 }

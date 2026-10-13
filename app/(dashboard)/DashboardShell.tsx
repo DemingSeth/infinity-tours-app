@@ -41,7 +41,7 @@ export default function DashboardShell({ children, user, tourHost }: Props) {
   const navLinks = [
     { href: "/overview", label: "Overview", Icon: LayoutGrid },
     ...BASE_NAV_LINKS,
-    // Quote Builder: Seth, Mike and Greta only for now (canUseQuoteBuilder).
+    // Quote Builder: active admins (canUseQuoteBuilder).
     ...(SHOW_QUOTE_BUILDER_NAV && canUseQuoteBuilder(tourHost)
       ? [{ href: "/quote-builder", label: "Quote Builder", Icon: FileText }]
       : []),

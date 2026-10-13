@@ -21,7 +21,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   // never sees this request and it has to enforce the flag itself.
   const { data: viewerHost } = await supabase
     .from("tour_hosts")
-    .select("email, is_active")
+    .select("role, is_active")
     .eq("id", user.id)
     .single();
   if (!canUseQuoteBuilder(viewerHost)) {
