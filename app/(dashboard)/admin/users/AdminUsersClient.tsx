@@ -7,6 +7,15 @@ import type { AdminUserRow, HostRole } from "@/lib/types";
 import type { ActionResult } from "@/lib/invites";
 import { inviteUser, resendInvite, revokeInvite, setUserActive, setUserRole } from "./actions";
 
+// Team Access card colors by role (theme tokens in globals.css). The edge is a
+// literal hex so a translucent border can be derived from it.
+const ROLE_TINT: Record<string, { bg: string; edge: string }> = {
+  super_admin: { bg: "var(--role-super-bg)", edge: "#7c5ce0" },
+  admin: { bg: "var(--role-admin-bg)", edge: "#4a7be0" },
+  host: { bg: "var(--role-host-bg)", edge: "#2f9e6e" },
+  off: { bg: "var(--role-off-bg)", edge: "#8f97a3" },
+};
+
 const ROLE_LABELS: Record<HostRole, string> = {
   host: "Host",
   admin: "Admin",
@@ -181,6 +190,14 @@ export default function AdminUsersClient({
       {/* Roster */}
       <section style={card}>
         <h2 style={sectionTitle}>Team ({rows.length})</h2>
+        <div style={{ display: "flex", gap: 14, flexWrap: "wrap", margin: "-4px 0 6px", fontSize: 12, color: "var(--muted)" }}>
+          {([["super_admin", "Super admin"], ["admin", "Admin"], ["host", "Host"], ["off", "Deactivated"]] as const).map(([k, label]) => (
+            <span key={k} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <span style={{ width: 12, height: 12, borderRadius: 3, background: ROLE_TINT[k].bg, borderLeft: `4px solid ${ROLE_TINT[k].edge}` }} />
+              {label}
+            </span>
+          ))}
+        </div>
 
         {loadError && <div style={{ marginBottom: 12 }}><Notice ok={false} text={loadError} /></div>}
         {rosterMsg && <div style={{ marginBottom: 12 }}><Notice {...rosterMsg} /></div>}
@@ -189,7 +206,7 @@ export default function AdminUsersClient({
           <p style={helpText}>Nobody on the team yet.</p>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 860 }}>
+            <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: "0 8px", minWidth: 860 }}>
               <thead>
                 <tr>
                   <th style={th}>Person</th>
@@ -215,9 +232,15 @@ export default function AdminUsersClient({
                   const status = statusOf(row);
                   const pending = status === "Invitation pending";
 
+                  // Each person is a card tinted by role (October 2026):
+                  // super admin purple, admin blue, host green, deactivated gray.
+                  const tint = !row.is_active ? ROLE_TINT.off : (ROLE_TINT[row.role] ?? ROLE_TINT.host);
+                  const cell: React.CSSProperties = { ...td, background: tint.bg, borderTop: `1px solid ${tint.edge}33`, borderBottom: `1px solid ${tint.edge}33` };
+                  const firstCell: React.CSSProperties = { ...cell, borderLeft: `5px solid ${tint.edge}`, borderTopLeftRadius: 10, borderBottomLeftRadius: 10 };
+                  const lastCell: React.CSSProperties = { ...cell, borderRight: `1px solid ${tint.edge}33`, borderTopRightRadius: 10, borderBottomRightRadius: 10 };
                   return (
-                    <tr key={row.id} style={{ borderTop: "1px solid var(--border-soft)", background: ri % 2 === 1 ? "var(--row-alt)" : "transparent", opacity: row.is_active ? 1 : 0.65 }}>
-                      <td style={td}>
+                    <tr key={row.id} style={{ opacity: row.is_active ? 1 : 0.7 }}>
+                      <td style={firstCell}>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <div style={avatar}>{row.initials || initialsFrom(row.name, "TH")}</div>
                           <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
@@ -230,7 +253,7 @@ export default function AdminUsersClient({
                         </div>
                       </td>
 
-                      <td style={td}>
+                      <td style={cell}>
                         {locked ? (
                           <span style={{ color: "var(--muted)" }}>{ROLE_LABELS[row.role]}</span>
                         ) : (
@@ -252,11 +275,11 @@ export default function AdminUsersClient({
                         )}
                       </td>
 
-                      <td style={td}>
+                      <td style={cell}>
                         <span style={pill(status)}>{status}</span>
                       </td>
 
-                      <td style={{ ...td, color: "var(--muted)", whiteSpace: "nowrap" }}>
+                      <td style={{ ...cell, color: "var(--muted)", whiteSpace: "nowrap" }}>
                         {row.last_sign_in_at
                           ? formatStamp(row.last_sign_in_at)
                           : row.invited_at
@@ -264,7 +287,7 @@ export default function AdminUsersClient({
                             : "Never"}
                       </td>
 
-                      <td style={{ ...td, textAlign: "right", whiteSpace: "nowrap" }}>
+                      <td style={{ ...lastCell, textAlign: "right", whiteSpace: "nowrap" }}>
                         {locked ? (
                           <span style={{ fontSize: 12, color: "var(--muted-3)" }}>-</span>
                         ) : (

@@ -4,6 +4,8 @@ import { BRAND, expandStateName } from "@/lib/helpers";
 import StatusPill from "@/components/shared/StatusPill";
 
 interface Props {
+  /** Alternate cards in a column take a second hue (October 2026). */
+  alt?: boolean;
   tour: any;
   currentHostId: string;
   /** Whether the viewer may edit this tour (owner, listed staff, or admin). */
@@ -15,7 +17,7 @@ interface Props {
   onDelete?: () => void;
 }
 
-export default function TripCard({ tour, currentHostId, canEdit, isDuplicating, onClick, onDuplicate, onDelete }: Props) {
+export default function TripCard({ tour, currentHostId, canEdit, isDuplicating, onClick, onDuplicate, onDelete, alt }: Props) {
   const members: any[] = tour.tour_members ?? [];
   const memberCount = members.length;
   const waiverPending = members.filter((m: any) => m.type === "student" && !m.waiver).length;
@@ -30,7 +32,7 @@ export default function TripCard({ tour, currentHostId, canEdit, isDuplicating, 
   return (
     <div
       className="trip-card"
-      style={{ background: "var(--tile-bg)", border: "1.5px solid var(--tile-border)", borderRadius: 12, padding: 14, boxShadow: "var(--tile-shadow)", transition: "box-shadow .15s, transform .15s" }}
+      style={{ background: alt ? "var(--row-alt)" : "var(--tile-bg)", border: "1.5px solid var(--tile-border)", borderRadius: 12, padding: 14, boxShadow: "var(--tile-shadow)", transition: "box-shadow .15s, transform .15s" }}
     >
       <div onClick={onClick} style={{ cursor: "pointer" }}>
         {/* Fjalla One ships a single 400 weight — asking for bold forces the

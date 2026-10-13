@@ -7,9 +7,10 @@ import { quoteFontVars } from "./fonts";
 // unaffected.
 export default function QuoteBuilderLayout({ children }: { children: React.ReactNode }) {
   return (
-    // The quote builder keeps its own light document styling regardless of the
-    // app theme (it is a print-facing surface).
-    <div className={quoteFontVars} data-theme="light">
+    // The quote list and editor chrome follow the app's light/dark theme like
+    // every other page; only the printable quote itself is forced light (see
+    // the data-theme wrapper around QuoteDocument in QuoteEditorClient).
+    <div className={quoteFontVars}>
       <style>{`
         @media print {
           header { display: none !important; }

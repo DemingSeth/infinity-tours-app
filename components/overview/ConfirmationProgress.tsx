@@ -1,5 +1,6 @@
 "use client";
 
+import { deepen, deepGradient, withAlpha } from "@/lib/colors";
 import { useMemo, useState } from "react";
 import { ChevronRight, ClipboardCheck, Filter, X } from "lucide-react";
 import { MONTH_NAMES, STATUSES, parseISODate, tourDateLabel, hostNameOf, tourDateRange, isItemConfirmed } from "@/lib/helpers";
@@ -25,14 +26,16 @@ function barColor(pct: number | null): string {
   return "#dc2626";
 }
 
-function Bar({ done, total, pct, height = 8 }: { done: number; total: number; pct: number | null; height?: number }) {
+function Bar({ done, total, pct, height = 10 }: { done: number; total: number; pct: number | null; height?: number }) {
+  const c = barColor(pct);
   return (
     <div title={total > 0 ? `${done} of ${total} confirmed` : "No items expecting a confirmation"}
       style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-      <div style={{ flex: 1, height, borderRadius: 99, background: "var(--border-soft)", overflow: "hidden", minWidth: 80 }}>
-        <div style={{ width: `${pct ?? 0}%`, height: "100%", background: barColor(pct), borderRadius: 99, transition: "width .3s" }} />
+      {/* Recessed track with a raised, deeper fill (October 2026). */}
+      <div style={{ flex: 1, height, borderRadius: 99, background: "var(--border-soft)", boxShadow: "inset 0 1px 2px rgba(0,0,0,.14)", minWidth: 80, padding: 1 }}>
+        <div style={{ width: `${pct ?? 0}%`, height: "100%", background: deepGradient(c, 0.28), borderRadius: 99, transition: "width .3s", boxShadow: pct ? `0 1px 2px ${withAlpha(c, 0.45)}, 0 2px 6px ${withAlpha(c, 0.35)}` : "none" }} />
       </div>
-      <span style={{ fontSize: 12, fontWeight: 700, color: pct === null ? "var(--muted-2)" : barColor(pct), width: 42, textAlign: "right", flexShrink: 0 }}>
+      <span style={{ fontSize: 12, fontWeight: 700, color: pct === null ? "var(--muted-2)" : deepen(c, 0.12), width: 42, textAlign: "right", flexShrink: 0 }}>
         {pct === null ? "n/a" : `${pct}%`}
       </span>
       <span style={{ fontSize: 11, color: "var(--muted-2)", width: 58, flexShrink: 0 }}>
@@ -244,7 +247,7 @@ export default function ConfirmationProgress({ tours, onOpenTour, allowAllScope 
             <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 6 }}>
               All {effectiveScope === "upcoming" ? "upcoming " : ""}tours together
             </div>
-            <Bar {...overall} height={10} />
+            <Bar {...overall} height={12} />
           </div>
 
           {months.length > 1 && (() => {
@@ -286,17 +289,19 @@ export default function ConfirmationProgress({ tours, onOpenTour, allowAllScope 
                     <span style={{ fontSize: 11, color: "var(--muted-2)" }}>{m.tours.length} tour{m.tours.length !== 1 ? "s" : ""}</span>
                   </span>
                   <div style={{ flex: 1, minWidth: 200 }}>
-                    <Bar done={m.done} total={m.total} pct={mpct} height={6} />
+                    <Bar done={m.done} total={m.total} pct={mpct} height={8} />
                   </div>
                 </div>
-                {open && m.tours.map(t => {
+                {open && m.tours.map((t, ti) => {
                   const s = confirmationStats(t);
+                  // Tours within a month alternate hues; hover darkens either one.
+                  const rowBg = ti % 2 === 1 ? "var(--row-alt)" : "transparent";
                   return (
                     <div key={t.id}
                       onClick={() => onOpenTour(t.id)}
-                      style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 18px 10px 28px", cursor: "pointer", flexWrap: "wrap", borderTop: "1px solid var(--surface-2)" }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = "var(--surface-2)"; }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                      style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 18px 10px 28px", cursor: "pointer", flexWrap: "wrap", borderTop: "1px solid var(--surface-2)", background: rowBg }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = "var(--surface-3)"; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.background = rowBg; }}
                     >
                       <div style={{ flex: "1 1 220px", minWidth: 0 }}>
                         <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.name}</div>

@@ -8,17 +8,16 @@ import { blankPricing } from "@/lib/quotes/sampleData";
 // every edit produces a new QuoteData via `onChange`, so the document updates
 // live. Marked `inf-screen-only` so it is hidden in print/PDF.
 
-const OSWALD = "var(--font-oswald), 'Oswald', sans-serif";
-const MULISH = "var(--font-mulish), 'Mulish', sans-serif";
+const OSWALD = "'Fjalla One', Georgia, sans-serif";
+const MULISH = "inherit";
 
 const groupTitle: CSSProperties = {
   fontFamily: OSWALD,
-  fontWeight: 600,
   fontSize: 12,
   letterSpacing: ".8px",
   textTransform: "uppercase",
-  color: "#3c8d9a",
-  borderBottom: "1px solid #e1ddd3",
+  color: "#5784E6",
+  borderBottom: "1px solid var(--border-soft)",
   paddingBottom: 5,
   margin: "20px 0 8px",
 };
@@ -28,7 +27,7 @@ const label: CSSProperties = {
   fontSize: 10,
   letterSpacing: ".4px",
   textTransform: "uppercase",
-  color: "#9a927f",
+  color: "var(--muted-2)",
   margin: "8px 0 2px",
 };
 
@@ -38,18 +37,18 @@ const input: CSSProperties = {
   fontFamily: MULISH,
   fontSize: 13,
   padding: "7px 9px",
-  border: "1px solid #d8d6cc",
+  border: "1px solid var(--border)",
   borderRadius: 6,
-  color: "#333",
-  background: "#fff",
+  color: "var(--text)",
+  background: "var(--surface)",
 };
 
 const urlInput: CSSProperties = {
   ...input,
   fontSize: 11,
   padding: "5px 8px",
-  border: "1px solid #e3e1d8",
-  color: "#777",
+  border: "1px solid var(--border-soft)",
+  color: "var(--muted)",
   marginTop: 4,
 };
 
@@ -58,9 +57,9 @@ const addBtn: CSSProperties = {
   fontSize: 11,
   letterSpacing: ".4px",
   textTransform: "uppercase",
-  background: "#eef4f4",
-  color: "#3c8d9a",
-  border: "1px solid #cfe3e6",
+  background: "var(--sky-bg-soft)",
+  color: "#5784E6",
+  border: "1px solid var(--border)",
   borderRadius: 6,
   padding: "6px 11px",
   cursor: "pointer",
@@ -69,8 +68,8 @@ const addBtn: CSSProperties = {
 const subAddBtn: CSSProperties = {
   ...addBtn,
   fontSize: 10,
-  background: "#f3f6f6",
-  border: "1px solid #d9e7e9",
+  background: "var(--surface-3)",
+  border: "1px solid var(--border-soft)",
   borderRadius: 5,
   padding: "5px 9px",
   marginTop: 6,
@@ -80,7 +79,7 @@ const delX: CSSProperties = {
   flex: "none",
   background: "none",
   border: "none",
-  color: "#b06a5c",
+  color: "var(--red-text)",
   fontSize: 18,
   cursor: "pointer",
   lineHeight: 1,
@@ -95,19 +94,18 @@ const delWord: CSSProperties = {
   textTransform: "uppercase",
   background: "none",
   border: "none",
-  color: "#b06a5c",
+  color: "var(--red-text)",
   cursor: "pointer",
 };
 
 const footerBtn: CSSProperties = {
   fontFamily: OSWALD,
-  fontWeight: 500,
   fontSize: 11,
   letterSpacing: ".5px",
   textTransform: "uppercase",
-  color: "#7a7363",
-  background: "#f0eee6",
-  border: "1px solid #ddd8cc",
+  color: "var(--muted)",
+  background: "var(--surface-3)",
+  border: "1px solid var(--border)",
   borderRadius: 6,
   padding: "9px 11px",
   cursor: "pointer",
@@ -132,7 +130,7 @@ function TotalCheck({ label, parts, target }: { label: string; parts: string[]; 
   const diff = Math.round((sum - goal) * 100) / 100;
   const ok = diff === 0;
   return (
-    <div style={{ marginTop: 8, fontSize: 11.5, lineHeight: 1.4, padding: "6px 9px", borderRadius: 6, background: ok ? "#edf7ef" : "#fdf3e6", color: ok ? "#2f6b3c" : "#8a5a14", border: `1px solid ${ok ? "#cfe6d4" : "#f0d9b5"}` }}>
+    <div style={{ marginTop: 8, fontSize: 11.5, lineHeight: 1.4, padding: "6px 9px", borderRadius: 6, background: ok ? "var(--green-bg-soft)" : "var(--amber-bg-soft)", color: ok ? "var(--green-text)" : "var(--amber-text)", border: `1px solid ${ok ? "var(--green-border)" : "var(--amber-border)"}` }}>
       {label} adds up to <strong>{fmt(sum)}</strong>
       {ok ? ", matching the estimated cost." : <>, which is {fmt(Math.abs(diff))} {diff > 0 ? "more" : "less"} than the estimated cost of {fmt(goal)}.</>}
     </div>
@@ -172,15 +170,15 @@ export default function BuildQuotePanel({ data, onChange, onExport, onImport, on
         flex: "none",
         width: 384,
         height: "100%",
-        background: "#f7f6f2",
-        borderRight: "1px solid #d8d5cb",
+        background: "var(--surface-2)",
+        borderRight: "1px solid var(--border)",
         display: "flex",
         flexDirection: "column",
       }}
     >
       {/* Header bar */}
-      <div style={{ flex: "none", display: "flex", alignItems: "center", padding: "14px 18px", background: "#3c8d9a", color: "#fff" }}>
-        <div style={{ fontFamily: OSWALD, fontWeight: 600, letterSpacing: "1px", textTransform: "uppercase", fontSize: 15 }}>Quote Page</div>
+      <div style={{ flex: "none", display: "flex", alignItems: "center", padding: "14px 18px", background: "#0B1957", color: "#fff" }}>
+        <div style={{ fontFamily: OSWALD, letterSpacing: "1px", textTransform: "uppercase", fontSize: 15 }}>Quote Page</div>
       </div>
 
       {/* Scrollable body */}
@@ -240,10 +238,10 @@ export default function BuildQuotePanel({ data, onChange, onExport, onImport, on
         <input style={{ ...input, fontSize: 13, padding: "6px 8px" }} value={data.roomingLink.label} onChange={(e) => update((d) => { d.roomingLink.label = e.target.value; })} />
         <input style={{ ...urlInput, marginBottom: 10 }} placeholder="https://" value={data.roomingLink.url} onChange={(e) => update((d) => { d.roomingLink.url = e.target.value; })} />
         {data.hotels.map((h, hi) => (
-          <div key={hi} style={{ border: "1px solid #e1ddd3", borderRadius: 8, padding: 10, marginBottom: 10, background: "#fff" }}>
+          <div key={hi} style={{ border: "1px solid var(--border-soft)", borderRadius: 8, padding: 10, marginBottom: 10, background: "var(--surface)" }}>
             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
               <input
-                style={{ flex: 1, boxSizing: "border-box", fontFamily: OSWALD, fontWeight: 600, letterSpacing: ".5px", textTransform: "uppercase", fontSize: 13, padding: "6px 8px", border: "1px solid #d8d6cc", borderRadius: 6, color: "#4d4d4d", background: "#fff" }}
+                style={{ flex: 1, boxSizing: "border-box", fontFamily: OSWALD, letterSpacing: ".5px", textTransform: "uppercase", fontSize: 13, padding: "6px 8px", border: "1px solid var(--border)", borderRadius: 6, color: "var(--text)", background: "var(--surface)" }}
                 placeholder="City"
                 value={h.city}
                 onChange={(e) => update((d) => { d.hotels[hi]!.city = e.target.value; })}
@@ -251,7 +249,7 @@ export default function BuildQuotePanel({ data, onChange, onExport, onImport, on
               <button type="button" style={delWord} onClick={() => update((d) => { d.hotels.splice(hi, 1); })}>Delete</button>
             </div>
             {h.items.map((it, ii) => (
-              <div key={ii} style={{ marginTop: 8, paddingTop: 8, borderTop: "1px dashed #ece9df" }}>
+              <div key={ii} style={{ marginTop: 8, paddingTop: 8, borderTop: "1px dashed var(--border-soft)" }}>
                 <input style={{ ...input, fontSize: 12, padding: "5px 8px" }} placeholder="Hotel name" value={it.name} onChange={(e) => update((d) => { d.hotels[hi]!.items[ii]!.name = e.target.value; })} />
                 <input style={urlInput} placeholder="Address" value={it.addr} onChange={(e) => update((d) => { d.hotels[hi]!.items[ii]!.addr = e.target.value; })} />
                 <div style={{ display: "flex", gap: 6, marginTop: 4, alignItems: "center" }}>
@@ -275,7 +273,7 @@ export default function BuildQuotePanel({ data, onChange, onExport, onImport, on
         {isPricing && (<>
           {/* Trip Inclusions */}
           {/* Background option */}
-          <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, fontSize: 12.5, color: "#4d4d4d", cursor: "pointer" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, fontSize: 12.5, color: "var(--text)", cursor: "pointer" }}>
             <input type="checkbox" checked={data.watermark !== false} onChange={(e) => update((d) => { d.watermark = e.target.checked; })} />
             Infinity logo watermark in the background
           </label>
@@ -326,14 +324,14 @@ export default function BuildQuotePanel({ data, onChange, onExport, onImport, on
 
         {/* Daily Itinerary */}
         <div style={{ ...groupTitle, margin: "20px 0 6px" }}>Daily Itinerary</div>
-        <div style={{ fontSize: 11, color: "#9a927f", marginBottom: 10, lineHeight: 1.4 }}>
-          Add a link inside any line with <span style={{ fontFamily: "monospace", background: "#efece2", padding: "1px 4px", borderRadius: 3 }}>[label](https://…)</span>
+        <div style={{ fontSize: 11, color: "var(--muted-2)", marginBottom: 10, lineHeight: 1.4 }}>
+          Add a link inside any line with <span style={{ fontFamily: "monospace", background: "var(--surface-3)", padding: "1px 4px", borderRadius: 3 }}>[label](https://…)</span>
         </div>
         {data.days.map((day, di) => (
-          <div key={di} id={`qp-day-${di}`} style={{ border: "1px solid #e1ddd3", borderRadius: 8, padding: 10, marginBottom: 10, background: "#fff" }}>
+          <div key={di} id={`qp-day-${di}`} style={{ border: "1px solid var(--border-soft)", borderRadius: 8, padding: 10, marginBottom: 10, background: "var(--surface)" }}>
             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
               <input
-                style={{ flex: 1, boxSizing: "border-box", fontFamily: OSWALD, fontWeight: 500, letterSpacing: ".4px", fontSize: 13, padding: "6px 8px", border: "1px solid #d8d6cc", borderRadius: 6, color: "#4d4d4d", background: "#fff" }}
+                style={{ flex: 1, boxSizing: "border-box", fontFamily: OSWALD, letterSpacing: ".4px", fontSize: 13, padding: "6px 8px", border: "1px solid var(--border)", borderRadius: 6, color: "var(--text)", background: "var(--surface)" }}
                 placeholder="Day label (e.g. Wed. June 29)"
                 value={day.date}
                 onChange={(e) => update((d) => { d.days[di]!.date = e.target.value; })}
@@ -342,7 +340,7 @@ export default function BuildQuotePanel({ data, onChange, onExport, onImport, on
             </div>
             {day.rows.map((row, ri) => (
               <div key={ri} style={{ display: "flex", gap: 6, alignItems: "flex-start", marginTop: 6 }}>
-                <input style={{ width: 64, flex: "none", boxSizing: "border-box", fontFamily: MULISH, fontSize: 11, padding: "5px 6px", border: "1px solid #e3e1d8", borderRadius: 6, color: "#777", background: "#fff" }} placeholder="Time" value={row.time} onChange={(e) => update((d) => { d.days[di]!.rows[ri]!.time = e.target.value; })} />
+                <input style={{ width: 64, flex: "none", boxSizing: "border-box", fontFamily: MULISH, fontSize: 11, padding: "5px 6px", border: "1px solid var(--border-soft)", borderRadius: 6, color: "var(--muted)", background: "var(--surface)" }} placeholder="Time" value={row.time} onChange={(e) => update((d) => { d.days[di]!.rows[ri]!.time = e.target.value; })} />
                 <input style={{ ...input, flex: 1, fontSize: 12, padding: "5px 8px" }} placeholder="Activity (supports [label](url))" value={row.text} onChange={(e) => update((d) => { d.days[di]!.rows[ri]!.text = e.target.value; })} />
                 <button type="button" style={{ ...delX, fontSize: 16, padding: "3px 4px" }} onClick={() => update((d) => { d.days[di]!.rows.splice(ri, 1); })}>&times;</button>
               </div>
@@ -379,9 +377,9 @@ export default function BuildQuotePanel({ data, onChange, onExport, onImport, on
       </div>
 
       {/* Sticky footer: Export / Import / Sample / New */}
-      <div style={{ flex: "none", display: "flex", gap: 7, padding: "12px 16px", borderTop: "1px solid #e1ddd3", background: "#fff" }}>
-        <button type="button" onClick={onExport} style={{ flex: 1, fontFamily: OSWALD, fontWeight: 600, fontSize: 11, letterSpacing: ".5px", textTransform: "uppercase", color: "#fff", background: "#3c8d9a", border: "none", borderRadius: 6, padding: 9, cursor: "pointer" }}>Export JSON</button>
-        <label style={{ ...footerBtn, color: "#3c8d9a", background: "#eef4f4", border: "1px solid #cfe3e6", padding: "9px 12px" }}>
+      <div style={{ flex: "none", display: "flex", gap: 7, padding: "12px 16px", borderTop: "1px solid var(--border-soft)", background: "var(--surface)" }}>
+        <button type="button" onClick={onExport} style={{ flex: 1, fontFamily: OSWALD, fontSize: 11, letterSpacing: ".5px", textTransform: "uppercase", color: "#fff", background: "#0B1957", border: "none", borderRadius: 8, padding: 9, cursor: "pointer" }}>Export JSON</button>
+        <label style={{ ...footerBtn, color: "#5784E6", background: "var(--sky-bg-soft)", border: "1px solid var(--border)", padding: "9px 12px" }}>
           Import
           <input type="file" accept="application/json,.json" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) onImport(f); e.target.value = ""; }} />
         </label>

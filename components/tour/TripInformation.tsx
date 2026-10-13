@@ -1040,6 +1040,8 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
                   style={{
                     padding: "10px 16px", fontSize: 13, color: "var(--text)", lineHeight: 1.5,
                     borderTop: i === 0 ? "none" : dragOverKey === r.key && dragKey ? `2px solid ${BRAND.blue}` : "1px solid var(--surface-3)",
+                    // Alternate rows take a second hue on screen (October 2026).
+                    background: !print && i % 2 === 1 ? "var(--row-alt)" : undefined,
                   }}>
                   {r.content}
                 </div>

@@ -1187,7 +1187,9 @@ function SummaryCheck({ item, onSet }: { item: AgendaItemWithFeedback; onSet: (v
   );
 }
 
-function ItemRow({ item, groups, personaLabels, onEdit, onRemove, onDuplicate, onCopyToDays, onToggleCostPaid, onRemoveImage, onSaveField, onSaveIconColor, onSetSummaryInclude, dragProps, isDragOver }: {
+function ItemRow({ item, groups, personaLabels, onEdit, onRemove, onDuplicate, onCopyToDays, onToggleCostPaid, onRemoveImage, onSaveField, onSaveIconColor, onSetSummaryInclude, dragProps, isDragOver, striped }: {
+  /** Alternate rows in a day take a second hue so items read apart (October 2026). */
+  striped?: boolean;
   item: AgendaItemWithFeedback;
   groups: TourGroup[];
   // Tour's persona label overrides — the Internal Note is headed with the name
@@ -1227,7 +1229,7 @@ function ItemRow({ item, groups, personaLabels, onEdit, onRemove, onDuplicate, o
 
   return (
     <div
-      style={{ padding: "14px 16px", borderBottom: "1px solid var(--surface-2)", background: "var(--surface)", borderTop: isDragOver ? `2px solid ${BRAND.blue}` : "2px solid transparent" }}
+      style={{ padding: "14px 16px", borderBottom: "1px solid var(--surface-2)", background: striped ? "var(--row-alt)" : "var(--surface)", borderTop: isDragOver ? `2px solid ${BRAND.blue}` : "2px solid transparent" }}
       onClick={e => e.stopPropagation()}
       onDragOver={dragProps?.onDragOver}
       onDrop={dragProps?.onDrop}
@@ -2492,13 +2494,14 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
                   {day.agenda_items.length === 0 && addingItem !== day.id && (
                     <div style={{ color: "var(--muted-3)", fontSize: 12, padding: "14px 16px", textAlign: "center" }}>No items yet</div>
                   )}
-                  {orderAgendaItems(day.agenda_items).filter(item => itemMatchesGroup(item, groupFilter)).map(item => {
+                  {orderAgendaItems(day.agenda_items).filter(item => itemMatchesGroup(item, groupFilter)).map((item, visibleIdx) => {
                     // Drop positions index the FULL day order, not the filtered list.
                     const itemIdx = orderAgendaItems(day.agenda_items).findIndex(i => i.id === item.id);
                     return (
                     <ItemRow
                       key={item.id}
                       item={item}
+                      striped={visibleIdx % 2 === 1}
                       groups={tourGroups}
                       personaLabels={tour.persona_labels || {}}
                       onEdit={() => { setEditCtx({ dayId: day.id, itemId: item.id }); setEditForm(itemToForm(item)); setMoveTargetDayId(day.id); }}

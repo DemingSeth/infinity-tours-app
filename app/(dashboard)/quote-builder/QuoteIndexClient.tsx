@@ -117,8 +117,8 @@ export default function QuoteIndexClient({ quotes: initialQuotes, currentUserId,
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 20 }}>
         <div>
-          <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontWeight: 700, fontSize: 26, color: BRAND.navy, margin: 0 }}>Quote Page</h1>
-          <p style={{ fontSize: 13, color: "#64748b", margin: "4px 0 0" }}>The client-facing quote page for each tour, print-ready and on brand.</p>
+          <h1 style={{ fontFamily: "'Fjalla One', Georgia, sans-serif", fontWeight: 400, fontSize: 26, letterSpacing: -0.5, color: "var(--ink)", margin: 0 }}>Quote Page</h1>
+          <p style={{ fontSize: 13, color: "var(--muted)", margin: "4px 0 0" }}>The client-facing quote page for each tour, print-ready and on brand.</p>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <input ref={fileRef} type="file" accept="application/pdf,.pdf" style={{ display: "none" }} onChange={e => importPdf(e.target.files?.[0])} />
@@ -127,7 +127,7 @@ export default function QuoteIndexClient({ quotes: initialQuotes, currentUserId,
             onClick={() => fileRef.current?.click()}
             disabled={importing}
             title="Create a quote from a PDF, such as a Piktochart export"
-            style={{ ...headerBtn, background: "#fff", color: BRAND.teal, border: `1px solid ${BRAND.teal}`, cursor: importing ? "default" : "pointer", opacity: importing ? 0.7 : 1 }}
+            style={{ ...headerBtn, background: "var(--surface)", color: "var(--ink)", border: "1.5px solid var(--border)", cursor: importing ? "default" : "pointer", opacity: importing ? 0.7 : 1 }}
           >
             <Upload size={16} /> {importing ? "Reading PDF…" : "Upload PDF"}
           </button>
@@ -135,34 +135,34 @@ export default function QuoteIndexClient({ quotes: initialQuotes, currentUserId,
             type="button"
             onClick={newQuote}
             disabled={creating}
-            style={{ ...headerBtn, background: BRAND.teal, color: "#fff", cursor: creating ? "default" : "pointer", opacity: creating ? 0.7 : 1 }}
+            style={{ ...headerBtn, background: BRAND.navy, color: "#fff", cursor: creating ? "default" : "pointer", opacity: creating ? 0.7 : 1 }}
           >
             <Plus size={16} /> {creating ? "Creating…" : "New Quote"}
           </button>
         </div>
       </div>
 
-      <div style={{ display: "inline-flex", background: "#f1f5f9", borderRadius: 8, padding: 3, marginBottom: 14 }}>
+      <div style={{ display: "inline-flex", background: "var(--surface-3)", border: "1px solid var(--border-soft)", borderRadius: 9, padding: 3, marginBottom: 14 }}>
         {(["mine", "all"] as const).map(k => (
           <button key={k} type="button" onClick={() => setScope(k)}
             style={{ border: "none", borderRadius: 6, padding: "6px 14px", fontSize: 12.5, fontWeight: 600, fontFamily: "inherit", cursor: "pointer",
-              background: scope === k ? "#fff" : "transparent", color: scope === k ? BRAND.navy : "#64748b", boxShadow: scope === k ? "0 1px 3px rgba(0,0,0,.08)" : "none" }}>
+              background: scope === k ? BRAND.navy : "transparent", color: scope === k ? "#fff" : "var(--muted)", boxShadow: scope === k ? "var(--btn-shadow)" : "none" }}>
             {k === "mine" ? "My Quotes" : "All Quotes"}
           </button>
         ))}
       </div>
 
       {shown.length === 0 && quotes.length > 0 ? (
-        <div style={{ background: "#fff", border: "2px dashed #e2e8f0", borderRadius: 12, padding: "36px 20px", textAlign: "center", color: "#94a3b8", fontSize: 14 }}>
-          You have not made any quotes yet. Start one with <strong>New Quote</strong> or <strong>Upload PDF</strong>, or duplicate one from <button type="button" onClick={() => setScope("all")} style={{ border: "none", background: "none", padding: 0, color: BRAND.teal, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", fontSize: 14 }}>All Quotes</button>.
+        <div style={{ background: "var(--tile-bg)", border: "2px dashed var(--border)", borderRadius: 12, padding: "36px 20px", textAlign: "center", color: "var(--muted)", fontSize: 14 }}>
+          You have not made any quotes yet. Start one with <strong>New Quote</strong> or <strong>Upload PDF</strong>, or duplicate one from <button type="button" onClick={() => setScope("all")} style={{ border: "none", background: "none", padding: 0, color: BRAND.blue, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", fontSize: 14 }}>All Quotes</button>.
         </div>
       ) : quotes.length === 0 ? (
-        <div style={{ background: "#fff", border: "2px dashed #e2e8f0", borderRadius: 12, padding: "48px 20px", textAlign: "center", color: "#94a3b8", fontSize: 14 }}>
+        <div style={{ background: "var(--tile-bg)", border: "2px dashed var(--border)", borderRadius: 12, padding: "48px 20px", textAlign: "center", color: "var(--muted)", fontSize: 14 }}>
           No quotes yet. Click <strong>New Quote</strong> to build one, or <strong>Upload PDF</strong> to start from an existing quote.
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {shown.map((q) => {
+          {shown.map((q, i) => {
             const mine = q.created_by === currentUserId;
             return (
             <div
@@ -171,22 +171,23 @@ export default function QuoteIndexClient({ quotes: initialQuotes, currentUserId,
               tabIndex={0}
               onClick={() => router.push(`/quote-builder/${q.id}`)}
               onKeyDown={e => { if (e.key === "Enter") router.push(`/quote-builder/${q.id}`); }}
-              style={{ display: "flex", alignItems: "center", gap: 14, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, padding: "14px 16px", cursor: "pointer", opacity: deletingId === q.id ? 0.5 : 1 }}
+              className="trip-card"
+              style={{ display: "flex", alignItems: "center", gap: 14, background: i % 2 ? "var(--row-alt)" : "var(--tile-bg)", border: "1.5px solid var(--tile-border)", borderLeft: `4px solid ${mine ? BRAND.blue : "var(--tile-border)"}`, borderRadius: 12, padding: "14px 16px", cursor: "pointer", boxShadow: "var(--tile-shadow)", transition: "box-shadow .15s, transform .15s", opacity: deletingId === q.id ? 0.5 : 1 }}
             >
-              <div style={{ width: 38, height: 38, borderRadius: 8, background: "#eef4f4", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <FileText size={18} color="#3c8d9a" />
+              <div style={{ width: 38, height: 38, borderRadius: 9, background: BRAND.navy, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, boxShadow: "var(--btn-shadow)" }}>
+                <FileText size={18} style={{ color: BRAND.lightBlue }} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: BRAND.navy, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <div style={{ fontSize: 14.5, fontWeight: 700, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {q.data?.group || "Untitled quote"}
                 </div>
-                <div style={{ fontSize: 12, color: "#64748b", marginTop: 2, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                   <span>{[q.data?.destination, q.data?.year].filter(Boolean).join(" ") || "No destination yet"}</span>
                   {!mine && (
-                    <span style={{ fontSize: 10.5, color: "#475569", background: "#eef2f7", borderRadius: 5, padding: "1px 6px" }}>by {ownerOf(q)}</span>
+                    <span style={{ fontSize: 10.5, fontWeight: 600, color: "var(--sky-text)", background: "var(--sky-bg-soft)", borderRadius: 5, padding: "1px 7px" }}>by {ownerOf(q)}</span>
                   )}
                   {q.data?.layout !== "pricing" && (
-                    <span style={{ fontSize: 10.5, color: "#64748b", background: "#f1f5f9", borderRadius: 5, padding: "1px 6px" }}>Trip sheet</span>
+                    <span style={{ fontSize: 10.5, color: "var(--muted)", background: "var(--surface-3)", borderRadius: 5, padding: "1px 7px" }}>Trip sheet</span>
                   )}
                 </div>
               </div>
@@ -195,12 +196,12 @@ export default function QuoteIndexClient({ quotes: initialQuotes, currentUserId,
                   href={`/tour/${q.tour_id}`}
                   onClick={e => e.stopPropagation()}
                   title="Open the itinerary made from this quote"
-                  style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, color: "#065f46", background: "#ecfdf5", border: "1px solid #a7f3d0", borderRadius: 6, padding: "4px 9px", textDecoration: "none", flexShrink: 0 }}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, color: "var(--green-text)", background: "var(--green-bg-soft)", border: "1px solid var(--green-border)", borderRadius: 6, padding: "4px 9px", textDecoration: "none", flexShrink: 0, boxShadow: "var(--control-shadow)" }}
                 >
                   <MapIcon size={13} /> Itinerary
                 </a>
               )}
-              <div style={{ fontSize: 11, color: "#94a3b8", flexShrink: 0 }}>
+              <div style={{ fontSize: 11, color: "var(--muted-2)", flexShrink: 0 }}>
                 Updated {formatDate(q.updated_at)}
               </div>
               <button
@@ -209,7 +210,7 @@ export default function QuoteIndexClient({ quotes: initialQuotes, currentUserId,
                 aria-label={`Duplicate ${q.data?.group || "quote"}`}
                 disabled={copyingId === q.id}
                 onClick={e => { e.stopPropagation(); duplicateQuote(q); }}
-                style={{ flexShrink: 0, background: "none", border: "1px solid transparent", borderRadius: 6, padding: 6, cursor: "pointer", color: "#3c8d9a", display: "flex", opacity: copyingId === q.id ? 0.5 : 1 }}
+                style={{ flexShrink: 0, background: "none", border: "1px solid transparent", borderRadius: 6, padding: 6, cursor: "pointer", color: BRAND.blue, display: "flex", opacity: copyingId === q.id ? 0.5 : 1 }}
               >
                 <Copy size={15} />
               </button>
@@ -219,7 +220,7 @@ export default function QuoteIndexClient({ quotes: initialQuotes, currentUserId,
                 aria-label={`Delete ${q.data?.group || "quote"}`}
                 disabled={deletingId === q.id}
                 onClick={e => { e.stopPropagation(); deleteQuote(q); }}
-                style={{ flexShrink: 0, background: "none", border: "1px solid transparent", borderRadius: 6, padding: 6, cursor: "pointer", color: "#b91c1c", display: "flex" }}
+                style={{ flexShrink: 0, background: "none", border: "1px solid transparent", borderRadius: 6, padding: 6, cursor: "pointer", color: "var(--red-text)", display: "flex" }}
               >
                 <Trash2 size={15} />
               </button> : <span style={{ width: 29, flexShrink: 0 }} />}

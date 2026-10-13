@@ -267,7 +267,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
             {!collapsed && (
             <div>
               {items.map((item, idx) => (
-                <div key={item.id} className={print ? "print-item" : undefined} style={{ padding: print ? "6px 14px" : "12px 16px", borderTop: idx > 0 ? "1px solid var(--surface-3)" : undefined, breakInside: print ? "avoid" : undefined }}>
+                <div key={item.id} className={print ? "print-item" : undefined} style={{ padding: print ? "6px 14px" : "12px 16px", borderTop: idx > 0 ? "1px solid var(--surface-3)" : undefined, breakInside: print ? "avoid" : undefined, background: !print && idx % 2 === 1 ? "var(--row-alt)" : undefined }}>
                   <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                     {/* Times: bold, navy like the title, one step larger so they
                         pull the eye first (August 2026 request). */}

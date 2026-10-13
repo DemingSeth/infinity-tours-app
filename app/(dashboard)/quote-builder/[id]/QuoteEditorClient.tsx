@@ -12,21 +12,19 @@ import QuoteDocument from "@/components/quotes/QuoteDocument";
 import BannerLibraryPicker from "@/components/tour/BannerLibraryPicker";
 import BuildQuotePanel from "@/components/quotes/BuildQuotePanel";
 
-const OSWALD = "var(--font-oswald), 'Oswald', sans-serif";
+const OSWALD = "'Fjalla One', Georgia, sans-serif";
 
 const toolbarBtn: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   gap: 6,
-  fontFamily: OSWALD,
+  fontFamily: "inherit",
   fontWeight: 600,
-  fontSize: 11,
-  letterSpacing: ".6px",
-  textTransform: "uppercase",
-  borderRadius: 6,
+  fontSize: 12,
+  borderRadius: 8,
   padding: "8px 13px",
   cursor: "pointer",
-  boxShadow: "0 2px 10px rgba(0,0,0,.14)",
+  boxShadow: "var(--btn-shadow)",
 };
 
 type SaveState = "idle" | "saving" | "saved" | "error";
@@ -222,7 +220,7 @@ export default function QuoteEditorClient({ quoteId, initialData, tourId, curren
     // Persistent two-column editor. Negative margin cancels the dashboard main's
     // 24px padding so the columns fill the area below the 56px top nav; each
     // column scrolls independently.
-    <div style={{ position: "relative", display: "flex", height: "calc(100dvh - 56px)", margin: -24, overflow: "hidden", background: "#dcdad3" }}>
+    <div style={{ position: "relative", display: "flex", height: "calc(100dvh - 56px)", margin: -24, overflow: "hidden", background: "var(--page)" }}>
       {pickingPhoto && (
         <BannerLibraryPicker
           tourDestination={data.destination}
@@ -264,9 +262,9 @@ export default function QuoteEditorClient({ quoteId, initialData, tourId, curren
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#3c8d9a",
+          background: "#5784E6",
           color: "#fff",
-          border: "1px solid #347e8a",
+          border: "1px solid #3f6fd0",
           borderRadius: "0 8px 8px 0",
           cursor: "pointer",
           boxShadow: "2px 0 10px rgba(0,0,0,.18)",
@@ -279,49 +277,49 @@ export default function QuoteEditorClient({ quoteId, initialData, tourId, curren
           flex-start keeps the page at its natural content height (no stretch to
           the pane), so the day columns balance instead of clipping; the pane
           scrolls to reach the whole document. */}
-      <div className="inf-backdrop" style={{ flex: 1, overflow: "auto", background: "#dcdad3", padding: "36px 16px", display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
+      <div className="inf-backdrop" style={{ flex: 1, overflow: "auto", background: "var(--page)", padding: "36px 16px", display: "flex", justifyContent: "center", alignItems: "flex-start" }}>
         {/* Screen-only toolbar over the document column */}
         <div className="inf-screen-only" style={{ position: "absolute", top: 16, right: 16, zIndex: 1000, display: "flex", alignItems: "center", gap: 8 }}>
           {saveLabel && (
-            <span style={{ fontFamily: OSWALD, fontSize: 10, letterSpacing: ".6px", textTransform: "uppercase", color: saveState === "error" ? "#9a6b5e" : "#5b6b5f", background: "rgba(255,255,255,0.9)", borderRadius: 6, padding: "6px 9px", boxShadow: "0 2px 10px rgba(0,0,0,.1)" }}>
+            <span style={{ fontFamily: OSWALD, fontSize: 10, letterSpacing: ".6px", textTransform: "uppercase", color: saveState === "error" ? "var(--red-text)" : "var(--text)", background: "var(--surface)", borderRadius: 6, padding: "6px 9px", boxShadow: "0 2px 10px rgba(0,0,0,.1)" }}>
               {saveLabel}
             </span>
           )}
-          <button type="button" onClick={() => router.push("/quote-builder")} style={{ ...toolbarBtn, color: "#5b6b5f", background: "rgba(255,255,255,0.94)", border: "1px solid #d6dcd6" }}>
+          <button type="button" onClick={() => router.push("/quote-builder")} style={{ ...toolbarBtn, color: "var(--text)", background: "var(--surface)", border: "1px solid var(--border)" }}>
             <ArrowLeft size={13} /> Quotes
           </button>
           {canEdit && <button type="button" onClick={() => setPickingPhoto(true)} title="Choose the header photo from the Banner Library"
-            style={{ ...toolbarBtn, color: "#3a93a0", background: "rgba(255,255,255,0.94)", border: "1px solid #cfe3e6" }}>
+            style={{ ...toolbarBtn, color: "#5784E6", background: "var(--surface)", border: "1px solid var(--border)" }}>
             <ImageIcon size={13} /> {data.heroPhotoUrl ? "Change Photo" : "Choose Photo"}
           </button>}
           {(canEdit || linkedTourId) && <button type="button" onClick={makeItinerary} disabled={converting}
             title={linkedTourId ? "Open the itinerary made from this quote" : "Create an itinerary (a new tour) from this quote"}
-            style={{ ...toolbarBtn, color: "#2f6b3c", background: "rgba(255,255,255,0.94)", border: "1px solid #cfe6d4", opacity: converting ? 0.7 : 1 }}>
+            style={{ ...toolbarBtn, color: "var(--green-text)", background: "var(--surface)", border: "1px solid var(--green-border)", opacity: converting ? 0.7 : 1 }}>
             <MapIcon size={13} /> {converting ? "Creating…" : linkedTourId ? "Open Itinerary" : "Make Itinerary"}
           </button>}
-          <button type="button" onClick={() => window.open(`/quote-builder/${quoteId}/pdf`, "_blank")} style={{ ...toolbarBtn, color: "#3a93a0", background: "rgba(255,255,255,0.94)", border: "1px solid #cfe3e6" }}>
+          <button type="button" onClick={() => window.open(`/quote-builder/${quoteId}/pdf`, "_blank")} style={{ ...toolbarBtn, color: "#5784E6", background: "var(--surface)", border: "1px solid var(--border)" }}>
             <Download size={13} /> Download PDF
           </button>
           <button type="button" onClick={duplicateQuote} disabled={copying} title="Duplicate this quote"
-            style={{ ...toolbarBtn, color: "#3a93a0", background: "rgba(255,255,255,0.94)", border: "1px solid #cfe3e6", opacity: copying ? 0.7 : 1 }}>
+            style={{ ...toolbarBtn, color: "#5784E6", background: "var(--surface)", border: "1px solid var(--border)", opacity: copying ? 0.7 : 1 }}>
             <Copy size={13} /> {copying ? "Copying…" : "Duplicate"}
           </button>
           {canEdit && <button type="button" onClick={deleteQuote} disabled={deleting} title="Delete this quote"
-            style={{ ...toolbarBtn, color: "#9a3b2e", background: "rgba(255,255,255,0.94)", border: "1px solid #ecd2cc", padding: "8px 10px", opacity: deleting ? 0.7 : 1 }}>
+            style={{ ...toolbarBtn, color: "var(--red-text)", background: "var(--surface)", border: "1px solid var(--red-border)", padding: "8px 10px", opacity: deleting ? 0.7 : 1 }}>
             <Trash2 size={13} />
           </button>}
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
           {!canEdit && (
-            <div className="inf-screen-only" style={{ width: 816, boxSizing: "border-box", background: "#eef4fb", border: "1px solid #c9dbf2", borderRadius: 10, padding: "12px 14px", fontSize: 13, color: "#23406b", lineHeight: 1.5, marginTop: 34 }}>
+            <div className="inf-screen-only" style={{ width: 816, boxSizing: "border-box", background: "var(--sky-bg-soft)", border: "1px solid var(--sky-border)", borderRadius: 10, padding: "12px 14px", fontSize: 13, color: "var(--sky-text)", lineHeight: 1.5, marginTop: 34 }}>
               <strong>Viewing {ownerName}&rsquo;s quote.</strong> Only {ownerName} can change it. Use <strong>Duplicate</strong> to make your own copy as a starting point.
             </div>
           )}
           {importNotes && (
-            <div className="inf-screen-only" style={{ width: 816, boxSizing: "border-box", background: "#fffbea", border: "1px solid #f0dca0", borderRadius: 10, padding: "12px 14px", fontSize: 13, color: "#6b5310", lineHeight: 1.5, position: "relative", marginTop: 34 }}>
+            <div className="inf-screen-only" style={{ width: 816, boxSizing: "border-box", background: "var(--amber-bg-soft)", border: "1px solid var(--amber-border)", borderRadius: 10, padding: "12px 14px", fontSize: 13, color: "var(--amber-text)", lineHeight: 1.5, position: "relative", marginTop: 34 }}>
               <button type="button" onClick={dismissImportNotes} aria-label="Dismiss"
-                style={{ position: "absolute", top: 8, right: 8, background: "none", border: "none", cursor: "pointer", color: "#8a6d1a", display: "flex" }}>
+                style={{ position: "absolute", top: 8, right: 8, background: "none", border: "none", cursor: "pointer", color: "var(--amber-text)", display: "flex" }}>
                 <X size={15} />
               </button>
               <strong>Imported from your PDF.</strong> Please check every section against the original before sending, especially prices, payment dates and the day-by-day plan. The header photo was picked from the Banner Library; use Change Photo to pick another.
@@ -335,7 +333,7 @@ export default function QuoteEditorClient({ quoteId, initialData, tourId, curren
               )}
             </div>
           )}
-          <div className={isPricing && canEdit ? "inf-editable" : undefined} onClick={isPricing && canEdit ? onDocumentClick : undefined}>
+          <div data-theme="light" className={isPricing && canEdit ? "inf-editable" : undefined} onClick={isPricing && canEdit ? onDocumentClick : undefined}>
             <QuoteDocument data={data} />
           </div>
           <style>{`

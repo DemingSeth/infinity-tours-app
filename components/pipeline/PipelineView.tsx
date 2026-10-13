@@ -206,10 +206,11 @@ export default function PipelineView({
                 <span style={{ fontSize: 11, color: "var(--muted-2)", marginLeft: "auto" }}>{col.length}</span>
               </button>
               <div style={{ display: collapsed ? "none" : "flex", flexDirection: "column", gap: 8 }}>
-                {col.map(t => (
+                {col.map((t, ti) => (
                   <TripCard
                     key={t.id}
                     tour={t}
+                    alt={ti % 2 === 1}
                     currentHostId={currentHostId}
                     canEdit={canEditTour(t, viewer)}
                     isDuplicating={duplicatingId === t.id}

@@ -1,5 +1,6 @@
 "use client";
 
+import { deepen, withAlpha } from "@/lib/colors";
 import { Link2 } from "lucide-react";
 import { STATUSES } from "@/lib/helpers";
 import type { TourWithHostAndMembers } from "@/lib/types";
@@ -55,30 +56,39 @@ export default function StatsRow({ tours, showRevenue = true }: { tours: TourWit
     <section style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       {/* Primary status tiles */}
       <div className="stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12 }}>
-        {STATUSES.map(st => (
+        {STATUSES.map(st => {
+          // Deep, raised status tiles (October 2026): a top-lit gradient of the
+          // status color with white type and a shadow tinted to match. Gray
+          // (Tour Complete) starts deeper so white text stays readable.
+          const top = deepen(st.dot, st.id === "closed" ? 0.3 : 0.06);
+          const bottom = deepen(st.dot, st.id === "closed" ? 0.5 : 0.34);
+          return (
           <div
             key={st.id}
             style={{
-              background: "var(--tile-bg)", border: `1.5px solid ${st.dot}55`, borderRadius: 14,
-              padding: "16px 18px", position: "relative", overflow: "hidden",
-              boxShadow: "var(--tile-shadow)",
+              background: `linear-gradient(160deg, ${top} 0%, ${bottom} 100%)`,
+              border: `1px solid ${deepen(st.dot, 0.4)}`, borderRadius: 14,
+              padding: "16px 18px", position: "relative", overflow: "hidden", color: "#fff",
+              boxShadow: `0 2px 4px ${withAlpha(st.dot, 0.25)}, 0 8px 20px ${withAlpha(st.dot, 0.3)}`,
             }}
           >
-            <div style={{ position: "absolute", top: 0, left: 0, width: 4, height: "100%", background: st.dot }} />
-            <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 8 }}>
-              <span style={{ width: 9, height: 9, borderRadius: "50%", background: st.dot }} />
-              <span style={{ fontSize: 11, fontWeight: 700, color: st.color, textTransform: "uppercase", letterSpacing: 0.7 }}>
+            {/* soft top sheen */}
+            <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,0) 45%)", pointerEvents: "none" }} />
+            <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 7, marginBottom: 8 }}>
+              <span style={{ width: 9, height: 9, borderRadius: "50%", background: "#fff", opacity: 0.9 }} />
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#fff", textTransform: "uppercase", letterSpacing: 0.7 }}>
                 {st.label}
               </span>
             </div>
-            <div style={{ fontSize: 32, fontWeight: 400, color: "var(--ink)", lineHeight: 1, fontFamily: "'Fjalla One', Georgia, sans-serif" }}>
+            <div style={{ position: "relative", fontSize: 34, fontWeight: 400, color: "#fff", lineHeight: 1, fontFamily: "'Fjalla One', Georgia, sans-serif", textShadow: "0 1px 2px rgba(0,0,0,.2)" }}>
               {counts[st.id]}
             </div>
-            <div style={{ fontSize: 11, color: "var(--muted-2)", marginTop: 4 }}>
+            <div style={{ position: "relative", fontSize: 11, color: "rgba(255,255,255,.85)", marginTop: 4 }}>
               tour{counts[st.id] !== 1 ? "s" : ""}
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Secondary metric row (admin only): two coming-soon placeholders + live revenue + integrations */}

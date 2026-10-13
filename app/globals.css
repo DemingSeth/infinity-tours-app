@@ -71,7 +71,23 @@
   --tile-shadow-hover: 0 2px 4px rgba(11, 25, 87, 0.1), 0 10px 24px rgba(11, 25, 87, 0.14);
   --band-a: #e6ecf5;
   --band-b: #f1f5fa;
-  --row-alt: #f3f6fb;
+  --row-alt: #edf2fa;
+  /* Controls and list stripes (October 2026): buttons and fields sit up off
+     the page, lists alternate hues, Overview bars are raised. */
+  --control-shadow: 0 1px 2px rgba(11, 25, 87, 0.08), 0 2px 5px rgba(11, 25, 87, 0.07);
+  --control-shadow-focus: 0 0 0 3px rgba(87, 132, 230, 0.22), 0 2px 6px rgba(11, 25, 87, 0.08);
+  --btn-shadow: 0 1px 2px rgba(11, 25, 87, 0.16), 0 3px 8px rgba(11, 25, 87, 0.12);
+  --btn-shadow-hover: 0 2px 4px rgba(11, 25, 87, 0.18), 0 6px 14px rgba(11, 25, 87, 0.16);
+  --bar-shadow: 0 1px 2px rgba(11, 25, 87, 0.22), 0 3px 8px rgba(11, 25, 87, 0.18);
+  /* Team Access cards, tinted by role. */
+  --role-super-bg: #f3efff;
+  --role-super-edge: #6d4bd8;
+  --role-admin-bg: #eaf1fd;
+  --role-admin-edge: #3d6fd6;
+  --role-host-bg: #ebf7f0;
+  --role-host-edge: #2f9466;
+  --role-off-bg: #f1f2f4;
+  --role-off-edge: #9aa1ab;
 }
 
 [data-theme="dark"] {
@@ -125,7 +141,20 @@
   --tile-shadow-hover: 0 2px 4px rgba(0, 0, 0, 0.5), 0 12px 28px rgba(0, 0, 0, 0.5);
   --band-a: #2b3855;
   --band-b: #233049;
-  --row-alt: #24304a;
+  --row-alt: #212c44;
+  --control-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.35);
+  --control-shadow-focus: 0 0 0 3px rgba(87, 132, 230, 0.35), 0 2px 6px rgba(0, 0, 0, 0.4);
+  --btn-shadow: 0 1px 2px rgba(0, 0, 0, 0.55), 0 3px 8px rgba(0, 0, 0, 0.45);
+  --btn-shadow-hover: 0 2px 4px rgba(0, 0, 0, 0.6), 0 6px 16px rgba(0, 0, 0, 0.5);
+  --bar-shadow: 0 1px 2px rgba(0, 0, 0, 0.6), 0 3px 8px rgba(0, 0, 0, 0.45);
+  --role-super-bg: rgba(124, 58, 237, 0.16);
+  --role-super-edge: #a78bfa;
+  --role-admin-bg: rgba(87, 132, 230, 0.18);
+  --role-admin-edge: #7ea2f0;
+  --role-host-bg: rgba(16, 185, 129, 0.13);
+  --role-host-edge: #5fcf9f;
+  --role-off-bg: rgba(148, 163, 184, 0.1);
+  --role-off-edge: #7b8596;
 }
 
 html,
@@ -412,4 +441,33 @@ body {
 .trip-card:hover {
   box-shadow: var(--tile-shadow-hover) !important;
   transform: translateY(-1px);
+}
+
+/* ── Controls stand out (October 2026) ──────────────────────────────────────
+   Every text field, select and filled button gets a soft drop shadow so it
+   reads as something to click or type in. Screen only, and never inside the
+   printable quote page (.inf-page). An inline boxShadow on an element still
+   wins, so components that set their own keep it. Buttons with no fill
+   (background none / transparent: icon buttons, text links) are left flat. */
+@media screen {
+  :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]), select, textarea):not(.inf-page *) {
+    box-shadow: var(--control-shadow);
+    transition: box-shadow 0.15s ease;
+  }
+  :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select, textarea):not(.inf-page *):focus {
+    box-shadow: var(--control-shadow-focus);
+  }
+  :where(button[style*="background"]):not([style*="background: none"]):not([style*="background:none"]):not([style*="transparent"]):not(.inf-page *):not(.flat) {
+    box-shadow: var(--btn-shadow);
+    transition: box-shadow 0.15s ease, filter 0.15s ease;
+  }
+  :where(button[style*="background"]):not([style*="background: none"]):not([style*="background:none"]):not([style*="transparent"]):not(.inf-page *):not(.flat):not(:disabled):hover {
+    box-shadow: var(--btn-shadow-hover);
+  }
+}
+
+/* ── Alternating list rows (October 2026) ───────────────────────────────────
+   Add .zebra to a list's container; its direct children alternate hues. */
+.zebra > :nth-child(even) {
+  background-color: var(--row-alt);
 }

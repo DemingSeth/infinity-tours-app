@@ -70,6 +70,7 @@ export default function ConfirmationsTab({ tourId, days: daysProp, onDaysChange,
                 item={item}
                 isOwner={isOwner}
                 topBorder={idx > 0}
+                striped={idx % 2 === 1}
                 onPatch={patch => patchItem(item.id, patch)}
               />
             ))
@@ -80,7 +81,9 @@ export default function ConfirmationsTab({ tourId, days: daysProp, onDaysChange,
   );
 }
 
-function ConfirmationRow({ tourId, item, isOwner, topBorder, onPatch }: {
+function ConfirmationRow({ tourId, item, isOwner, topBorder, striped, onPatch }: {
+  /** Alternate rows take a second hue (October 2026). */
+  striped?: boolean;
   tourId: string;
   item: AgendaItemWithFeedback;
   isOwner: boolean;
@@ -91,7 +94,7 @@ function ConfirmationRow({ tourId, item, isOwner, topBorder, onPatch }: {
   const notRequired = !!item.confirmation_not_required;
 
   return (
-    <div style={{ padding: "12px 16px", borderTop: topBorder ? "1px solid var(--surface-3)" : undefined, display: "flex", gap: 12, alignItems: "flex-start" }}>
+    <div style={{ padding: "12px 16px", borderTop: topBorder ? "1px solid var(--surface-3)" : undefined, background: striped ? "var(--row-alt)" : undefined, display: "flex", gap: 12, alignItems: "flex-start" }}>
       <div style={{ width: 52, fontSize: 11, fontWeight: 700, color: "var(--muted-2)", flexShrink: 0, paddingTop: 4, textAlign: "right", lineHeight: 1.4 }}>
         {item.time || "-"}
         {item.end_time && <div style={{ fontWeight: 600 }}>– {item.end_time}</div>}

@@ -1,5 +1,6 @@
 "use client";
 
+import { deepen, deepGradient, withAlpha } from "@/lib/colors";
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, ExternalLink, CalendarDays } from "lucide-react";
 import {
@@ -253,9 +254,12 @@ export default function CalendarView({ tours, onOpenTour }: {
                         width: `calc(${((endCol - startCol + 1) / 7) * 100}% - 8px)`,
                         top: HEADER_H + lane * (LANE_H + LANE_GAP),
                         height: LANE_H,
-                        background: single ? "var(--surface)" : color,
-                        border: single ? `1.5px solid ${color}` : "none",
-                        color: single ? color : "#fff",
+                        // Deeper, raised bars (October 2026).
+                        background: single ? "var(--surface)" : deepGradient(color, 0.26),
+                        border: single ? `1.5px solid ${color}` : `1px solid ${deepen(color, 0.35)}`,
+                        color: single ? deepen(color, 0.15) : "#fff",
+                        boxShadow: single ? "var(--control-shadow)" : `0 1px 2px ${withAlpha(color, 0.4)}, 0 3px 8px ${withAlpha(color, 0.3)}`,
+                        textShadow: single ? undefined : "0 1px 1px rgba(0,0,0,.25)",
                         borderTopLeftRadius: continuesLeft ? 0 : 5,
                         borderBottomLeftRadius: continuesLeft ? 0 : 5,
                         borderTopRightRadius: continuesRight ? 0 : 5,

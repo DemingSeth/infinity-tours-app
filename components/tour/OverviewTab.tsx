@@ -418,7 +418,7 @@ function NotesLog({ tourId, isOwner }: { tourId: string; isOwner: boolean }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {/* While the composer still holds the row the autosave created, it is
             already on screen in the box above; showing it twice reads as a bug. */}
-        {notes.filter(n => !(adding && n.id === autoNoteId)).map(n => {
+        {notes.filter(n => !(adding && n.id === autoNoteId)).map((n, ni) => {
           const isOpen = !!expanded[n.id];
           const firstLine = (n.text.split("\n")[0] || "").slice(0, 80);
           const pr = PRIORITY_META[(n.priority ?? "medium") as NotePriority] ?? PRIORITY_META.medium;
@@ -426,7 +426,7 @@ function NotesLog({ tourId, isOwner }: { tourId: string; isOwner: boolean }) {
             <div key={n.id} style={{ border: "1px solid var(--border-soft)", borderRadius: 9, overflow: "hidden", borderLeft: `3px solid ${pr.color}` }}>
               <div
                 onClick={() => setExpanded(prev => ({ ...prev, [n.id]: !isOpen }))}
-                style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "var(--surface-2)", cursor: "pointer" }}
+                style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: ni % 2 === 1 ? "var(--row-alt)" : "var(--surface-2)", cursor: "pointer" }}
               >
                 {isOpen ? <ChevronDown size={14} style={{ flexShrink: 0, color: "var(--muted-2)" }} /> : <ChevronRight size={14} style={{ flexShrink: 0, color: "var(--muted-2)" }} />}
                 <span style={{ fontSize: 11, fontWeight: 700, color: BRAND.blue, flexShrink: 0 }}>{noteDateLabel(n.created_at)}</span>
