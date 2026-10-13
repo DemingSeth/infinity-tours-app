@@ -49,6 +49,10 @@ export type QuoteData = {
   hotels: HotelCity[];
   days: QuoteDay[];
   heroPhotoUrl: string;
+  /** Header photo focus point, 0 to 100 across and down (default 50 / 50),
+   *  set with the same focus picker the itinerary banner uses. */
+  heroFocusX?: number;
+  heroFocusY?: number;
 };
 
 // Persistence shape: the `quotes` table row (see supabase/20260618_create_quotes.sql).

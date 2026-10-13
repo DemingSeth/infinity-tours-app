@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ChevronLeft, ChevronRight, Download, Trash2, Copy, Map as MapIcon, X, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Download, Trash2, Copy, Map as MapIcon, X, Image as ImageIcon, Crosshair } from "lucide-react";
 import type { QuoteData } from "@/lib/quotes/types";
 import { blankQuote, blankTripQuote, sampleQuote, samplePricingQuote, withPricingDefaults, duplicateQuoteData } from "@/lib/quotes/sampleData";
 import { createTourFromQuote } from "@/lib/quotes/quoteToTour";
@@ -10,6 +10,7 @@ import { IMPORT_NOTES_KEY } from "@/lib/quotes/importNotes";
 import { createClient } from "@/lib/supabase/client";
 import QuoteDocument from "@/components/quotes/QuoteDocument";
 import BannerLibraryPicker from "@/components/tour/BannerLibraryPicker";
+import FocalPointPicker from "@/components/tour/FocalPointPicker";
 import BuildQuotePanel from "@/components/quotes/BuildQuotePanel";
 
 const OSWALD = "'Fjalla One', Georgia, sans-serif";
@@ -43,6 +44,8 @@ export default function QuoteEditorClient({ quoteId, initialData, tourId, curren
   // Header photos come from the approved Banner Library (the same photos the
   // itineraries use; admins add new ones from Overview), not free uploads.
   const [pickingPhoto, setPickingPhoto] = useState(false);
+  // Adjust Focus (October 2026): same focal point picker as the itinerary banner.
+  const [focusDraft, setFocusDraft] = useState<{ x: number; y: number } | null>(null);
   const [deleting, setDeleting] = useState(false);
   // After a PDF import: lines the importer could not place. The note lives in
   // sessionStorage until the host dismisses it or leaves the page.
@@ -142,7 +145,8 @@ export default function QuoteEditorClient({ quoteId, initialData, tourId, curren
   }, [data, quoteId, canEdit]);
 
   const setHero = useCallback((heroPhotoUrl: string) => {
-    setData((d) => ({ ...d, heroPhotoUrl }));
+    // A new photo starts centered; the old photo's focus point would not fit it.
+    setData((d) => ({ ...d, heroPhotoUrl, heroFocusX: 50, heroFocusY: 50 }));
   }, []);
 
   function exportJson() {
@@ -231,6 +235,35 @@ export default function QuoteEditorClient({ quoteId, initialData, tourId, curren
         />
       )}
 
+      {focusDraft && data.heroPhotoUrl && (
+        <div role="dialog" aria-modal="true" aria-label="Adjust photo focus" onClick={() => setFocusDraft(null)}
+          style={{ position: "fixed", inset: 0, zIndex: 2000, background: "rgba(11,25,87,.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+          <div onClick={(e) => e.stopPropagation()}
+            style={{ background: "var(--surface)", borderRadius: 14, boxShadow: "0 20px 60px rgba(0,0,0,.3)", padding: 20, width: "min(880px, 100%)", maxHeight: "calc(100dvh - 32px)", overflow: "auto" }}>
+            <div style={{ display: "flex", alignItems: "center", marginBottom: 6 }}>
+              <div style={{ fontFamily: OSWALD, fontSize: 17, letterSpacing: "0.03em", color: "var(--ink)" }}>Adjust Photo Focus</div>
+              <button type="button" onClick={() => setFocusDraft(null)} aria-label="Close" className="flat"
+                style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: "var(--muted)", padding: 4 }}><X size={18} /></button>
+            </div>
+            <div style={{ fontSize: 12.5, color: "var(--muted)", marginBottom: 12, lineHeight: 1.5 }}>
+              Drag the focal point to the most important part of the photo. The quote header keeps this point visible when it crops the photo to fit.
+            </div>
+            <FocalPointPicker imageUrl={data.heroPhotoUrl} x={focusDraft.x} y={focusDraft.y} onChange={(x, y) => setFocusDraft({ x, y })} />
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: 0.5, margin: "14px 0 5px" }}>Quote header preview</div>
+            <div style={{ width: "100%", aspectRatio: isPricing ? "816 / 202" : "816 / 222", borderRadius: 8, border: "1px solid var(--border)", backgroundColor: "var(--surface-3)", backgroundImage: `url('${data.heroPhotoUrl}')`, backgroundSize: "cover", backgroundPosition: `${focusDraft.x}% ${focusDraft.y}%` }} />
+            <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 14, flexWrap: "wrap" }}>
+              <button type="button" onClick={() => { setData((d) => ({ ...d, heroFocusX: focusDraft.x, heroFocusY: focusDraft.y })); setFocusDraft(null); }}
+                style={{ ...toolbarBtn, color: "#fff", background: "#0B1957", border: "1px solid #0B1957" }}>Save Focus</button>
+              <button type="button" onClick={() => setFocusDraft(null)}
+                style={{ ...toolbarBtn, color: "var(--text)", background: "var(--surface)", border: "1px solid var(--border)" }}>Cancel</button>
+              <button type="button" className="flat" onClick={() => setFocusDraft({ x: 50, y: 50 })}
+                style={{ background: "none", border: "none", color: "var(--sky-text)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", textDecoration: "underline" }}>Reset to Center</button>
+              <span style={{ fontSize: 11, color: "var(--muted-2)" }}>Focus: {focusDraft.x}% / {focusDraft.y}%</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* LEFT: persistent Build Quote form column (collapsible) */}
       {canEdit && panelOpen && (
         <BuildQuotePanel
@@ -291,6 +324,10 @@ export default function QuoteEditorClient({ quoteId, initialData, tourId, curren
           {canEdit && <button type="button" onClick={() => setPickingPhoto(true)} title="Choose the header photo from the Banner Library"
             style={{ ...toolbarBtn, color: "#5784E6", background: "var(--surface)", border: "1px solid var(--border)" }}>
             <ImageIcon size={13} /> {data.heroPhotoUrl ? "Change Photo" : "Choose Photo"}
+          </button>}
+          {canEdit && data.heroPhotoUrl && <button type="button" onClick={() => setFocusDraft({ x: data.heroFocusX ?? 50, y: data.heroFocusY ?? 50 })} title="Choose which part of the photo the header shows"
+            style={{ ...toolbarBtn, color: "#5784E6", background: "var(--surface)", border: "1px solid var(--border)" }}>
+            <Crosshair size={13} /> Adjust Focus
           </button>}
           {(canEdit || linkedTourId) && <button type="button" onClick={makeItinerary} disabled={converting}
             title={linkedTourId ? "Open the itinerary made from this quote" : "Create an itinerary (a new tour) from this quote"}

@@ -178,7 +178,7 @@ export default function PricingQuoteDocument({ data }: { data: QuoteData }) {
           background: "#7d93bd",
           backgroundImage: data.heroPhotoUrl ? `url('${data.heroPhotoUrl}')` : undefined,
           backgroundSize: "cover",
-          backgroundPosition: "center",
+          backgroundPosition: `${data.heroFocusX ?? 50}% ${data.heroFocusY ?? 50}%`,
           WebkitPrintColorAdjust: "exact",
           printColorAdjust: "exact",
         }}

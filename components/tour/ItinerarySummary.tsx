@@ -69,11 +69,11 @@ export default function ItinerarySummary({ days, print = false, note, initiallyO
                 <tbody>
                   {SUMMARY_SLOTS.map(slot => (
                     <tr key={slot.key}>
-                      <th scope="row" style={{ ...labelCell, color: slot.meal ? "var(--amber-text)" : "var(--muted)" }}>{slot.label}</th>
+                      <th scope="row" style={{ ...labelCell, color: slot.meal ? "var(--ink)" : "var(--muted)", background: slot.meal ? "var(--row-alt)" : labelCell.background }}>{slot.label}</th>
                       {chunk.map(d => {
                         const lines = d.cells[slot.key];
                         return (
-                          <td key={d.id} style={{ padding: print ? "4px 6px" : "7px 10px", borderBottom: "1px solid var(--border-soft)", borderRight: "1px solid var(--border-soft)", verticalAlign: "top", fontSize: print ? 10 : 12, lineHeight: 1.4, color: "var(--text)", background: slot.meal ? "var(--amber-bg-soft, transparent)" : undefined }}>
+                          <td key={d.id} style={{ padding: print ? "4px 6px" : "7px 10px", borderBottom: "1px solid var(--border-soft)", borderRight: "1px solid var(--border-soft)", verticalAlign: "top", fontSize: print ? 10 : 12, lineHeight: 1.4, color: "var(--text)", background: slot.meal ? "var(--row-alt)" : undefined }}>
                             {lines.length === 0
                               ? <span style={{ color: "var(--muted-3)" }}>–</span>
                               : lines.map((t, i) => <div key={i} title={t.length > MAX_TEXT ? t : undefined} style={{ fontStyle: slot.meal ? "italic" : undefined }}>{cellText(t)}</div>)}

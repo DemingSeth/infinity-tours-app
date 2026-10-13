@@ -381,6 +381,8 @@ export interface AgendaItemRow {
   // Per-persona show/hide for this item (tour_host/teacher/student/chaperone/bus_driver → bool).
   persona_visibility: Record<string, boolean>;
   image_urls: string[];
+  // Resized photo display heights (px) by photo URL; missing = standard 300px.
+  image_sizes?: Record<string, number> | null;
   // Confirmation documents (PDF or image) linked to this itinerary item.
   // Stored in the shared agenda-images bucket; display-layer "Confirmations".
   confirmation_urls: string[];

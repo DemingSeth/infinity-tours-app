@@ -225,6 +225,7 @@ export default function PipelineClient({ initialTours, currentHostId, currentHos
             persona_visibility: item.persona_visibility,
             feedback_enabled: item.feedback_enabled,
             image_urls: item.image_urls,
+            image_sizes: item.image_sizes ?? {},
             driver_map_urls: item.driver_map_urls,
             confirmation_not_required: item.confirmation_not_required,
             summary_include: item.summary_include ?? null,

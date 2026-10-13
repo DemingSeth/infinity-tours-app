@@ -98,7 +98,7 @@ export default function QuoteDocument({ data }: { data: QuoteData }) {
           background: "#c4ced0",
           backgroundImage: data.heroPhotoUrl ? `url('${data.heroPhotoUrl}')` : undefined,
           backgroundSize: "cover",
-          backgroundPosition: "center",
+          backgroundPosition: `${data.heroFocusX ?? 50}% ${data.heroFocusY ?? 50}%`,
           WebkitPrintColorAdjust: "exact",
           printColorAdjust: "exact",
         }}

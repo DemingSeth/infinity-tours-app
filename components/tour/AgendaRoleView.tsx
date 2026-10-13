@@ -336,7 +336,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                         </div>
                       )}
 
-                      <AgendaImages urls={item.image_urls} fullWidth print={print} />
+                      <AgendaImages urls={item.image_urls} fullWidth print={print} sizes={item.image_sizes} />
 
                       {/* A bare "Website" link does nothing on paper — omit in print. */}
                       {!print && (item.website || item.elevate_url?.trim()) && (

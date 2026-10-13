@@ -148,7 +148,11 @@ export async function createTourFromQuote(
       // trip_info_overrides is NOT NULL; the quote's hotel details fill the
       // Hotel row in Trip Information.
       trip_info_overrides: plan.tour.hotel ? { hotel: plan.tour.hotel } : {},
-      ...(quote.data.heroPhotoUrl ? { banner_image_url: quote.data.heroPhotoUrl } : {}),
+      ...(quote.data.heroPhotoUrl ? {
+        banner_image_url: quote.data.heroPhotoUrl,
+        banner_focus_x: quote.data.heroFocusX ?? 50,
+        banner_focus_y: quote.data.heroFocusY ?? 50,
+      } : {}),
     })
     .select("id")
     .single();

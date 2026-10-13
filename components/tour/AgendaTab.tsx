@@ -446,6 +446,8 @@ type ItemFormState = {
   persona_visibility: Record<string, boolean>;
   feedback_enabled: boolean;
   image_urls: string[];
+  // Resized photo heights by URL, carried so Duplicate / Copy to Days keep them.
+  image_sizes: Record<string, number>;
   driver_map_urls: string[];
   icon_color: string | null;
   elevate_url: string;
@@ -460,7 +462,7 @@ const BLANK: ItemFormState = {
   cost: "", cost_paid: false, deposit_paid: false, confirmed: false, confirmation_not_required: false, driver_note: "", internal_note: "",
   internal_note_audience: { hosts: [], personas: [] },
   meal_money: [], persona_visibility: defaultPersonaVisibility("activity", []),
-  feedback_enabled: isActivityType("activity", []), image_urls: [], driver_map_urls: [], icon_color: null,
+  feedback_enabled: isActivityType("activity", []), image_urls: [], image_sizes: {}, driver_map_urls: [], icon_color: null,
   elevate_url: "", group_tags: [], custom_type_label: "",
 };
 
@@ -1187,7 +1189,7 @@ function SummaryCheck({ item, onSet }: { item: AgendaItemWithFeedback; onSet: (v
   );
 }
 
-function ItemRow({ item, groups, personaLabels, onEdit, onRemove, onDuplicate, onCopyToDays, onToggleCostPaid, onRemoveImage, onSaveField, onSaveIconColor, onSetSummaryInclude, dragProps, isDragOver, striped }: {
+function ItemRow({ item, groups, personaLabels, onEdit, onRemove, onDuplicate, onCopyToDays, onToggleCostPaid, onRemoveImage, onResizeImage, onSaveField, onSaveIconColor, onSetSummaryInclude, dragProps, isDragOver, striped }: {
   /** Alternate rows in a day take a second hue so items read apart (October 2026). */
   striped?: boolean;
   item: AgendaItemWithFeedback;
@@ -1206,6 +1208,7 @@ function ItemRow({ item, groups, personaLabels, onEdit, onRemove, onDuplicate, o
   // pick other days to receive a copy (August 2026 request).
   onDuplicate: () => void; onCopyToDays: () => void;
   onRemoveImage: (url: string) => void;
+  onResizeImage: (url: string, height: number | null) => void;
   // Drag-to-reorder (within a day): handlers + handle. Optional so read-only
   // contexts can omit them.
   dragProps?: {
@@ -1369,7 +1372,7 @@ function ItemRow({ item, groups, personaLabels, onEdit, onRemove, onDuplicate, o
               style={{ fontSize: 12, background: "var(--purple-bg)", color: "var(--purple-text)", borderRadius: 7, padding: "6px 10px", marginTop: 6, lineHeight: 1.5, whiteSpace: "pre-wrap" }} />
           )}
 
-          <AgendaImages urls={item.image_urls} fullWidth onRemove={onRemoveImage} />
+          <AgendaImages urls={item.image_urls} fullWidth onRemove={onRemoveImage} sizes={item.image_sizes} onResize={onResizeImage} />
 
           {(item.driver_map_urls?.length ?? 0) > 0 && (
             <div style={{ marginTop: 8 }}>
@@ -1600,6 +1603,8 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
       persona_visibility: f.persona_visibility,
       feedback_enabled: f.feedback_enabled,
       image_urls: f.image_urls,
+      // Only sizes for photos still on the item.
+      image_sizes: Object.fromEntries(Object.entries(f.image_sizes).filter(([u]) => f.image_urls.includes(u))),
       driver_map_urls: f.driver_map_urls,
       // Flight/bus icon colors only meaningful when the matching method is on.
       // One color for every item type. The legacy per-type columns are cleared
@@ -1635,6 +1640,7 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
       persona_visibility: item.persona_visibility ?? defaultPersonaVisibility(item.type, item.travel_methods ?? (item.travel_method ? [item.travel_method] : [])),
       feedback_enabled: item.feedback_enabled ?? isActivityType(item.type, item.activity_subtypes ?? item.activity_subtype),
       image_urls: item.image_urls || [],
+      image_sizes: item.image_sizes ?? {},
       driver_map_urls: item.driver_map_urls || [],
       icon_color: resolveIconColor(item),
       elevate_url: item.elevate_url || "",
@@ -1999,6 +2005,23 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
     if (isImageShared(url, item.id)) return;
     const path = storagePathFromUrl(url);
     if (path) { try { await supabase.storage.from(STORAGE_BUCKET).remove([path]); } catch {} }
+  }
+
+  // Resize a photo by dragging its corner (October 2026). Optimistic; rolls back
+  // if the write is refused. null puts the photo back to the standard size.
+  async function resizeItemImage(dayId: string, itemId: string, url: string, height: number | null) {
+    const before = daysRef.current;
+    const item = before.find(d => d.id === dayId)?.agenda_items.find(i => i.id === itemId);
+    if (!item) return;
+    const next: Record<string, number> = { ...(item.image_sizes ?? {}) };
+    if (height === null) delete next[url]; else next[url] = height;
+    onDaysChange(before.map(d => d.id === dayId ? { ...d, agenda_items: d.agenda_items.map(i => i.id === itemId ? { ...i, image_sizes: next } : i) } : d));
+    const { data, error } = await createClient().from("agenda_items").update({ image_sizes: next }).eq("id", itemId).select("id");
+    if (error || !data || data.length === 0) {
+      console.error("[agenda_items.image_sizes] save failed", { itemId, error });
+      onDaysChange(before);
+      if (typeof window !== "undefined") window.alert(`Could not resize the photo: ${error?.message ?? "no row updated (permission?)"}`);
+    }
   }
 
   // Duplicate: open the New Item form in the same day, prefilled from the
@@ -2510,6 +2533,7 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
                       onCopyToDays={() => { setCopyCtx({ dayId: day.id, item }); setCopyTargets({}); }}
                       onToggleCostPaid={() => toggleCostPaid(day.id, item)}
                       onRemoveImage={url => removeItemImage(day.id, item, url)}
+                      onResizeImage={(url, h) => resizeItemImage(day.id, item.id, url, h)}
                       onSaveField={(field, v) => saveItemField(day.id, item.id, field, v)}
                       onSaveIconColor={hex => saveIconColor(day.id, item.id, hex)}
                       onSetSummaryInclude={v => saveSummaryInclude(day.id, item, v)}
