@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
 import IconColorButton, { IconColorRow } from "@/components/shared/IconColorPicker";
@@ -12,7 +12,7 @@ import {
   activePersonaKeys, personaLabel, personaColors, getPersona, defaultPersonaVisibility, isActivityType, generateAccessCode,
   INTERNAL_NOTE_PERSONAS, noteAudience, internalNoteLabel, tourHostNames,
   orderAgendaDays, agendaDaysAreDated,
-  MEAL_MONEY_TYPES, mealMoneyHasAmount, mealMoneyLabel, paymentStatus, PAYMENT_LABEL,
+  MEAL_MONEY_TYPES, mealMoneyHasAmount, mealMoneyLabel, paymentStatus, PAYMENT_LABEL, hasPaymentInfo,
 } from "@/lib/helpers";
 import GoogleMapsLink from "@/components/shared/GoogleMapsLink";
 import AgendaRoleView from "@/components/tour/AgendaRoleView";
@@ -183,8 +183,16 @@ function TimePicker({ value, onChange, placeholder = "Pick a time" }: {
   useEffect(() => {
     if (!open) return;
     setTimeout(() => {
-      (hourRef.current?.children[draft.h - 1] as HTMLElement)?.scrollIntoView({ block: "center" });
-      (minRef.current?.children[draft.m] as HTMLElement)?.scrollIntoView({ block: "center" });
+      // Scroll only inside each wheel. scrollIntoView also scrolled the page
+      // to center the wheel, which moved the host away from where they were.
+      const center = (wheel: HTMLDivElement | null, idx: number) => {
+        const el = wheel?.children[idx] as HTMLElement | undefined;
+        if (!wheel || !el) return;
+        const offset = el.getBoundingClientRect().top - wheel.getBoundingClientRect().top + wheel.scrollTop;
+        wheel.scrollTop = offset - (wheel.clientHeight - el.offsetHeight) / 2;
+      };
+      center(hourRef.current, draft.h - 1);
+      center(minRef.current, draft.m);
     }, 60);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -437,7 +445,7 @@ type ItemFormState = {
   travel_methods: string[]; contact_name: string; contact_phone: string;
   contact_email: string; cost: string; cost_paid: boolean;
   // Separate checkboxes (September 2026): cost_paid is "Paid in Full".
-  deposit_paid: boolean; confirmed: boolean;
+  deposit_paid: boolean; pay_at_venue: boolean; confirmed: boolean;
   confirmation_not_required: boolean;
   driver_note: string; internal_note: string;
   // Who the Internal Note is for: named tour hosts and/or other personas.
@@ -459,7 +467,7 @@ const BLANK: ItemFormState = {
   time: "", end_time: "", type: "activity", activity_subtypes: [], title: "", detail: "", public_note: "",
   address: "", map_link: "", website: "", travel_methods: [],
   contact_name: "", contact_phone: "", contact_email: "",
-  cost: "", cost_paid: false, deposit_paid: false, confirmed: false, confirmation_not_required: false, driver_note: "", internal_note: "",
+  cost: "", cost_paid: false, deposit_paid: false, pay_at_venue: false, confirmed: false, confirmation_not_required: false, driver_note: "", internal_note: "",
   internal_note_audience: { hosts: [], personas: [] },
   meal_money: [], persona_visibility: defaultPersonaVisibility("activity", []),
   feedback_enabled: isActivityType("activity", []), image_urls: [], image_sizes: {}, driver_map_urls: [], icon_color: null,
@@ -1012,6 +1020,10 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
             <input type="checkbox" id="cdep" checked={form.deposit_paid || form.cost_paid} disabled={form.cost_paid} onChange={e => f({ deposit_paid: e.target.checked })} style={{ accentColor: BRAND.navy }} />
             <label htmlFor="cdep" style={{ fontSize: 12, cursor: form.cost_paid ? "default" : "pointer" }}>Deposit Paid</label>
           </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }} title="Paid on site, not through Till or in advance">
+            <input type="checkbox" id="cvenue" checked={form.pay_at_venue} onChange={e => f({ pay_at_venue: e.target.checked })} style={{ accentColor: BRAND.navy }} />
+            <label htmlFor="cvenue" style={{ fontSize: 12, cursor: "pointer" }}>Pay at Venue</label>
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <input type="checkbox" id="cpaid" checked={form.cost_paid} onChange={e => f({ cost_paid: e.target.checked })} style={{ accentColor: BRAND.navy }} />
             <label htmlFor="cpaid" style={{ fontSize: 12, cursor: "pointer" }}>Paid in Full</label>
@@ -1232,6 +1244,7 @@ function ItemRow({ item, groups, personaLabels, onEdit, onRemove, onDuplicate, o
 
   return (
     <div
+      data-item-id={item.id}
       style={{ padding: "14px 16px", borderBottom: "1px solid var(--surface-2)", background: striped ? "var(--row-alt)" : "var(--surface)", borderTop: isDragOver ? `2px solid ${BRAND.blue}` : "2px solid transparent" }}
       onClick={e => e.stopPropagation()}
       onDragOver={dragProps?.onDragOver}
@@ -1341,16 +1354,17 @@ function ItemRow({ item, groups, personaLabels, onEdit, onRemove, onDuplicate, o
                 <Phone size={11} style={{ flexShrink: 0 }} />{item.contact_name}{item.contact_phone ? ` · ${item.contact_phone}` : ""}
               </span>
             )}
-            {(item.cost > 0 || item.deposit_paid || item.cost_paid) && (() => {
-              // Click cycles Unpaid, Deposit Paid, Paid in Full.
+            {hasPaymentInfo(item) && (() => {
+              // Click cycles Unpaid, Deposit Paid, Paid in Full, Pay at Venue.
               const ps = paymentStatus(item);
               const tone = ps === "paid" ? { bg: "var(--green-bg)", fg: "var(--green-text)" }
+                : ps === "venue" ? { bg: "var(--sky-bg)", fg: "var(--sky-text)" }
                 : ps === "deposit" ? { bg: "var(--amber-bg)", fg: "var(--amber-text)" }
                 : { bg: "var(--red-bg)", fg: "var(--red-text)" };
               return (
                 <span style={{ fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4 }}>
                   {item.cost > 0 && <span style={{ color: "var(--amber-text)", fontWeight: 700 }}>{fmt$(item.cost)}</span>}
-                  <button onClick={onToggleCostPaid} title="Click to change: Unpaid, Deposit Paid, Paid in Full"
+                  <button onClick={onToggleCostPaid} title="Click to change: Unpaid, Deposit Paid, Paid in Full, Pay at Venue"
                     style={{ background: tone.bg, color: tone.fg, border: "none", borderRadius: 4, padding: "1px 6px", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                     {PAYMENT_LABEL[ps]}
                   </button>
@@ -1453,6 +1467,42 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
   const [multiCount, setMultiCount] = useState(1);
   const [addingItem, setAddingItem] = useState<string | null>(null);
   const [addingItemId, setAddingItemId] = useState<string>("");
+  // Where the page was scrolled when the New Item form opened. The form is
+  // tall, so closing it used to leave the host looking at a later day. After a
+  // save or cancel the page goes back to this spot, then nudges just enough to
+  // show the new item if it would be off screen (October 2026).
+  const addScrollY = useRef<number | null>(null);
+  const [revealItemId, setRevealItemId] = useState<string | null>(null);
+  const [restoreTick, setRestoreTick] = useState(0);
+  function openAddForm(dayId: string, form: ItemFormState) {
+    if (typeof window !== "undefined") addScrollY.current = window.scrollY;
+    setAddingItem(dayId);
+    setAddingItemId(crypto.randomUUID());
+    setItemForm(form);
+  }
+  function closeAddForm(revealId: string | null) {
+    setAddingItem(null);
+    setAddingItemId("");
+    setRevealItemId(revealId);
+    setRestoreTick(t => t + 1);
+  }
+  useLayoutEffect(() => {
+    if (!restoreTick || typeof window === "undefined") return;
+    const y = addScrollY.current;
+    addScrollY.current = null;
+    if (y !== null) window.scrollTo({ top: y, behavior: "auto" });
+    if (revealItemId) {
+      const el = document.querySelector(`[data-item-id="${revealItemId}"]`);
+      if (el) {
+        const r = el.getBoundingClientRect();
+        const header = 12; // breathing room above the row
+        if (r.top < header || r.bottom > window.innerHeight) {
+          window.scrollBy({ top: r.bottom > window.innerHeight ? Math.min(r.top - header, r.bottom - window.innerHeight + 24) : r.top - header - 12, behavior: "auto" });
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restoreTick]);
   const [itemForm, setItemForm] = useState<ItemFormState>(BLANK);
   const [editCtx, setEditCtx] = useState<{ dayId: string; itemId: string } | null>(null);
   const [editForm, setEditForm] = useState<ItemFormState>(BLANK);
@@ -1479,6 +1529,9 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
   const [printMenuOpen, setPrintMenuOpen] = useState(false);
   const [editingDayId, setEditingDayId] = useState<string | null>(null);
   const [editingDayDateVal, setEditingDayDateVal] = useState("");
+  // Day title (October 2026): "Day 1  Sat, Nov 21  Arrival in Houston".
+  const [editingTitleDayId, setEditingTitleDayId] = useState<string | null>(null);
+  const [editingDayTitleVal, setEditingDayTitleVal] = useState("");
   const [confirmDeleteDayId, setConfirmDeleteDayId] = useState<string | null>(null);
   // Item delete: confirm first (August 2026 request), then a soft delete with
   // the same undo window days get. The Supabase delete is deferred until the
@@ -1577,7 +1630,7 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
       activity_subtype: f.activity_subtypes[0] || null,
       contact_name: f.contact_name || null, contact_phone: f.contact_phone || null,
       contact_email: f.contact_email || null, cost: parseFloat(f.cost) || 0,
-      cost_paid: f.cost_paid, deposit_paid: f.deposit_paid, confirmed: f.confirmed,
+      cost_paid: f.cost_paid, deposit_paid: f.deposit_paid, pay_at_venue: f.pay_at_venue, confirmed: f.confirmed,
       confirmation_not_required: f.confirmation_not_required, driver_note: f.driver_note || null,
       internal_note: f.internal_note || null,
       // Empty arrays are dropped so an untouched note stores {} and keeps its
@@ -1632,7 +1685,7 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
       contact_name: item.contact_name || "", contact_phone: item.contact_phone || "",
       contact_email: item.contact_email || "",
       cost: item.cost > 0 ? String(item.cost) : "",
-      cost_paid: item.cost_paid, deposit_paid: !!item.deposit_paid, confirmed: !!item.confirmed,
+      cost_paid: item.cost_paid, deposit_paid: !!item.deposit_paid, pay_at_venue: !!item.pay_at_venue, confirmed: !!item.confirmed,
       confirmation_not_required: !!item.confirmation_not_required, driver_note: item.driver_note || "",
       internal_note: item.internal_note || "",
       internal_note_audience: noteAudience(item.internal_note_audience),
@@ -1829,6 +1882,21 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
     setEditingDayId(null);
   }
 
+  async function updateDayTitle(dayId: string, raw: string) {
+    const title = raw.trim() || null;
+    const current = days.find(dy => dy.id === dayId)?.title ?? null;
+    if ((current ?? null) === title) { setEditingTitleDayId(null); return; }
+    const supabase = createClient();
+    const { data, error } = await supabase.from("agenda_days").update({ title }).eq("id", dayId).select("id");
+    if (error || !data || data.length === 0) {
+      console.error("[agenda_days.title] save failed", { dayId, error });
+      window.alert(`Could not save the day title: ${error?.message ?? "no row updated (permission?)"}`);
+      return;
+    }
+    onDaysChange(days.map(dy => dy.id === dayId ? { ...dy, title } : dy));
+    setEditingTitleDayId(null);
+  }
+
   // ── item mutations ────────────────────────────────────────────────────────────
   // Renumber a day's items to a contiguous 1..N in the given order, update local
   // state, and persist only the rows whose sort_order changed. The display order
@@ -1876,8 +1944,7 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
     const nextOrdered = [...ordered.slice(0, insertIdx), newItem, ...ordered.slice(insertIdx)];
     applyItemOrder(dayId, nextOrdered);
     setItemForm(BLANK);
-    setAddingItem(null);
-    setAddingItemId("");
+    closeAddForm(newItem.id);
   }
 
   async function updateItem() {
@@ -2027,10 +2094,8 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
   // Duplicate: open the New Item form in the same day, prefilled from the
   // source item, so the host can tweak (e.g. the time) and save.
   function duplicateItem(dayId: string, item: AgendaItemWithFeedback) {
-    setAddingItem(dayId);
-    setAddingItemId(crypto.randomUUID());
     // A copy is a new booking: it starts unconfirmed.
-    setItemForm({ ...itemToForm(item), confirmed: false });
+    openAddForm(dayId, { ...itemToForm(item), confirmed: false });
     setCollapsedDays(c => ({ ...c, [dayId]: false }));
   }
 
@@ -2080,12 +2145,13 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
     setCopyTargets({});
   }
 
-  // Cycles Unpaid, Deposit Paid, Paid in Full, back to Unpaid.
+  // Cycles Unpaid, Deposit Paid, Paid in Full, Pay at Venue, back to Unpaid.
   async function toggleCostPaid(dayId: string, item: AgendaItemWithFeedback) {
     const ps = paymentStatus(item);
-    const patch = ps === "unpaid" ? { deposit_paid: true, cost_paid: false }
-      : ps === "deposit" ? { deposit_paid: true, cost_paid: true }
-      : { deposit_paid: false, cost_paid: false };
+    const patch = ps === "unpaid" ? { deposit_paid: true, cost_paid: false, pay_at_venue: false }
+      : ps === "deposit" ? { deposit_paid: true, cost_paid: true, pay_at_venue: false }
+      : ps === "paid" ? { deposit_paid: false, cost_paid: false, pay_at_venue: true }
+      : { deposit_paid: false, cost_paid: false, pay_at_venue: false };
     const supabase = createClient();
     const { data, error } = await supabase.from("agenda_items").update(patch).eq("id", item.id).select("id");
     if (error || !data || data.length === 0) {
@@ -2426,7 +2492,7 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
                 }}
                 onDrop={e => { e.preventDefault(); handleItemDrop(day.id, day.agenda_items.length); }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", minWidth: 0, rowGap: 4 }}>
                   <Image src="/infinity-mark-light.png" alt="" width={0} height={0} sizes="60px" style={{ height: 36, width: "auto" }} />
                   <div style={{ width: 1, height: 20, background: "rgba(255,255,255,.2)" }} />
                   <span style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", color: "#fff", fontWeight: 400, fontSize: 15 }}>Day {idx + 1}</span>
@@ -2471,6 +2537,46 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
                       </button>
                     </>
                   )}
+                  {editingTitleDayId === day.id ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: 5 }} onClick={e => e.stopPropagation()}>
+                      <input
+                        value={editingDayTitleVal}
+                        placeholder="Day title (e.g. Arrival in Houston)"
+                        maxLength={120}
+                        onChange={e => setEditingDayTitleVal(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === "Enter") updateDayTitle(day.id, editingDayTitleVal);
+                          if (e.key === "Escape") setEditingTitleDayId(null);
+                        }}
+                        autoFocus
+                        style={{ fontSize: 12, padding: "3px 8px", borderRadius: 5, border: "1.5px solid rgba(255,255,255,.4)", background: "rgba(255,255,255,.15)", color: "#fff", fontFamily: "inherit", outline: "none", width: 240, maxWidth: "40vw" }}
+                      />
+                      <button
+                        onClick={() => updateDayTitle(day.id, editingDayTitleVal)}
+                        style={{ background: BRAND.blue, border: "none", borderRadius: 4, padding: "3px 8px", cursor: "pointer", color: "#fff", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}
+                      >✓</button>
+                      <button
+                        onClick={() => setEditingTitleDayId(null)}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,.5)", padding: 2, display: "flex", alignItems: "center" }}
+                      >
+                        <I n="x" s={12} c="rgba(255,255,255,.5)" />
+                      </button>
+                    </div>
+                  ) : day.title ? (
+                    <button
+                      onClick={e => { e.stopPropagation(); setEditingDayTitleVal(day.title ?? ""); setEditingTitleDayId(day.id); }}
+                      title="Edit day title"
+                      className="flat"
+                      style={{ background: "none", border: "none", cursor: "text", padding: 0, fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", color: "#fff", fontWeight: 400, fontSize: 15, textAlign: "left" }}
+                    >{day.title}</button>
+                  ) : (
+                    <button
+                      onClick={e => { e.stopPropagation(); setEditingDayTitleVal(""); setEditingTitleDayId(day.id); }}
+                      title="Add a title for this day"
+                      className="flat"
+                      style={{ background: "none", border: "1px dashed rgba(255,255,255,.25)", borderRadius: 4, cursor: "pointer", padding: "1px 7px", color: "rgba(255,255,255,.45)", fontSize: 11, fontFamily: "inherit" }}
+                    >+ Title</button>
+                  )}
                   {past && <span style={{ background: "rgba(255,255,255,.15)", color: "rgba(255,255,255,.6)", fontSize: 10, fontWeight: 700, letterSpacing: .5, padding: "1px 7px", borderRadius: 4 }}>PAST</span>}
                   <span style={{ color: "rgba(255,255,255,.4)", fontSize: 11 }}>{day.agenda_items.length} item{day.agenda_items.length !== 1 ? "s" : ""}</span>
                 </div>
@@ -2497,7 +2603,7 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
                     personaLabels={tour.persona_labels || {}}
                     onApply={applyBulkVisibility}
                   />
-                  <button onClick={e => { e.stopPropagation(); setAddingItem(day.id); setAddingItemId(crypto.randomUUID()); setItemForm(BLANK); }}
+                  <button onClick={e => { e.stopPropagation(); openAddForm(day.id, BLANK); }}
                     style={{ background: "rgba(255,255,255,.15)", border: "none", borderRadius: 5, padding: "4px 10px", fontSize: 11, color: "#fff", cursor: "pointer", fontFamily: "inherit", fontWeight: 600 }}>
                     + Add
                   </button>
@@ -2585,7 +2691,7 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
                     <ItemForm
                       form={itemForm} setForm={setItemForm}
                       onSave={() => saveItem(day.id)}
-                      onCancel={() => { setAddingItem(null); setAddingItemId(""); }}
+                      onCancel={() => closeAddForm(null)}
                       saving={saving}
                       tourId={tour.id} itemId={addingItemId}
                       activePersonas={activePersonaKeys(tour.active_personas)}

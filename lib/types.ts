@@ -275,6 +275,8 @@ export interface AgendaDayRow {
   date: string;
   collapsed: boolean;
   sort_order: number;
+  // Optional host-written title shown beside "Day N  date" (October 2026).
+  title?: string | null;
 }
 
 export type AgendaItemType = "travel" | "activity" | "food" | "hotel" | "free" | "break" | "meeting" | "instructions" | "general";
@@ -360,6 +362,8 @@ export interface AgendaItemRow {
   // (Amy) so each can be checked off on its own.
   cost_paid: boolean;
   deposit_paid?: boolean;
+  // Paid at the venue on the day, not through Till or in advance (October 2026).
+  pay_at_venue?: boolean;
   // Manually checked "Confirmed". An attached confirmation also counts.
   confirmed?: boolean;
   // Summary of Itinerary checkbox: null = automatic, true = show, false = hide.
@@ -568,7 +572,7 @@ export interface TripInfo {
   rowOrder: string[];
   flightName: string | null;
   flightAddress: string | null;
-  hasFlight: boolean; // whether a flight travel item exists on the itinerary
+  hasFlight: boolean; // a flight travel item gives the Flight row something to show
   hotelName: string | null;
   hotelAddress: string | null;
   hotelRooms: string | null;
@@ -581,7 +585,7 @@ export interface TripInfo {
   busDriverName: string | null;
   busDriverPhone: string | null;
   busCapacity: number | null;
-  hasBus: boolean; // whether a bus travel item exists on the itinerary
+  hasBus: boolean; // a bus travel item exists and the Bus row has text to show
   // Read-only confirmation links by type, used for the participant view link.
   // Authenticated host views fetch live (mutable) rows separately.
   confirmations: { type: string; label: string | null; file_url: string }[];

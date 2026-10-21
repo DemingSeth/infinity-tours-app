@@ -59,6 +59,7 @@ export default function ConfirmationsTab({ tourId, days: daysProp, onDaysChange,
           <div style={{ background: BRAND.navy, padding: "9px 16px", display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", color: "#fff", fontWeight: 400, fontSize: 14 }}>Day {dayIdx + 1}</span>
             <span style={{ color: "#D1E8FF", fontSize: 12 }}>{day.date}</span>
+            {day.title?.trim() && <span style={{ color: "#fff", fontSize: 13 }}>{day.title.trim()}</span>}
           </div>
           {day.agenda_items.length === 0 ? (
             <div style={{ color: "var(--muted-3)", fontSize: 12, padding: "12px 16px" }}>No items</div>
@@ -112,6 +113,7 @@ function ConfirmationRow({ tourId, item, isOwner, topBorder, striped, onPatch }:
             confirmed={!!item.confirmed}
             hasFiles={urls.length > 0}
             depositPaid={!!item.deposit_paid}
+            payAtVenue={!!item.pay_at_venue}
             paidInFull={!!item.cost_paid}
             isOwner={isOwner}
             onPatch={onPatch}

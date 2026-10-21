@@ -9,7 +9,7 @@ import GeneralFeedback from "@/components/tour/GeneralFeedback";
 import TripInformation from "@/components/tour/TripInformation";
 import ItineraryHeaderTile from "@/components/tour/ItineraryHeaderTile";
 import GoogleMapsLink from "@/components/shared/GoogleMapsLink";
-import { BRAND, ROLES, DEFAULT_VISIBILITY, isItemVisibleTo, personaColors, orderAgendaItems, parseAgendaDate, agendaDayDateLabel, initialCollapsedDays, tripInfoStartsCollapsed, itemMatchesGroup, resolveIconColor, canSeeInternalNote, internalNoteLabel, orderAgendaDays, paymentStatus, PAYMENT_LABEL, isItemConfirmed } from "@/lib/helpers";
+import { BRAND, ROLES, DEFAULT_VISIBILITY, isItemVisibleTo, personaColors, orderAgendaItems, parseAgendaDate, agendaDayDateLabel, initialCollapsedDays, tripInfoStartsCollapsed, itemMatchesGroup, resolveIconColor, canSeeInternalNote, internalNoteLabel, orderAgendaDays, paymentStatus, PAYMENT_LABEL, hasPaymentInfo, isItemConfirmed } from "@/lib/helpers";
 import NoteText from "@/components/shared/NoteText";
 import AddressText from "@/components/shared/AddressText";
 import MapFileThumb from "@/components/shared/MapFileThumb";
@@ -255,13 +255,16 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
               role="button"
               aria-expanded={!collapsed}
               className={print ? "print-day-header" : undefined}
-              style={{ background: BRAND.navy, padding: print ? "5px 14px" : "10px 16px", display: "flex", alignItems: "center", gap: 10, cursor: print ? "default" : "pointer", breakInside: print ? "avoid" : undefined }}
+              style={{ background: BRAND.navy, padding: print ? "5px 14px" : "10px 16px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", rowGap: 2, cursor: print ? "default" : "pointer", breakInside: print ? "avoid" : undefined }}
             >
               {!print && (collapsed
                 ? <ChevronRight size={16} color="rgba(255,255,255,.7)" style={{ flexShrink: 0 }} />
                 : <ChevronDown size={16} color="rgba(255,255,255,.7)" style={{ flexShrink: 0 }} />)}
               <span style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", color: "#fff", fontWeight: 400, fontSize: 15 }}>Day {dayIdx + 1}</span>
               <span style={{ color: "#D1E8FF", fontSize: 13 }}>{agendaDayDateLabel(day.date, print)}</span>
+              {day.title?.trim() && (
+                <span style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", color: "#fff", fontWeight: 400, fontSize: 15, minWidth: 0 }}>{day.title.trim()}</span>
+              )}
               <span style={{ color: "rgba(255,255,255,.4)", fontSize: 11 }}>{items.length} item{items.length !== 1 ? "s" : ""}</span>
             </div>
             {!collapsed && (
@@ -376,17 +379,17 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                       {/* Tour Host only: cost plus Deposit Paid / Paid in Full, and
                           Confirmed, so a host on tour knows where each stop stands
                           (September 2026, Amy). */}
-                      {vis.cost && (item.cost > 0 || item.deposit_paid || item.cost_paid || isItemConfirmed(item)) && (
+                      {vis.cost && (hasPaymentInfo(item) || isItemConfirmed(item)) && (
                         <div style={{ fontSize: 12, marginTop: 4, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                           {item.cost > 0 && (
                             <span style={{ fontWeight: 700, color: "var(--text-2)" }}>
                               ${item.cost.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                             </span>
                           )}
-                          {vis.costPaid && (item.cost > 0 || item.deposit_paid || item.cost_paid) && (() => {
+                          {vis.costPaid && hasPaymentInfo(item) && (() => {
                             const ps = paymentStatus(item);
                             return (
-                              <span style={{ color: ps === "paid" ? "#059669" : ps === "deposit" ? "#b45309" : "#dc2626", fontSize: 11, fontWeight: 700, textTransform: "uppercase" }}>
+                              <span style={{ color: ps === "paid" ? "#059669" : ps === "venue" ? "#0369a1" : ps === "deposit" ? "#b45309" : "#dc2626", fontSize: 11, fontWeight: 700, textTransform: "uppercase" }}>
                                 {PAYMENT_LABEL[ps]}
                               </span>
                             );

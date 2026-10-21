@@ -55,6 +55,7 @@ export type ConfirmationPatch = {
   confirmed?: boolean;
   deposit_paid?: boolean;
   cost_paid?: boolean;
+  pay_at_venue?: boolean;
 };
 
 // Shared upload/remove/toggle logic for a single item's confirmation. Each
@@ -305,11 +306,12 @@ export default function ItemConfirmationControl({ tourId, itemId, urls, notRequi
 // Confirmed / Deposit Paid / Paid in Full checkboxes (September 2026, Amy):
 // each can be checked off on its own. Writes the agenda_items row straight
 // away, like the rest of this module, and surfaces a failed save.
-export function ItemStatusChecks({ itemId, confirmed, hasFiles, depositPaid, paidInFull, isOwner = true, onPatch }: {
+export function ItemStatusChecks({ itemId, confirmed, hasFiles, depositPaid, payAtVenue = false, paidInFull, isOwner = true, onPatch }: {
   itemId: string;
   confirmed: boolean;
   hasFiles: boolean;
   depositPaid: boolean;
+  payAtVenue?: boolean;
   paidInFull: boolean;
   isOwner?: boolean;
   onPatch: (patch: ConfirmationPatch) => void;
@@ -335,6 +337,7 @@ export function ItemStatusChecks({ itemId, confirmed, hasFiles, depositPaid, pai
       {box("confirmed", "Confirmed", confirmed || hasFiles, v => save({ confirmed: v }),
         hasFiles ? "A confirmation is attached, so this counts as confirmed" : undefined, hasFiles && !confirmed)}
       {box("deposit", "Deposit Paid", depositPaid || paidInFull, v => save({ deposit_paid: v }), paidInFull ? "Paid in full" : undefined, paidInFull)}
+      {box("venue", "Pay at Venue", payAtVenue, v => save({ pay_at_venue: v }), "Paid on site, not through Till or in advance")}
       {box("paid", "Paid in Full", paidInFull, v => save({ cost_paid: v }))}
     </div>
   );

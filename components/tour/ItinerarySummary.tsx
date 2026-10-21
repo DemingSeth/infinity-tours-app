@@ -62,6 +62,7 @@ export default function ItinerarySummary({ days, print = false, note, initiallyO
                       <th key={d.id} style={{ background: "var(--surface-3)", padding: print ? "4px 6px" : "7px 10px", borderBottom: "1px solid var(--border-soft)", borderRight: "1px solid var(--border-soft)", textAlign: "left", verticalAlign: "top" }}>
                         <div style={{ fontSize: print ? 10 : 11, fontWeight: 700, color: "var(--ink)" }}>Day {d.dayNumber}{d.weekday ? ` · ${d.weekday}` : ""}</div>
                         <div style={{ fontSize: print ? 10 : 11, color: "var(--muted)", fontWeight: 500 }}>{d.date}</div>
+                        {d.title && <div style={{ fontSize: print ? 10 : 11, color: "var(--ink)", fontWeight: 600, marginTop: 1 }}>{d.title}</div>}
                       </th>
                     ))}
                   </tr>

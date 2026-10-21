@@ -651,7 +651,9 @@ export function buildTripInfo({ tour, members, days, hostName, hostPhone, confir
     rowOrder: Array.isArray(tour?.trip_info_row_order) ? (tour.trip_info_row_order as string[]).filter(k => typeof k === "string") : [],
     flightName: flightName || null,
     flightAddress: flight?.address || null,
-    hasFlight: flightItems.length > 0,
+    // October 2026: a flight item whose title says nothing about the flight
+    // ("Check in") no longer counts. The row shows only when it has text.
+    hasFlight: !!(flightName || flight?.address),
     hotelName: hotelName || null,
     hotelAddress: hotel?.address || null,
     hotelRooms: roomBits.length ? roomBits.join(" · ") : null,
@@ -661,7 +663,9 @@ export function buildTripInfo({ tour, members, days, hostName, hostPhone, confir
     busDriverName: (driver?.name ?? "").trim() || null,
     busDriverPhone: (driver?.phone ?? "").trim() || null,
     busCapacity: tour?.bus_capacity ?? null,
-    hasBus: busItems.length > 0,
+    // The Bus row's text is the company (tour record) and the dispatch contact,
+    // so a bus item with neither leaves the row empty and it stays hidden.
+    hasBus: busItems.length > 0 && !!(busCompany || bus?.contact_name || bus?.contact_phone),
     confirmations: confirmations ?? [],
   };
 }
@@ -1111,14 +1115,22 @@ export function isItemConfirmed(item: { confirmed?: boolean | null; confirmation
   return item.confirmed === true || (item.confirmation_urls?.length ?? 0) > 0;
 }
 
-// Payment label for an item: Paid in Full wins over Deposit Paid.
-export function paymentStatus(item: { cost_paid?: boolean | null; deposit_paid?: boolean | null }): "paid" | "deposit" | "unpaid" {
+// Payment label for an item: Paid in Full wins, then Pay at Venue (October
+// 2026: paid on site rather than through Till), then Deposit Paid.
+export type PaymentStatus = "paid" | "venue" | "deposit" | "unpaid";
+export function paymentStatus(item: { cost_paid?: boolean | null; deposit_paid?: boolean | null; pay_at_venue?: boolean | null }): PaymentStatus {
   if (item.cost_paid) return "paid";
+  if (item.pay_at_venue) return "venue";
   if (item.deposit_paid) return "deposit";
   return "unpaid";
 }
 
-export const PAYMENT_LABEL = { paid: "Paid in Full", deposit: "Deposit Paid", unpaid: "Unpaid" } as const;
+export const PAYMENT_LABEL = { paid: "Paid in Full", venue: "Pay at Venue", deposit: "Deposit Paid", unpaid: "Unpaid" } as const;
+
+// Whether an item has any payment detail worth a chip.
+export function hasPaymentInfo(item: { cost?: number | null; cost_paid?: boolean | null; deposit_paid?: boolean | null; pay_at_venue?: boolean | null }): boolean {
+  return (item.cost ?? 0) > 0 || !!item.deposit_paid || !!item.cost_paid || !!item.pay_at_venue;
+}
 
 // Parse a DATE column ('YYYY-MM-DD') to a local Date at noon (avoids TZ drift).
 export function parseISODate(value: string | null | undefined): Date | null {

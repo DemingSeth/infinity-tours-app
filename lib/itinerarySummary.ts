@@ -39,6 +39,7 @@ export interface SummaryDayInput {
   date: string;
   sort_order?: number | null;
   day_number?: number | null;
+  title?: string | null;
   agenda_items: SummaryItemInput[];
 }
 
@@ -47,6 +48,7 @@ export interface SummaryDay {
   dayNumber: number;
   weekday: string;
   date: string;
+  title: string;
   cells: Record<SummarySlot, string[]>;
 }
 
@@ -237,6 +239,7 @@ export function buildItinerarySummary(days: SummaryDayInput[]): SummaryDay[] {
       dayNumber: idx + 1,
       weekday: agendaWeekday(day.date, "long"),
       date: (day.date ?? "").replace(/,\s*\d{4}$/, ""),
+      title: (day.title ?? "").trim(),
       cells,
     };
   });

@@ -98,19 +98,19 @@ export default function AgendaImages({
   if (fullWidth) {
     return (
       <>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+        {/* Photos sit side by side when they fit the column and wrap to the
+            next line only when they are too wide (October 2026; they used to
+            always stack). Each photo keeps its own size and stays centered. */}
+        <div style={{ display: "flex", flexDirection: "row", flexWrap: "wrap", justifyContent: "center", alignItems: "flex-start", gap: 8, marginTop: 8 }}>
           {urls.map((url, i) => (
-            // Center each photo; the inline-block wrapper shrinks to the image so
-            // the remove "x" sits on the image corner, not the column edge.
-            <div key={`${url}-${i}`} style={{ textAlign: "center" }}>
-              <ResizablePhoto
-                url={url}
-                height={sizes?.[url]}
-                onOpen={() => setLightboxIndex(i)}
-                onRemove={onRemove ? () => onRemove(url) : undefined}
-                onResize={onResize ? (h) => onResize(url, h) : undefined}
-              />
-            </div>
+            <ResizablePhoto
+              key={`${url}-${i}`}
+              url={url}
+              height={sizes?.[url]}
+              onOpen={() => setLightboxIndex(i)}
+              onRemove={onRemove ? () => onRemove(url) : undefined}
+              onResize={onResize ? (h) => onResize(url, h) : undefined}
+            />
           ))}
         </div>
 
@@ -226,7 +226,7 @@ function ResizablePhoto({ url, height, onOpen, onRemove, onResize }: {
     // The inline-block wrapper shrinks to the image so the remove "x" and the
     // resize handle sit on the image corners, not the column edge.
     <div
-      style={{ position: "relative", display: "inline-block", maxWidth: "100%", verticalAlign: "top", width: sizedW }}
+      style={{ position: "relative", display: "inline-block", maxWidth: "100%", minWidth: 0, flex: "0 1 auto", verticalAlign: "top", width: sizedW }}
       onPointerEnter={() => setHover(true)}
       onPointerLeave={() => setHover(false)}
     >

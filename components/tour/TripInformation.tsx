@@ -457,7 +457,19 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
 
   // Inline confirmation attachment area for a transport row. Accepts uploaded
   // files AND external links (e.g. Google Drive).
-  function renderConf(type: string, label: string) {
+  function viewerMaySeeConfs(shownTo?: Record<string, boolean> | null) {
+    if (isHost) return true;
+    const persona = viewerPersona ?? (viewerRole === "coordinator" ? "tour_host" : viewerRole);
+    return persona === "tour_host"
+      || (persona === "teacher" && info.confirmationsTeacherVisible)
+      || (!!persona && shownTo?.[persona] === true);
+  }
+
+  // shownTo: for a custom row, the personas the host explicitly picked under
+  // "Show to". Documents on that row go to those personas too (October 2026,
+  // Linda: a "Cruise" row shown to the Family Cruise view showed the row text
+  // but none of the reservation PDFs).
+  function renderConf(type: string, label: string, shownTo?: Record<string, boolean> | null) {
     // Confirmation attachments are file links, nothing to click on paper.
     if (print) return null;
     const list = confsByType(type);
@@ -469,9 +481,9 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
     if (!isHost) {
       // Participant view: confirmation links are for the Tour Host, and for the
       // Teacher view only when the host has turned that on (August 2026
-      // request). Students, chaperones and bus drivers never see them.
-      const persona = viewerPersona ?? (viewerRole === "coordinator" ? "tour_host" : viewerRole);
-      const allowed = persona === "tour_host" || (persona === "teacher" && info.confirmationsTeacherVisible);
+      // request). A custom row the host explicitly showed to a persona shares
+      // its documents with that persona as well.
+      const allowed = viewerMaySeeConfs(shownTo);
       if (!allowed || list.length === 0) return null;
       return (
         <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 4 }}>
@@ -854,7 +866,7 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
           ) : (
             <div style={{ whiteSpace: "pre-wrap" }}>{dash(r.value)}</div>
           )}
-          {r.confirmation && renderConf(`custom:${r.id}`, r.label || "Confirmation")}
+          {r.confirmation && renderConf(`custom:${r.id}`, r.label || "Confirmation", r.visibility)}
         </div>
       ),
     })) : []),
@@ -956,7 +968,12 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
   // so the live view and the server-side PDF renderer can never diverge.
   const visibleRows = orderRows(rows, editing ? form.rowOrder : (info.rowOrder ?? [])).filter(r => {
     if (editing) return true;
-    if (r.id === "flight" || r.id === "bus") return showTripSection(r.id, info, { isHost });
+    // An empty Flight / Bus row is hidden on shared views and print, unless it
+    // carries a document this viewer may open.
+    if (r.id === "flight" || r.id === "bus") {
+      return showTripSection(r.id, info, { isHost })
+        || (!print && viewerMaySeeConfs() && confsByType(r.id).length > 0);
+    }
     return true;
   });
   const reorderable = visibleRows.filter(r => r.key !== "add_custom").map(r => r.key);

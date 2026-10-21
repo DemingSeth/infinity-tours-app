@@ -174,6 +174,7 @@ export default function PipelineClient({ initialTours, currentHostId, currentHos
             tour_id: newTour.id,
             day_number: day.day_number,
             date: day.date,
+            title: day.title ?? null,
             collapsed: day.collapsed,
             sort_order: day.sort_order,
           })
@@ -215,6 +216,7 @@ export default function PipelineClient({ initialTours, currentHostId, currentHos
             contact_email: item.contact_email,
             cost: item.cost,
             cost_paid: false,
+            pay_at_venue: item.pay_at_venue ?? false,
             driver_note: item.driver_note,
             internal_note: item.internal_note,
             internal_note_audience: item.internal_note_audience ?? {},
