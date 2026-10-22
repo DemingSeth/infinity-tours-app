@@ -337,7 +337,7 @@ export function ItemStatusChecks({ itemId, confirmed, hasFiles, depositPaid, pay
       {box("confirmed", "Confirmed", confirmed || hasFiles, v => save({ confirmed: v }),
         hasFiles ? "A confirmation is attached, so this counts as confirmed" : undefined, hasFiles && !confirmed)}
       {box("deposit", "Deposit Paid", depositPaid || paidInFull, v => save({ deposit_paid: v }), paidInFull ? "Paid in full" : undefined, paidInFull)}
-      {box("venue", "Pay at Venue", payAtVenue, v => save({ pay_at_venue: v }), "Paid on site, not through Till or in advance")}
+      {box("venue", "Pay on-site", payAtVenue, v => save({ pay_at_venue: v }), "Paid on site, not through Till or in advance")}
       {box("paid", "Paid in Full", paidInFull, v => save({ cost_paid: v }))}
     </div>
   );

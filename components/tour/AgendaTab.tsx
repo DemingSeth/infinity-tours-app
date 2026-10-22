@@ -1022,7 +1022,7 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }} title="Paid on site, not through Till or in advance">
             <input type="checkbox" id="cvenue" checked={form.pay_at_venue} onChange={e => f({ pay_at_venue: e.target.checked })} style={{ accentColor: BRAND.navy }} />
-            <label htmlFor="cvenue" style={{ fontSize: 12, cursor: "pointer" }}>Pay at Venue</label>
+            <label htmlFor="cvenue" style={{ fontSize: 12, cursor: "pointer" }}>Pay on-site</label>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <input type="checkbox" id="cpaid" checked={form.cost_paid} onChange={e => f({ cost_paid: e.target.checked })} style={{ accentColor: BRAND.navy }} />
@@ -1355,7 +1355,7 @@ function ItemRow({ item, groups, personaLabels, onEdit, onRemove, onDuplicate, o
               </span>
             )}
             {hasPaymentInfo(item) && (() => {
-              // Click cycles Unpaid, Deposit Paid, Paid in Full, Pay at Venue.
+              // Click cycles Unpaid, Deposit Paid, Paid in Full, Pay on-site.
               const ps = paymentStatus(item);
               const tone = ps === "paid" ? { bg: "var(--green-bg)", fg: "var(--green-text)" }
                 : ps === "venue" ? { bg: "var(--sky-bg)", fg: "var(--sky-text)" }
@@ -1364,7 +1364,7 @@ function ItemRow({ item, groups, personaLabels, onEdit, onRemove, onDuplicate, o
               return (
                 <span style={{ fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4 }}>
                   {item.cost > 0 && <span style={{ color: "var(--amber-text)", fontWeight: 700 }}>{fmt$(item.cost)}</span>}
-                  <button onClick={onToggleCostPaid} title="Click to change: Unpaid, Deposit Paid, Paid in Full, Pay at Venue"
+                  <button onClick={onToggleCostPaid} title="Click to change: Unpaid, Deposit Paid, Paid in Full, Pay on-site"
                     style={{ background: tone.bg, color: tone.fg, border: "none", borderRadius: 4, padding: "1px 6px", fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                     {PAYMENT_LABEL[ps]}
                   </button>
@@ -2145,7 +2145,7 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
     setCopyTargets({});
   }
 
-  // Cycles Unpaid, Deposit Paid, Paid in Full, Pay at Venue, back to Unpaid.
+  // Cycles Unpaid, Deposit Paid, Paid in Full, Pay on-site, back to Unpaid.
   async function toggleCostPaid(dayId: string, item: AgendaItemWithFeedback) {
     const ps = paymentStatus(item);
     const patch = ps === "unpaid" ? { deposit_paid: true, cost_paid: false, pay_at_venue: false }

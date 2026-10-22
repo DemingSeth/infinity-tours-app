@@ -1115,7 +1115,7 @@ export function isItemConfirmed(item: { confirmed?: boolean | null; confirmation
   return item.confirmed === true || (item.confirmation_urls?.length ?? 0) > 0;
 }
 
-// Payment label for an item: Paid in Full wins, then Pay at Venue (October
+// Payment label for an item: Paid in Full wins, then Pay on-site (October
 // 2026: paid on site rather than through Till), then Deposit Paid.
 export type PaymentStatus = "paid" | "venue" | "deposit" | "unpaid";
 export function paymentStatus(item: { cost_paid?: boolean | null; deposit_paid?: boolean | null; pay_at_venue?: boolean | null }): PaymentStatus {
@@ -1125,7 +1125,7 @@ export function paymentStatus(item: { cost_paid?: boolean | null; deposit_paid?:
   return "unpaid";
 }
 
-export const PAYMENT_LABEL = { paid: "Paid in Full", venue: "Pay at Venue", deposit: "Deposit Paid", unpaid: "Unpaid" } as const;
+export const PAYMENT_LABEL = { paid: "Paid in Full", venue: "Pay on-site", deposit: "Deposit Paid", unpaid: "Unpaid" } as const;
 
 // Whether an item has any payment detail worth a chip.
 export function hasPaymentInfo(item: { cost?: number | null; cost_paid?: boolean | null; deposit_paid?: boolean | null; pay_at_venue?: boolean | null }): boolean {
