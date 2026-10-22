@@ -2273,20 +2273,6 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
     );
   }
 
-  // Trip Information (host editing view). Locate the itinerary items that
-  // back the Hotel / Bus rows so the inline editor can open their edit modals.
-  // Mirrors buildTripInfo's selection: prefer a "Check In - <Name>" hotel item.
-  const openEditItem = (dayId: string, item: AgendaItemWithFeedback) => {
-    setEditCtx({ dayId, itemId: item.id });
-    setEditForm(itemToForm(item));
-    setMoveTargetDayId(dayId);
-  };
-  const itemLocs = days.flatMap(d => (d.agenda_items ?? []).map(item => ({ dayId: d.id, item })));
-  const hotelLocs = itemLocs.filter(x => x.item.type === "hotel");
-  const hotelLoc = hotelLocs.find(x => /[-–]/.test(x.item.title ?? "")) ?? hotelLocs[0] ?? null;
-  const busLoc = itemLocs.find(x => (x.item.travel_methods ?? []).includes("bus") && (x.item.contact_name || x.item.contact_phone))
-    ?? itemLocs.find(x => (x.item.travel_methods ?? []).includes("bus")) ?? null;
-  const flightLoc = itemLocs.find(x => (x.item.travel_methods ?? []).includes("flight")) ?? null;
 
   return (
     <div>
@@ -2395,9 +2381,6 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
         tourId={tour.id}
         onSaveTour={onTourChange}
         onSaveHostPhone={onSaveHostPhone}
-        onEditFlight={flightLoc ? () => openEditItem(flightLoc.dayId, flightLoc.item) : null}
-        onEditHotel={hotelLoc ? () => openEditItem(hotelLoc.dayId, hotelLoc.item) : null}
-        onEditBus={busLoc ? () => openEditItem(busLoc.dayId, busLoc.item) : null}
       />
 
       {/* Summary of Itinerary (read only). Staff always see it here; which

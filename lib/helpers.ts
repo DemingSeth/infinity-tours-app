@@ -78,6 +78,9 @@ export const ACTIVITY_SUBTYPES = [
   { value: "broadway",       label: "Broadway" },
   { value: "play_show",      label: "Play / Show" },
   { value: "museum",         label: "Museum" },
+  // October 2026: useful on every tour.
+  { value: "swim",           label: "Swim" },
+  { value: "group_photo",    label: "Group Photo" },
   { value: "other",          label: "Other (write in)" },
 ] as const;
 

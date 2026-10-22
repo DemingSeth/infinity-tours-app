@@ -5,7 +5,7 @@ import {
   RollerCoaster, Music, Drama, Hotel, MapPin, Smile,
   Sun, Moon, Star, Umbrella, Sparkles, ClipboardList,
   Meh, Frown, Ticket, Landmark, Trophy, MicVocal, PackageOpen, PartyPopper,
-  Coffee, Sandwich, UtensilsCrossed, Cookie, type LucideIcon,
+  Sandwich, UtensilsCrossed, Waves, Camera, Cookie, type LucideIcon,
 } from "lucide-react";
 
 // Icons accept the same prop subset Lucide does, so custom SVGs and Lucide
@@ -28,6 +28,22 @@ function Svg({ size = 24, strokeWidth = 2, color = "currentColor", style, classN
       style={style} className={className}>
       {children}
     </svg>
+  );
+}
+
+// Breakfast: a stack of pancakes with a pat of butter and a syrup drip, on a
+// plate (October 2026, Linda; replaces the coffee cup, which did not suit the
+// many LDS groups who travel with Infinity).
+function Pancakes(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M2.5 21h19" />
+      <rect x="3.5" y="15" width="17" height="4" rx="2" />
+      <rect x="4.5" y="11" width="15" height="4" rx="2" />
+      <rect x="5.5" y="7" width="13" height="4" rx="2" />
+      <path d="M10.5 4.5h3" />
+      <path d="M8.5 11v2" />
+    </Svg>
   );
 }
 
@@ -183,12 +199,14 @@ export const ACTIVITY_SUBTYPE_ICONS: Record<string, AgendaIcon> = {
   broadway: Drama,
   play_show: Ticket,
   museum: Landmark,
+  swim: Waves,
+  group_photo: Camera,
   other: Sparkles,
 };
 
 // Dining sub-types (stored in activity_subtypes like the others).
 export const FOOD_SUBTYPE_ICONS: Record<string, AgendaIcon> = {
-  breakfast: Coffee,
+  breakfast: Pancakes,
   lunch: Sandwich,
   dinner: UtensilsCrossed,
   snack: Cookie,

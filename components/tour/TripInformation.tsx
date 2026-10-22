@@ -121,12 +121,6 @@ interface TripInformationProps {
   onSaveTour?: (patch: Record<string, any>) => void | Promise<void>;
   /** Persists the tour host phone to the logged-in user's tour_hosts record (legacy sync). */
   onSaveHostPhone?: (phone: string | null) => void | Promise<void>;
-  /** Opens the flight itinerary item's edit modal. Null when no flight item exists. */
-  onEditFlight?: (() => void) | null;
-  /** Opens the hotel itinerary item's edit modal. Null when no hotel item exists. */
-  onEditHotel?: (() => void) | null;
-  /** Opens the bus itinerary item's edit modal. Null when no bus item exists. */
-  onEditBus?: (() => void) | null;
   /** Print/PDF export: render contact info as plain (non-clickable) text and drop
    *  attachment/file links, which do nothing on paper. */
   print?: boolean;
@@ -214,7 +208,7 @@ function PersonListEditor({ people, onChange, namePlaceholder, contactPlaceholde
   );
 }
 
-export default function TripInformation({ info, isHost = false, tourId, viewerRole, viewerPersona, initiallyCollapsed = false, onSaveTour, onSaveHostPhone, onEditFlight, onEditHotel, onEditBus, print = false }: TripInformationProps) {
+export default function TripInformation({ info, isHost = false, tourId, viewerRole, viewerPersona, initiallyCollapsed = false, onSaveTour, onSaveHostPhone, print = false }: TripInformationProps) {
   // Expanded by default; minimized from the second tour day onward (never in print).
   const [open, setOpen] = useState(print ? true : !initiallyCollapsed);
   const [editing, setEditing] = useState(false);
@@ -247,16 +241,52 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
   // currently entered on the form (live), so a just-added teacher is selectable.
   const teacherRefs = form.teachers.filter(t => t.name.trim() || t.contact.trim());
 
-  function startEdit() {
+  // What the Flight / Hotel / Bus rows show when no text has been typed:
+  // the details pulled from the itinerary. Editing prefills the box with it so
+  // the host edits right here (October 2026: the old "Edit Flight Item" link
+  // jumped to an itinerary item on another day, which was confusing).
+  const derivedText = {
+    flight: [info.flightName, info.flightAddress].filter(Boolean).join("\n"),
+    hotel: [info.hotelName, info.hotelAddress].filter(Boolean).join("\n"),
+    bus: [info.busCompany, [info.busContactName, info.busContactPhone].filter(Boolean).join(" · ")].filter(Boolean).join("\n"),
+  };
+  // The prefilled text, so an untouched box saves as blank and keeps following
+  // the itinerary.
+  const prefilled = useRef<{ flight: string; hotel: string; bus: string }>({ flight: "", hotel: "", bus: "" });
+  // Box to focus once the editor opens (set by the row's Edit link).
+  const focusField = useRef<"flight" | "hotel" | "bus" | null>(null);
+  const fieldRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
+  useEffect(() => {
+    const key = focusField.current;
+    if (!editing || !key) return;
+    focusField.current = null;
+    const el = fieldRefs.current[key];
+    if (el) {
+      el.scrollIntoView({ block: "center", behavior: "smooth" });
+      el.focus({ preventScroll: true });
+      el.setSelectionRange(el.value.length, el.value.length);
+    }
+  }, [editing]);
+
+  function startEdit(focus?: "flight" | "hotel" | "bus") {
+    const flightTyped = info.overrides?.flight ?? "";
+    const hotelTyped = info.overrides?.hotel ?? "";
+    const busTyped = info.overrides?.bus ?? "";
+    prefilled.current = {
+      flight: flightTyped.trim() ? "" : derivedText.flight,
+      hotel: hotelTyped.trim() ? "" : derivedText.hotel,
+      bus: busTyped.trim() ? "" : derivedText.bus,
+    };
+    focusField.current = focus ?? null;
     setForm({
       teachers: (info.teachers ?? []).map(t => ({ name: t.name ?? "", contact: t.contact ?? "", id: t.id ?? null })),
       hosts: (info.tourHosts ?? []).map(h => ({ name: h.name ?? "", contact: h.contact ?? "", id: h.id ?? null, url: h.url ?? "" })),
       consultants: (info.consultants ?? []).map(c => ({ name: c.name ?? "", contact: c.contact ?? "", id: c.id ?? null })),
       busCapacity: info.busCapacity != null ? String(info.busCapacity) : "",
       participantsOverride: info.participantsOverride ?? "",
-      flightOverride: info.overrides?.flight ?? "",
-      hotelOverride: info.overrides?.hotel ?? "",
-      busOverride: info.overrides?.bus ?? "",
+      flightOverride: flightTyped.trim() ? flightTyped : derivedText.flight,
+      hotelOverride: hotelTyped.trim() ? hotelTyped : derivedText.hotel,
+      busOverride: busTyped.trim() ? busTyped : derivedText.bus,
       departureOverride: info.overrides?.departure ?? "",
       returnOverride: info.overrides?.return ?? "",
       customRows: (info.customRows ?? []).map(r => ({ id: r.id, label: r.label ?? "", value: r.value ?? "", url: r.url ?? "", visibility: { ...(r.visibility ?? {}) }, confirmation: r.confirmation === true })),
@@ -265,6 +295,14 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
     setOpen(true);
     setEditing(true);
   }
+
+  // Saved text for a Flight / Hotel / Bus box. Left exactly as prefilled from
+  // the itinerary, it stays blank so the row keeps following the itinerary.
+  const typedOrNull = (value: string, pre: string) => {
+    const v = value.trim();
+    if (!v || (pre && v === pre.trim())) return null;
+    return v;
+  };
 
   async function save() {
     setSaving(true);
@@ -302,9 +340,9 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
           bus_capacity: Number(form.busCapacity) || 0,
           participants_display_override: form.participantsOverride.trim() || null,
           trip_info_overrides: {
-            flight: form.flightOverride.trim() || null,
-            hotel: form.hotelOverride.trim() || null,
-            bus: form.busOverride.trim() || null,
+            flight: typedOrNull(form.flightOverride, prefilled.current.flight),
+            hotel: typedOrNull(form.hotelOverride, prefilled.current.hotel),
+            bus: typedOrNull(form.busOverride, prefilled.current.bus),
             departure: form.departureOverride.trim() || null,
             return: form.returnOverride.trim() || null,
           },
@@ -444,10 +482,12 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
     await onSaveTour?.({ driver_map_urls: next });
   }
 
-  // Read-only "Edit X Item →" link (host view only, when the item exists).
-  function editLink(onEdit: (() => void) | null | undefined, label: string) {
-    if (!isHost || !onEdit) return null;
-    return <div><button type="button" onClick={onEdit} style={linkBtnStyle}>{label}</button></div>;
+  // "Edit" link on the Flight / Hotel / Bus rows (host view only). Opens this
+  // card's own editor with that box focused; it no longer jumps to an
+  // itinerary item.
+  function editLink(field: "flight" | "hotel" | "bus", label: string) {
+    if (!isHost || print || !onSaveTour) return null;
+    return <div><button type="button" onClick={() => startEdit(field)} style={linkBtnStyle}>{label}</button></div>;
   }
 
   // Contact info (phone / email / hotline): useful as text on paper, but a clickable
@@ -559,7 +599,7 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
 
   const overrideHint = (
     <div style={{ fontSize: 11, color: "var(--muted-2)", marginTop: 2 }}>
-      Type anything here (multiple flights, hotels, buses, drivers…). Leave blank to use the itinerary item.
+      Edit freely (multiple flights, hotels, buses, drivers…). This changes Trip Information only, not the itinerary. Clear it to go back to the itinerary details.
     </div>
   );
 
@@ -708,11 +748,10 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
       label: "Flight",
       content: editing ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <textarea style={textareaStyle} value={form.flightOverride}
+          <textarea ref={el => { fieldRefs.current.flight = el; }} style={textareaStyle} value={form.flightOverride}
             placeholder={"e.g.\nDelta 1642 · SLC → JFK · 8:05 AM\nDelta 2210 · JFK → SLC · 6:40 PM"}
             onChange={e => setForm(f => ({ ...f, flightOverride: e.target.value }))} />
           {overrideHint}
-          {onEditFlight && <button type="button" onClick={onEditFlight} style={linkBtnStyle}>Edit Flight Item →</button>}
           {renderConf("flight", "Flight Confirmation")}
         </div>
       ) : (
@@ -727,7 +766,7 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
           ) : (
             <div style={{ color: "var(--muted-2)" }}>{isHost ? "Add a flight travel item, or click Edit to type flight info here." : "—"}</div>
           )}
-          {editLink(onEditFlight, "Edit Flight Item →")}
+          {editLink("flight", "Edit Flight")}
           {renderConf("flight", "Flight Confirmation")}
         </>
       ),
@@ -737,11 +776,10 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
       label: "Hotel",
       content: editing ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <textarea style={textareaStyle} value={form.hotelOverride}
+          <textarea ref={el => { fieldRefs.current.hotel = el; }} style={textareaStyle} value={form.hotelOverride}
             placeholder={"e.g.\nHoliday Inn Chelsea (nights 1-3)\nMarriott Downtown (nights 4-5)"}
             onChange={e => setForm(f => ({ ...f, hotelOverride: e.target.value }))} />
           {overrideHint}
-          {onEditHotel && <button type="button" onClick={onEditHotel} style={linkBtnStyle}>Edit Hotel Item →</button>}
           {renderConf("hotel", "Hotel Confirmation")}
         </div>
       ) : (
@@ -754,7 +792,7 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
               {info.hotelAddress && <div style={{ color: "var(--muted)" }}>{info.hotelAddress}</div>}
             </>
           )}
-          {editLink(onEditHotel, "Edit Hotel Item →")}
+          {editLink("hotel", "Edit Hotel")}
           {renderConf("hotel", "Hotel Confirmation")}
         </>
       ),
@@ -765,13 +803,12 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
       label: "Bus",
       content: editing ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <textarea style={textareaStyle} value={form.busOverride}
+          <textarea ref={el => { fieldRefs.current.bus = el; }} style={textareaStyle} value={form.busOverride}
             placeholder={"e.g.\nHoliday Motor Coach · 2 buses\nDriver: Ray · (801) 555-0114"}
             onChange={e => setForm(f => ({ ...f, busOverride: e.target.value }))} />
           {overrideHint}
           <input type="number" min={0} style={inputStyle} value={form.busCapacity} placeholder="Bus capacity"
             onChange={e => setForm(f => ({ ...f, busCapacity: e.target.value }))} />
-          {onEditBus && <button type="button" onClick={onEditBus} style={linkBtnStyle}>Edit Bus Item →</button>}
           {renderConf("bus", "Bus Confirmation")}
         </div>
       ) : (
@@ -801,7 +838,7 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
               {info.busDriverPhone && link(telHref(info.busDriverPhone), info.busDriverPhone)}
             </div>
           )}
-          {editLink(onEditBus, "Edit Bus Item →")}
+          {editLink("bus", "Edit Bus")}
           {renderConf("bus", "Bus Confirmation")}
         </>
       ),
@@ -1000,7 +1037,7 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
         {isHost && !editing && (
           <button
             type="button"
-            onClick={startEdit}
+            onClick={() => startEdit()}
             title="Edit Trip Information"
             style={{
               display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(255,255,255,0.15)",
