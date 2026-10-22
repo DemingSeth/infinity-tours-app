@@ -1,5 +1,7 @@
 "use client";
 
+import { useId } from "react";
+
 import {
   Plane, Bus, TrainFront, CarTaxiFront, TramFront, Sailboat, Ship, Fuel,
   RollerCoaster, Music, Drama, Hotel, MapPin, Smile,
@@ -31,19 +33,33 @@ function Svg({ size = 24, strokeWidth = 2, color = "currentColor", style, classN
   );
 }
 
-// Breakfast: a stack of pancakes with a pat of butter and a syrup drip, on a
-// plate (October 2026, Linda; replaces the coffee cup, which did not suit the
-// many LDS groups who travel with Infinity).
-function Pancakes(props: IconProps) {
+// Breakfast: a filled stack of pancakes with a pat of butter, syrup dripping
+// down the side, on a plate (October 2026, Linda; replaces the coffee cup,
+// which did not suit the many LDS groups who travel with Infinity). Drawn
+// solid, with the gaps between layers and the syrup's edge cut out by a mask
+// so it reads on any background in light and dark mode.
+function Pancakes({ size = 24, color = "currentColor", style, className }: IconProps) {
+  const id = useId().replace(/:/g, "");
   return (
-    <Svg {...props}>
-      <path d="M2.5 21h19" />
-      <rect x="3.5" y="15" width="17" height="4" rx="2" />
-      <rect x="4.5" y="11" width="15" height="4" rx="2" />
-      <rect x="5.5" y="7" width="13" height="4" rx="2" />
-      <path d="M10.5 4.5h3" />
-      <path d="M8.5 11v2" />
-    </Svg>
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24"
+      style={{ ...(color !== "currentColor" ? { color } : {}), ...style }} className={className}>
+      <defs>
+        <mask id={`pancake-cut-${id}`}>
+          <rect width="24" height="24" fill="#fff" />
+          <path d="M1 12.6H4.95V15a1.65 1.65 0 0 0 3.3 0V12.6H10.55V13.6a1.65 1.65 0 0 0 3.3 0V12.6H15.95V14.4a1.65 1.65 0 0 0 3.3 0V12.6H23"
+            fill="none" stroke="#000" strokeWidth="0.8" strokeLinejoin="round" />
+          <path d="M1 17H23" stroke="#000" strokeWidth="0.8" />
+        </mask>
+      </defs>
+      <g fill="currentColor" mask={`url(#pancake-cut-${id})`}>
+        <rect x="10" y="4.4" width="4" height="2.6" rx="0.6" />
+        <rect x="3" y="8" width="18" height="4.2" rx="2.1" />
+        <path d="M5.4 11h2.4v4a1.2 1.2 0 0 1-2.4 0z M11 11h2.4v2.6a1.2 1.2 0 0 1-2.4 0z M16.4 11h2.4v3.4a1.2 1.2 0 0 1-2.4 0z" />
+        <rect x="2.4" y="13" width="19.2" height="3.6" rx="1.8" />
+        <rect x="2" y="17.4" width="20" height="3" rx="1.5" />
+        <rect x="0.8" y="21.2" width="22.4" height="1.6" rx="0.8" />
+      </g>
+    </svg>
   );
 }
 
