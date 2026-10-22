@@ -142,6 +142,7 @@ export default function PipelineClient({ initialTours, currentHostId, currentHos
         banner_focus_y: source.banner_focus_y,
         groups: source.groups,
         confirmations_teacher_visible: source.confirmations_teacher_visible,
+        confirmation_personas: source.confirmation_personas ?? [],
         internal_notes_teacher_visible: source.internal_notes_teacher_visible,
         summary_personas: source.summary_personas,
         trip_info_row_order: source.trip_info_row_order,

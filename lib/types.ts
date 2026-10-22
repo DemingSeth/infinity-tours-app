@@ -255,6 +255,10 @@ export interface TourRow {
   // also shown on the Teacher view. Tour hosts always see them; students,
   // chaperones and bus drivers never do.
   confirmations_teacher_visible: boolean;
+  // Personas (besides the Tour Host, who always sees them) that see
+  // confirmation documents on shared links (October 2026). Teacher stays in
+  // sync with confirmations_teacher_visible.
+  confirmation_personas?: string[] | null;
   // When true, every Internal Note also shows on the Teacher view (tours with
   // no traveling Tour Host, where the teacher runs the trip).
   internal_notes_teacher_visible: boolean;
@@ -564,6 +568,7 @@ export interface TripInfo {
   personaLabels: Record<string, string>;
   // Whether teachers may see the confirmation links.
   confirmationsTeacherVisible: boolean;
+  confirmationPersonas: string[];
   // Whether teachers see every internal note (no traveling Tour Host).
   internalNotesTeacherVisible: boolean;
   // Persona keys that see the Summary of Itinerary (default Tour Host only).

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
-import { BRAND, ROLES, DEFAULT_VISIBILITY, PERSONAS, activePersonaKeys, personaColors, personaLabel, BANNER_OVERLAY_GRADIENT } from "@/lib/helpers";
+import { BRAND, ROLES, DEFAULT_VISIBILITY, PERSONAS, activePersonaKeys, personaColors, personaLabel, BANNER_OVERLAY_GRADIENT, confirmationPersonaList } from "@/lib/helpers";
 import { I, Field, Inp, Btn } from "@/components/tour/ui";
 import FocalPointPicker from "@/components/tour/FocalPointPicker";
 import BannerLibraryPicker from "@/components/tour/BannerLibraryPicker";
@@ -407,28 +407,40 @@ export default function SettingsTab({ tour, isOwner, viewerIsAdmin, currentUserI
       {/* Groups for multi-group tours */}
       <GroupsConfig tour={tour} isOwner={isOwner} onTourChange={onTourChange} />
 
-      {/* Confirmation links: tour host only by default, optionally the teacher view */}
-      <div style={{ background: "var(--surface)", border: "1.5px solid var(--border-soft)", borderRadius: 14, padding: 20 }}>
-        <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 15, fontWeight: 400, color: "var(--ink)", marginBottom: 12 }}>Confirmations</div>
-        <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 12px", lineHeight: 1.6 }}>
-          Confirmation links (flight, hotel and bus in Trip Information, plus the confirmations attached to itinerary items) are shown to the Tour Host only. Students, chaperones and bus drivers never see them.
-        </p>
-        <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: isOwner ? "pointer" : "default" }}>
-          <input
-            type="checkbox"
-            checked={tour.confirmations_teacher_visible === true}
-            disabled={!isOwner}
-            onChange={() => onTourChange({ confirmations_teacher_visible: !(tour.confirmations_teacher_visible === true) })}
-            style={{ accentColor: BRAND.navy, width: 16, height: 16, marginTop: 1, cursor: isOwner ? "pointer" : "default", flexShrink: 0 }}
-          />
-          <span>
-            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>Also show confirmation links on the Teacher view</span>
-            <span style={{ display: "block", fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
-              Off by default. Turn on when the teacher or director should be able to open the booking confirmations.
-            </span>
-          </span>
-        </label>
-      </div>
+      {/* Confirmation documents: the Tour Host always sees them; pick which
+          other shared links do too (October 2026, was a Teacher-only switch). */}
+      {(() => {
+        const current = confirmationPersonaList(tour);
+        const keys = activePersonaKeys(tour.active_personas).filter(k => k !== "tour_host");
+        const toggle = (k: string) => {
+          const next = current.includes(k) ? current.filter(x => x !== k) : [...current, k];
+          onTourChange({ confirmation_personas: next, confirmations_teacher_visible: next.includes("teacher") });
+        };
+        return (
+          <div style={{ background: "var(--surface)", border: "1.5px solid var(--border-soft)", borderRadius: 14, padding: 20 }}>
+            <div style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 15, fontWeight: 400, color: "var(--ink)", marginBottom: 12 }}>Confirmations</div>
+            <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 12px", lineHeight: 1.6 }}>
+              Confirmation documents (flight, hotel and bus in Trip Information, plus the confirmations attached to itinerary items) always show to the Tour Host. Check anyone else who should be able to open them on their link.
+            </p>
+            {keys.length === 0 ? (
+              <div style={{ fontSize: 12, color: "var(--muted-2)" }}>Turn on a participant persona above to share confirmations with it.</div>
+            ) : (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
+                {keys.map(k => (
+                  <label key={k} style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 13, color: "var(--text)", cursor: isOwner ? "pointer" : "default" }}>
+                    <input type="checkbox" checked={current.includes(k)} disabled={!isOwner} onChange={() => toggle(k)}
+                      style={{ accentColor: BRAND.navy, width: 15, height: 15 }} />
+                    {personaLabel(k, tour.persona_labels)}
+                  </label>
+                ))}
+              </div>
+            )}
+            <div style={{ fontSize: 11, color: "var(--muted-2)", marginTop: 10 }}>
+              A custom Trip Information row also shares its documents with whoever that row is shown to.
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Summary of Itinerary: which shared views show it (September 2026). */}
       {(() => {

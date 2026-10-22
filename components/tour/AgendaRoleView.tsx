@@ -9,7 +9,7 @@ import GeneralFeedback from "@/components/tour/GeneralFeedback";
 import TripInformation from "@/components/tour/TripInformation";
 import ItineraryHeaderTile from "@/components/tour/ItineraryHeaderTile";
 import GoogleMapsLink from "@/components/shared/GoogleMapsLink";
-import { BRAND, ROLES, DEFAULT_VISIBILITY, isItemVisibleTo, personaColors, orderAgendaItems, parseAgendaDate, agendaDayDateLabel, initialCollapsedDays, tripInfoStartsCollapsed, itemMatchesGroup, resolveIconColor, canSeeInternalNote, internalNoteLabel, orderAgendaDays, paymentStatus, PAYMENT_LABEL, hasPaymentInfo, isItemConfirmed } from "@/lib/helpers";
+import { BRAND, ROLES, DEFAULT_VISIBILITY, isItemVisibleTo, personaColors, orderAgendaItems, parseAgendaDate, agendaDayDateLabel, initialCollapsedDays, tripInfoStartsCollapsed, itemMatchesGroup, resolveIconColor, canSeeInternalNote, internalNoteLabel, orderAgendaDays, paymentStatus, PAYMENT_LABEL, hasPaymentInfo, isItemConfirmed, confirmationsVisibleTo } from "@/lib/helpers";
 import NoteText from "@/components/shared/NoteText";
 import AddressText from "@/components/shared/AddressText";
 import MapFileThumb from "@/components/shared/MapFileThumb";
@@ -68,13 +68,14 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
 
   // Who sees what on a shared link (September 2026, Amy / Westlake):
   // - Item confirmations (the PDFs and links attached to itinerary items) show
-  //   to the Tour Host always, and to the Teacher when Settings > Confirmations
-  //   has "Also show confirmation links on the Teacher view" on. The same rule
-  //   Trip Information already used for flight / hotel / bus confirmations.
-  //   Students, chaperones and bus drivers never see them.
+  //   to the Tour Host always, and to whichever personas are checked in
+  //   Settings > Confirmations. The same rule Trip Information uses for
+  //   flight / hotel / bus confirmations.
   // - "No Tour Host traveling" puts every internal note on the Teacher view.
-  const isTeacherViewer = personaKey ? personaKey === "teacher" : role === "teacher";
-  const showItemConfirmations = !print && (role === "coordinator" || (isTeacherViewer && !!tripInfo?.confirmationsTeacherVisible));
+  // October 2026: any persona picked in Settings > Confirmations, not only the
+  // Teacher. Role links without a persona map to their persona key.
+  const viewerConfPersona = personaKey ?? (role === "coordinator" ? "tour_host" : role === "driver" ? "bus_driver" : role);
+  const showItemConfirmations = !print && (role === "coordinator" || confirmationsVisibleTo(tripInfo, viewerConfPersona));
   const allNotesToTeacher = !!tripInfo?.internalNotesTeacherVisible;
 
   // Feedback is for participants rating activities. Show it for all participant

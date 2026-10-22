@@ -649,6 +649,7 @@ export function buildTripInfo({ tour, members, days, hostName, hostPhone, confir
     activePersonas: active,
     personaLabels: labels ?? {},
     confirmationsTeacherVisible: tour?.confirmations_teacher_visible === true,
+    confirmationPersonas: confirmationPersonaList(tour),
     internalNotesTeacherVisible: tour?.internal_notes_teacher_visible === true,
     summaryPersonas: Array.isArray(tour?.summary_personas) ? (tour.summary_personas as string[]) : ["tour_host"],
     rowOrder: Array.isArray(tour?.trip_info_row_order) ? (tour.trip_info_row_order as string[]).filter(k => typeof k === "string") : [],
@@ -671,6 +672,21 @@ export function buildTripInfo({ tour, members, days, hostName, hostPhone, confir
     hasBus: busItems.length > 0 && !!(busCompany || bus?.contact_name || bus?.contact_phone),
     confirmations: confirmations ?? [],
   };
+}
+
+// ─── Who sees confirmation documents on shared links (October 2026) ────────────
+// The Tour Host always does. Others are picked in Settings > Confirmations.
+// Older tours only had the Teacher on/off switch, which still counts.
+export function confirmationPersonaList(tour: { confirmation_personas?: unknown; confirmations_teacher_visible?: unknown } | null | undefined): string[] {
+  const list = Array.isArray(tour?.confirmation_personas) ? (tour!.confirmation_personas as unknown[]).filter((k): k is string => typeof k === "string") : [];
+  if (tour?.confirmations_teacher_visible === true && !list.includes("teacher")) list.push("teacher");
+  return list;
+}
+
+export function confirmationsVisibleTo(info: Pick<TripInfo, "confirmationPersonas"> | null | undefined, persona: string | null | undefined): boolean {
+  if (!persona) return false;
+  if (persona === "tour_host") return true;
+  return (info?.confirmationPersonas ?? []).includes(persona);
 }
 
 // Which Trip Information transport sections to render. SINGLE source of truth so

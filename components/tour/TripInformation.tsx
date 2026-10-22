@@ -4,7 +4,7 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronRight, Pencil, Paperclip, Upload, X, Link as LinkIcon, Plus, ImagePlus, Map, ArrowUp, ArrowDown, GripVertical } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import MapFileThumb from "@/components/shared/MapFileThumb";
-import { BRAND, formatFullDate, showTripSection, customRowVisibleTo, activePersonaKeys, personaLabel } from "@/lib/helpers";
+import { BRAND, formatFullDate, showTripSection, confirmationsVisibleTo, customRowVisibleTo, activePersonaKeys, personaLabel } from "@/lib/helpers";
 import type { TripInfo, Role, PersonnelRow } from "@/lib/types";
 
 // Tour-level confirmations reuse the existing public storage bucket.
@@ -500,8 +500,7 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
   function viewerMaySeeConfs(shownTo?: Record<string, boolean> | null) {
     if (isHost) return true;
     const persona = viewerPersona ?? (viewerRole === "coordinator" ? "tour_host" : viewerRole);
-    return persona === "tour_host"
-      || (persona === "teacher" && info.confirmationsTeacherVisible)
+    return confirmationsVisibleTo(info, persona)
       || (!!persona && shownTo?.[persona] === true);
   }
 
