@@ -4,6 +4,7 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronRight, Pencil, Paperclip, Upload, X, Link as LinkIcon, Plus, ImagePlus, Map, ArrowUp, ArrowDown, GripVertical } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import MapFileThumb from "@/components/shared/MapFileThumb";
+import { printableUrl } from "@/components/tour/itemConfirmation";
 import { BRAND, formatFullDate, showTripSection, confirmationsVisibleTo, customRowVisibleTo, activePersonaKeys, personaLabel } from "@/lib/helpers";
 import type { TripInfo, Role, PersonnelRow } from "@/lib/types";
 
@@ -509,14 +510,28 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
   // Linda: a "Cruise" row shown to the Family Cruise view showed the row text
   // but none of the reservation PDFs).
   function renderConf(type: string, label: string, shownTo?: Record<string, boolean> | null) {
-    // Confirmation attachments are file links, nothing to click on paper.
-    if (print) return null;
     const list = confsByType(type);
     const isExternal = (c: ConfItem) => !c.file_url.includes(`/${STORAGE_BUCKET}/`);
     // Older rows were saved with the row's own label ("Flight Confirmation");
     // newer ones carry the file name. Show whichever is there.
     const nameOf = (c: ConfItem, i: number) =>
       (c.label?.trim() || (list.length > 1 ? `${label} ${i + 1}` : label));
+    if (print) {
+      // Paper (October 2026, Linda): list each document by name, and write
+      // links out, for whoever may see them. They stay links in a saved PDF.
+      if (list.length === 0 || !viewerMaySeeConfs(shownTo)) return null;
+      return (
+        <div style={{ marginTop: 4, display: "flex", flexDirection: "column", gap: 2, wordBreak: "break-all" }}>
+          {list.map((c, i) => (
+            <a key={c.id ?? c.file_url} href={c.file_url}
+              style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "var(--sky-text)", fontWeight: 600, fontSize: 11, textDecoration: "none" }}>
+              {isExternal(c) ? <LinkIcon size={11} style={{ flexShrink: 0 }} /> : <Paperclip size={11} style={{ flexShrink: 0 }} />}
+              {nameOf(c, i)}{isExternal(c) ? `: ${printableUrl(c.file_url)}` : ""}
+            </a>
+          ))}
+        </div>
+      );
+    }
     if (!isHost) {
       // Participant view: confirmation links are for the Tour Host, and for the
       // Teacher view only when the host has turned that on (August 2026
@@ -893,7 +908,12 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
           )}
           {r.url ? (
             print ? (
-              <span style={{ whiteSpace: "pre-wrap" }}>{r.value || r.label || r.url}</span>
+              // Paper: the text plus the address written out (October 2026).
+              <span style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                {r.value || r.label}
+                {(r.value || r.label) ? <br /> : null}
+                <a href={externalHref(r.url)} style={{ ...linkStyle, wordBreak: "break-all" }}>{printableUrl(r.url)}</a>
+              </span>
             ) : (
               <a href={externalHref(r.url)} target="_blank" rel="noreferrer" style={{ ...linkStyle, display: "inline-flex", alignItems: "flex-start", gap: 5, whiteSpace: "pre-wrap" }}>
                 <LinkIcon size={12} style={{ flexShrink: 0, marginTop: 3 }} />{r.value || r.label || r.url}
@@ -1008,7 +1028,7 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
     // carries a document this viewer may open.
     if (r.id === "flight" || r.id === "bus") {
       return showTripSection(r.id, info, { isHost })
-        || (!print && viewerMaySeeConfs() && confsByType(r.id).length > 0);
+        || (viewerMaySeeConfs() && confsByType(r.id).length > 0);
     }
     return true;
   });

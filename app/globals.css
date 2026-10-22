@@ -324,12 +324,13 @@ body {
     font-size: 34px !important;
   }
 }
-/* Print / PDF keeps the compact band so the itinerary is not pushed onto an
-   extra page. */
-.hero-tile--print {
-  aspect-ratio: auto !important;
-  min-height: 0 !important;
-  max-height: none !important;
+/* Print / PDF uses the same tall 3:1 photo band as the screen (October 2026,
+   Linda: the printout still had the old short header). About 240px tall on a
+   Letter page. A tile without a photo stays compact. */
+.hero-tile--print.hero-tile--photo {
+  aspect-ratio: 3 / 1 !important;
+  min-height: 185px !important;
+  max-height: 260px !important;
 }
 
 /* Half-screen desktop windows and tablets: tighter nav. */

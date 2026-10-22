@@ -47,6 +47,14 @@ export function fileLabel(url: string): string {
   return decodeURIComponent(base).replace(/^\d+-/, "");
 }
 
+// A link written out for paper: no "https://" or "www.", trailing slash
+// dropped, and very long addresses shortened in the middle so they stay on
+// one or two lines.
+export function printableUrl(url: string, max = 70): string {
+  const t = url.trim().replace(/^https?:\/\//i, "").replace(/^www\./i, "").replace(/\/$/, "");
+  return t.length > max ? `${t.slice(0, max - 20)}…${t.slice(-17)}` : t;
+}
+
 export const isPdf = (url: string) => /\.pdf(\?|$)/i.test(url);
 
 export type ConfirmationPatch = {
@@ -199,8 +207,24 @@ export function NoConfirmationToggle({ checked, onChange }: {
 
 // Compact, read-only chips for already-attached confirmation files. Used to show
 // confirmations inline (e.g. itinerary rows) without any upload/edit chrome.
-export function ConfirmationFileChips({ urls }: { urls: string[] }) {
+export function ConfirmationFileChips({ urls, print = false }: { urls: string[]; print?: boolean }) {
   if (urls.length === 0) return null;
+  // Paper (October 2026, Linda): list each confirmation by name, and write
+  // external links out in full so they can be read and typed. They stay links,
+  // so a saved PDF is still clickable.
+  if (print) {
+    return (
+      <>
+        {urls.map(url => (
+          <a key={url} href={isExternalLink(url) ? externalHref(url) : url}
+            style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "var(--green-text)", textDecoration: "none", wordBreak: "break-all" }}>
+            {isExternalLink(url) ? <LinkIcon size={11} style={{ flexShrink: 0 }} /> : isPdf(url) ? <FileText size={11} style={{ flexShrink: 0 }} /> : <ImageIcon size={11} style={{ flexShrink: 0 }} />}
+            {isExternalLink(url) ? printableUrl(url) : fileLabel(url)}
+          </a>
+        ))}
+      </>
+    );
+  }
   return (
     <>
       {urls.map(url => (

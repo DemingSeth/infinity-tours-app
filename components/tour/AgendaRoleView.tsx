@@ -15,7 +15,7 @@ import AddressText from "@/components/shared/AddressText";
 import MapFileThumb from "@/components/shared/MapFileThumb";
 import ItinerarySummary from "@/components/tour/ItinerarySummary";
 import { summaryVisibleTo } from "@/lib/itinerarySummary";
-import { ConfirmationFileChips } from "@/components/tour/itemConfirmation";
+import { ConfirmationFileChips, printableUrl } from "@/components/tour/itemConfirmation";
 import type { AgendaDayWithItems, Role, TripInfo, TourGroup } from "@/lib/types";
 
 interface Props {
@@ -75,7 +75,9 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
   // October 2026: any persona picked in Settings > Confirmations, not only the
   // Teacher. Role links without a persona map to their persona key.
   const viewerConfPersona = personaKey ?? (role === "coordinator" ? "tour_host" : role === "driver" ? "bus_driver" : role);
-  const showItemConfirmations = !print && (role === "coordinator" || confirmationsVisibleTo(tripInfo, viewerConfPersona));
+  // Printed too (October 2026, Linda): listed by name so the paper copy shows
+  // what is booked, even though nothing on paper can be clicked.
+  const showItemConfirmations = role === "coordinator" || confirmationsVisibleTo(tripInfo, viewerConfPersona);
   const allNotesToTeacher = !!tripInfo?.internalNotesTeacherVisible;
 
   // Feedback is for participants rating activities. Show it for all participant
@@ -266,7 +268,7 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
               {day.title?.trim() && (
                 <span style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", color: "#fff", fontWeight: 400, fontSize: 15, minWidth: 0 }}>{day.title.trim()}</span>
               )}
-              <span style={{ color: "rgba(255,255,255,.4)", fontSize: 11 }}>{items.length} item{items.length !== 1 ? "s" : ""}</span>
+              {!print && <span style={{ color: "rgba(255,255,255,.4)", fontSize: 11 }}>{items.length} item{items.length !== 1 ? "s" : ""}</span>}
             </div>
             {!collapsed && (
             <div>
@@ -342,7 +344,22 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
 
                       <AgendaImages urls={item.image_urls} fullWidth print={print} sizes={item.image_sizes} />
 
-                      {/* A bare "Website" link does nothing on paper — omit in print. */}
+                      {/* On paper the links are written out (October 2026, Linda),
+                          since "Website" alone cannot be clicked. */}
+                      {print && (item.website?.trim() || item.elevate_url?.trim()) && (
+                        <div style={{ fontSize: 11, marginTop: mt(3), color: "var(--text-2)", display: "flex", flexDirection: "column", gap: 1, wordBreak: "break-all" }}>
+                          {item.website?.trim() && (
+                            <a href={/^https?:\/\//i.test(item.website.trim()) ? item.website.trim() : `https://${item.website.trim()}`} style={{ color: BRAND.blue, textDecoration: "none" }}>
+                              <strong style={{ fontWeight: 700 }}>Website:</strong> {printableUrl(item.website)}
+                            </a>
+                          )}
+                          {item.elevate_url?.trim() && (
+                            <a href={/^https?:\/\//i.test(item.elevate_url.trim()) ? item.elevate_url.trim() : `https://${item.elevate_url.trim()}`} style={{ color: BRAND.blue, textDecoration: "none" }}>
+                              <strong style={{ fontWeight: 700 }}>Elevate Your Experience:</strong> {printableUrl(item.elevate_url)}
+                            </a>
+                          )}
+                        </div>
+                      )}
                       {!print && (item.website || item.elevate_url?.trim()) && (
                         <div style={{ fontSize: 12, marginTop: mt(3), display: "flex", gap: 14, flexWrap: "wrap", alignItems: "center" }}>
                           {item.website && (
@@ -420,13 +437,13 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                         </div>
                       )}
 
-                      {/* Item confirmations: Tour Host always, Teacher when the
-                          tour allows it. File links do nothing on paper, so
-                          print leaves them out (same as Trip Information). */}
+                      {/* Item confirmations: Tour Host always, plus the personas
+                          picked in Settings > Confirmations. On paper they are
+                          listed by name (links written out). */}
                       {showItemConfirmations && (item.confirmation_urls?.length ?? 0) > 0 && (
                         <div style={{ marginTop: mt(6), display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                           <span style={{ fontSize: 10, fontWeight: 700, color: "var(--green-text)", textTransform: "uppercase", letterSpacing: 0.5 }}>Confirmation</span>
-                          <ConfirmationFileChips urls={item.confirmation_urls ?? []} />
+                          <ConfirmationFileChips urls={item.confirmation_urls ?? []} print={print} />
                         </div>
                       )}
 
