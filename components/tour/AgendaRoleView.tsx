@@ -276,13 +276,14 @@ export default function AgendaRoleView({ tourName, tourDestination, tourDates, b
                 <div key={item.id} className={print ? "print-item" : undefined} style={{ padding: print ? "6px 14px" : "12px 16px", borderTop: idx > 0 ? "1px solid var(--surface-3)" : undefined, breakInside: print ? "avoid" : undefined, background: !print && idx % 2 === 1 ? "var(--row-alt)" : undefined }}>
                   <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                     {/* Times: bold, navy like the title, one step larger so they
-                        pull the eye first (August 2026 request). */}
-                    {(item.time || item.end_time) && (
-                      <span style={{ fontSize: print ? 12 : 13, fontWeight: 700, color: "var(--ink)", minWidth: 60, paddingTop: 3, flexShrink: 0, lineHeight: 1.35 }}>
-                        {item.time}
-                        {item.end_time && <span style={{ display: "block", fontSize: print ? 11 : 12 }}>– {item.end_time}</span>}
-                      </span>
-                    )}
+                        pull the eye first (August 2026 request). The column is
+                        always there, empty for an untimed item, so its icon and
+                        title line up with the rest (October 2026, Linda). */}
+                    <span aria-hidden={!(item.time || item.end_time) || undefined}
+                      style={{ fontSize: print ? 12 : 13, fontWeight: 700, color: "var(--ink)", width: 66, flexShrink: 0, whiteSpace: "nowrap", paddingTop: 3, lineHeight: 1.35 }}>
+                      {item.time}
+                      {item.end_time && <span style={{ display: "block", fontSize: print ? 11 : 12 }}>– {item.end_time}</span>}
+                    </span>
                     <TypeDot type={item.type} travelMethod={(item.travel_methods ?? [])[0] ?? null} subtype={(item.activity_subtypes ?? [])[0] ?? null} size={24} color={resolveIconColor(item)} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" }}>
