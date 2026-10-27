@@ -5,7 +5,7 @@ import {
   RollerCoaster, Music, Drama, Hotel, MapPin, Smile,
   Sun, Moon, Star, Umbrella, Sparkles, ClipboardList,
   Meh, Frown, Ticket, Landmark, Trophy, MicVocal, PackageOpen, PartyPopper,
-  Sandwich, UtensilsCrossed, Waves, Camera, Cookie, type LucideIcon,
+  Sandwich, UtensilsCrossed, Waves, Camera, Clock, Cookie, type LucideIcon,
 } from "lucide-react";
 
 // Icons accept the same prop subset Lucide does, so custom SVGs and Lucide
@@ -227,6 +227,7 @@ export const GENERAL_SUBTYPE_ICONS: Record<string, AgendaIcon> = {
   general: Smile,
   highlight: Star,
   weather: Umbrella,
+  time_change: Clock,
 };
 
 // Sub-type icon map for a top-level type. Travel keeps its own map; activity,

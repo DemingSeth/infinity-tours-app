@@ -29,6 +29,8 @@ import { autoInSummary } from "@/lib/itinerarySummary";
 import LinkableNoteField from "@/components/shared/LinkableNoteField";
 import ItemConfirmationControl, { ConfirmationFileChips, type ConfirmationPatch } from "@/components/tour/itemConfirmation";
 import ItineraryHeaderTile from "@/components/tour/ItineraryHeaderTile";
+import CopyDayModal, { type BuildCopyRow, type CopiedIntoThisTour } from "@/components/tour/CopyDayModal";
+import type { EditorViewer } from "@/lib/roles";
 import { MapPin, Phone, Bus, Lock, Eye, Clock, ImagePlus, Printer, Check, GripVertical, X as XIcon, Copy, CopyPlus, Sparkles, Tag, ChevronsUpDown } from "lucide-react";
 import type {
   TourRow, AgendaDayWithItems, AgendaItemWithFeedback,
@@ -1452,9 +1454,11 @@ interface AgendaTabProps {
   onSaveHostPhone: (phone: string | null) => void | Promise<void>;
   recentlyAddedPersona?: string | null;
   onDismissAddedPersona?: () => void;
+  /** The signed-in user, so Copy Day can list the tours they may edit. */
+  viewer?: EditorViewer | null;
 }
 
-export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDaysChange, onTourChange, onSaveHostPhone, recentlyAddedPersona, onDismissAddedPersona }: AgendaTabProps) {
+export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDaysChange, onTourChange, onSaveHostPhone, recentlyAddedPersona, onDismissAddedPersona, viewer }: AgendaTabProps) {
   // The displayed order. On a fully dated tour the dates decide (see
   // orderAgendaDays), so the itinerary is always chronological no matter what
   // sort_order a past add / move / delete left behind. Everything below reads
@@ -1542,6 +1546,8 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
   const undoItemTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // "Copy to days" picker for an item.
   const [copyCtx, setCopyCtx] = useState<{ dayId: string; item: AgendaItemWithFeedback } | null>(null);
+  // Copy a whole day to another tour (or this one), October 2026.
+  const [copyDayId, setCopyDayId] = useState<string | null>(null);
   const [copyTargets, setCopyTargets] = useState<Record<string, boolean>>({});
   const [copying, setCopying] = useState(false);
   // Multi-group tours: host-side filter so a host can review one group's view.
@@ -1749,6 +1755,11 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
   // share files with their source), so removing it from one item never deletes
   // the storage object the other item still shows.
   function isImageShared(url: string, exceptItemId: string): boolean {
+    // A file stored under ANOTHER tour's folder (a duplicated tour, or a photo
+    // that could not be copied with Copy Day) may still be shown there, and we
+    // cannot see that tour's items, so it is never deleted from here.
+    const path = storagePathFromUrl(url);
+    if (path && !path.startsWith(`${tour.id}/`)) return true;
     return daysRef.current.some(d => d.agenda_items.some(i =>
       i.id !== exceptItemId && ((i.image_urls ?? []).includes(url) || (i.driver_map_urls ?? []).includes(url)),
     ));
@@ -2143,6 +2154,29 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
     onDaysChange(next);
     setCopyCtx(null);
     setCopyTargets({});
+  }
+
+  // Copy Day: one item as a new row for the chosen tour and day. Same fields
+  // as Copy to Days; a copy starts unconfirmed and unpaid, and keeps only the
+  // group tags the target tour has.
+  const buildCopyRow: BuildCopyRow = (item, t) => {
+    const form = { ...itemToForm(item), confirmed: false, deposit_paid: false, cost_paid: false };
+    const row = { id: t.newId, ...formToInsert(form, t.dayId, t.sortOrder), tour_id: t.tourId, summary_include: item.summary_include ?? null };
+    if (t.tourId !== tour.id) row.group_tags = (row.group_tags ?? []).filter(g => (t.groupIds ?? []).includes(g));
+    return row;
+  };
+
+  function applyCopiedDay(r: CopiedIntoThisTour) {
+    const base = daysRef.current;
+    if (r.newDay) {
+      onDaysChange([...base, { ...r.newDay, agenda_items: r.items }]);
+      return;
+    }
+    onDaysChange(base.map(d => d.id !== r.dayId ? d : {
+      ...d,
+      agenda_items: [...d.agenda_items.map(i => r.reorder[i.id] != null ? { ...i, sort_order: r.reorder[i.id] } : i), ...r.items],
+    }));
+    setCollapsedDays(c => ({ ...c, [r.dayId]: false }));
   }
 
   // Cycles Unpaid, Deposit Paid, Paid in Full, Pay on-site, back to Unpaid.
@@ -2580,6 +2614,11 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
                     </button>
                   </div>
                   )}
+                  <button onClick={e => { e.stopPropagation(); setCopyDayId(day.id); }}
+                    title="Copy this day to another tour"
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,.55)", padding: 3, display: "flex", alignItems: "center" }}>
+                    <Copy size={13} />
+                  </button>
                   <DayVisibilityButton
                     dayId={day.id}
                     activePersonas={activePersonaKeys(tour.active_personas)}
@@ -2822,6 +2861,22 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
               </div>
             </div>
           </Modal>
+        );
+      })()}
+
+      {copyDayId && (() => {
+        const idx = days.findIndex(d => d.id === copyDayId);
+        if (idx === -1) return null;
+        return (
+          <CopyDayModal
+            sourceTourId={tour.id}
+            sourceDay={days[idx]}
+            sourceDayNumber={idx + 1}
+            viewer={viewer}
+            buildRow={buildCopyRow}
+            onCopiedHere={applyCopiedDay}
+            onClose={() => setCopyDayId(null)}
+          />
         );
       })()}
 

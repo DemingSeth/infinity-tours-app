@@ -251,6 +251,7 @@ export default function TourDetailClient({ tour: initialTour, initialMembers, in
           onSaveHostPhone={handleHostPhoneChange}
           recentlyAddedPersona={addedPersona}
           onDismissAddedPersona={() => setAddedPersona(null)}
+          viewer={viewer}
         />
       )}
       {tab === "roster" && (

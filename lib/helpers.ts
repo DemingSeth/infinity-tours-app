@@ -171,6 +171,8 @@ export const GENERAL_SUBTYPES = [
   { value: "general",   label: "General" },
   { value: "highlight", label: "Highlight" },
   { value: "weather",   label: "Weather" },
+  // October 2026: crossing a time zone on the tour.
+  { value: "time_change", label: "Time Change" },
 ] as const;
 
 // Sub-type option lists keyed by top-level type. Travel keeps its own field
