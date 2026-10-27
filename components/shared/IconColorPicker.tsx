@@ -34,7 +34,7 @@ export default function IconColorButton({
 }: {
   type: string;
   travelMethod?: string | null;
-  subtype?: string | null;
+  subtype?: string | readonly string[] | null;
   /** Current color (hex) or null for the type's default. */
   value: string | null;
   onChange: (hex: string | null) => void;
@@ -131,7 +131,7 @@ export function IconColorRow({
 }: {
   type: string;
   travelMethod?: string | null;
-  subtype?: string | null;
+  subtype?: string | readonly string[] | null;
   value: string | null;
   onChange: (hex: string | null) => void;
 }) {

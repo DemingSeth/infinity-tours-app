@@ -258,14 +258,18 @@ export function getAgendaTypeColor(type: string): string {
 export function getItemIcon(
   type: string,
   travelMethod?: string | null,
-  subtype?: string | null,
+  subtype?: string | readonly string[] | null,
 ): AgendaIcon {
   if (type === "travel" && travelMethod && TRAVEL_SUBTYPE_ICONS[travelMethod]) {
     return TRAVEL_SUBTYPE_ICONS[travelMethod];
   }
-  // activity, instructions, and general all carry their sub-type in activity_subtype.
-  if (subtype) {
-    const icon = SUBTYPE_ICON_MAPS[type]?.[subtype];
+  // activity, instructions, and general all carry their sub-types in
+  // activity_subtypes. Use the first one that belongs to this type: a sub-type
+  // left over from another type (e.g. "Other" from Activity on a General item)
+  // must not hide the icon the host picked (October 2026, Time Change).
+  const list = Array.isArray(subtype) ? subtype : subtype ? [subtype as string] : [];
+  for (const s of list) {
+    const icon = SUBTYPE_ICON_MAPS[type]?.[s];
     if (icon) return icon;
   }
   return getAgendaTypeIcon(type);

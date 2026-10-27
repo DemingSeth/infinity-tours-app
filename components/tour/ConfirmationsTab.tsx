@@ -100,7 +100,7 @@ function ConfirmationRow({ tourId, item, isOwner, topBorder, striped, onPatch }:
         {item.time || "-"}
         {item.end_time && <div style={{ fontWeight: 600 }}>– {item.end_time}</div>}
       </div>
-      <TypeDot type={item.type} travelMethod={(item.travel_methods ?? [])[0] ?? null} subtype={(item.activity_subtypes ?? [])[0] ?? null} size={28} color={resolveIconColor(item)} />
+      <TypeDot type={item.type} travelMethod={(item.travel_methods ?? [])[0] ?? null} subtype={item.activity_subtypes ?? (item.activity_subtype ? [item.activity_subtype] : [])} size={28} color={resolveIconColor(item)} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ marginBottom: 2 }}>
           <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{item.title}</span>

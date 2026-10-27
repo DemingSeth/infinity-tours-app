@@ -27,7 +27,7 @@ function tint(hex: string, alpha: number): string {
 export default function TypeDot({ type, travelMethod, subtype, size = 28, color }: {
   type: string;
   travelMethod?: string | null;
-  subtype?: string | null;
+  subtype?: string | readonly string[] | null;
   size?: number;
   color?: string | null;
 }) {

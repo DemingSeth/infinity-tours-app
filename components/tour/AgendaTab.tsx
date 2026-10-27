@@ -716,6 +716,12 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
   // Either default can still be overridden by the host afterward.
   const fT = (v: Partial<ItemFormState>) => setForm(p => {
     const next = { ...p, ...v };
+    // Switching type drops sub-types that belong to the old type, so a left
+    // over "Other" from Activity cannot ride along onto a General item.
+    if ("type" in v && v.type !== p.type) {
+      const valid = (SUBTYPES_BY_TYPE[next.type] ?? []).map(s => s.value as string);
+      next.activity_subtypes = next.activity_subtypes.filter(s => valid.includes(s));
+    }
     if (!isEdit && ("type" in v || "travel_methods" in v)) {
       next.persona_visibility = defaultPersonaVisibility(next.type, next.travel_methods);
     }
@@ -843,7 +849,7 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
         <IconColorRow
           type={form.type}
           travelMethod={form.travel_methods[0] ?? null}
-          subtype={form.activity_subtypes[0] ?? null}
+          subtype={form.activity_subtypes}
           value={form.icon_color}
           onChange={hex => f({ icon_color: hex })}
         />
@@ -1275,7 +1281,7 @@ function ItemRow({ item, groups, personaLabels, onEdit, onRemove, onDuplicate, o
         <IconColorButton
           type={item.type}
           travelMethod={travelMethods[0] ?? null}
-          subtype={activitySubtypes[0] ?? null}
+          subtype={activitySubtypes}
           value={resolveIconColor(item)}
           onChange={hex => onSaveIconColor(hex)}
           size={32}
