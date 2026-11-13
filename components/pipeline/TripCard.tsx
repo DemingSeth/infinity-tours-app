@@ -15,9 +15,11 @@ interface Props {
   onDuplicate: () => void;
   /** Delete this tour (own tours only). Opens a confirm dialog upstream. */
   onDelete?: () => void;
+  /** Where a tour on the road is today, e.g. "Day 3 of 6" (On Tour Now). */
+  liveLabel?: string;
 }
 
-export default function TripCard({ tour, currentHostId, canEdit, isDuplicating, onClick, onDuplicate, onDelete, alt }: Props) {
+export default function TripCard({ tour, currentHostId, canEdit, isDuplicating, onClick, onDuplicate, onDelete, alt, liveLabel }: Props) {
   const members: any[] = tour.tour_members ?? [];
   const memberCount = members.length;
   const waiverPending = members.filter((m: any) => m.type === "student" && !m.waiver).length;
@@ -46,6 +48,11 @@ export default function TripCard({ tour, currentHostId, canEdit, isDuplicating, 
         </div>
         <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 8 }}>
           <StatusPill status={tour.status} />
+          {liveLabel && (
+            <span style={{ fontSize: 11, fontWeight: 700, background: "var(--sky-bg)", color: "var(--sky-text)", borderRadius: 6, padding: "2px 7px" }}>
+              {liveLabel}
+            </span>
+          )}
           {memberCount > 0 && (
             <span style={{ fontSize: 11, background: "var(--surface-3)", color: "var(--text-2)", borderRadius: 6, padding: "2px 7px" }}>
               {memberCount} traveler{memberCount !== 1 ? "s" : ""}

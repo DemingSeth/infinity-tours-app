@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { ChevronDown, ChevronRight, Search, X } from "lucide-react";
-import { STATUSES, BRAND, parseISODate, parseAgendaDate, expandDateRange } from "@/lib/helpers";
+import { STATUSES, BRAND, parseISODate, parseAgendaDate, expandDateRange, tourDateRange, startOfDay } from "@/lib/helpers";
 import { canEditTour, type EditorViewer } from "@/lib/roles";
 import TripCard from "./TripCard";
 
@@ -52,6 +52,43 @@ function tourSearchText(t: any): string {
   ].filter(Boolean).join(" ").toLowerCase();
 }
 
+// ── On Tour Now (November 2026, Linda) ─────────────────────────────────────
+// A tour on the road today goes to the top of the pipeline instead of sitting
+// under every Quote and Signed card (on a phone the columns stack, Quote
+// first). It counts when it is Signed or On Tour and today falls within its
+// dates (start_date / end_date, else the free-text dates). An On Tour tour
+// with no readable dates counts too, since the host marked it. Quotes and
+// completed tours never do.
+
+// Today on the DEVICE's calendar, read only in the browser. The server runs on
+// UTC, so on a host's evening it would already be tomorrow there, and the
+// server and browser would disagree about which tours are on the road. The
+// server snapshot is null: the section appears once the page is live.
+const noSubscribe = () => () => {};
+const deviceDayKey = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+function useDeviceToday(): Date | null {
+  const key = useSyncExternalStore(noSubscribe, deviceDayKey, () => null);
+  return key ? parseISODate(key) : null;
+}
+
+const DAY_MS = 86400000;
+function onTourNow(t: any, today: Date): { startMs: number; label: string } | null {
+  if (t.status !== "committed" && t.status !== "in-progress") return null;
+  const range = tourDateRange(t);
+  if (!range) return t.status === "in-progress" ? { startMs: Infinity, label: "On tour" } : null;
+  const s = startOfDay(range.start).getTime();
+  const e = startOfDay(range.end).getTime();
+  const now = startOfDay(today).getTime();
+  if (now < s || now > e) return null;
+  // Rounded: a daylight saving change makes one "day" 23 or 25 hours.
+  const day = Math.round((now - s) / DAY_MS) + 1;
+  const days = Math.round((e - s) / DAY_MS) + 1;
+  return { startMs: s, label: days > 1 ? `Day ${day} of ${days}` : "Today" };
+}
+
 export function matchesTourSearch(t: any, query: string): boolean {
   const words = query.toLowerCase().split(/\s+/).filter(Boolean);
   if (words.length === 0) return true;
@@ -93,6 +130,19 @@ export default function PipelineView({
     if (bm === null) return -1;
     return am - bm;
   });
+
+  // Tours on the road today lead the page and leave their status column, so
+  // no tour shows twice. Same list as the board: My Tours / All Tours and the
+  // search both apply.
+  const today = useDeviceToday();
+  const live = today
+    ? sorted
+        .map(t => ({ tour: t, now: onTourNow(t, today) }))
+        .filter((x): x is { tour: any; now: { startMs: number; label: string } } => x.now !== null)
+        .sort((a, b) => a.now.startMs - b.now.startMs)
+    : [];
+  const liveIds = new Set(live.map(x => x.tour.id));
+  const board = liveIds.size ? sorted.filter(t => !liveIds.has(t.id)) : sorted;
 
   return (
     <div>
@@ -187,9 +237,35 @@ export default function PipelineView({
         </div>
       )}
 
+      {live.length > 0 && (
+        <section aria-label="On tour now" style={{ background: "var(--sky-bg-soft)", border: "1.5px solid var(--sky-border)", borderRadius: 14, padding: 12, marginBottom: 18 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10, padding: "0 2px" }}>
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#3b82f6", display: "inline-block" }} />
+            <span style={{ fontSize: 11, fontWeight: 700, color: "var(--sky-text)", textTransform: "uppercase", letterSpacing: 0.8 }}>On Tour Now</span>
+            <span style={{ fontSize: 11, color: "var(--muted-2)", marginLeft: "auto" }}>{live.length}</span>
+          </div>
+          {/* Same column widths as the board below (pipeline-grid). */}
+          <div className="pipeline-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 14, alignItems: "start" }}>
+            {live.map(({ tour: t, now }) => (
+              <TripCard
+                key={t.id}
+                tour={t}
+                liveLabel={now.label}
+                currentHostId={currentHostId}
+                canEdit={canEditTour(t, viewer)}
+                isDuplicating={duplicatingId === t.id}
+                onClick={() => onSelectTour(t.id)}
+                onDuplicate={() => onDuplicate(t.id)}
+                onDelete={onDelete ? () => onDelete(t.id) : undefined}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
       <div className="pipeline-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 14, alignItems: "start" }}>
         {STATUSES.map(st => {
-          const col = sorted.filter(t => t.status === st.id);
+          const col = board.filter(t => t.status === st.id);
           const collapsed = !!collapsedCols[st.id];
           return (
             <div key={st.id} style={{ minWidth: 0 }}>
