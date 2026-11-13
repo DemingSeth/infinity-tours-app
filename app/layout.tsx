@@ -10,9 +10,15 @@ export const metadata: Metadata = {
 
 // Phones lay the page out at their real width (no 980px desktop emulation),
 // which is what lets the mobile rules in globals.css take effect.
+// viewportFit "cover" makes iOS report the status bar / notch sizes through
+// env(safe-area-inset-*). Opened from the Home Screen the app is drawn under
+// the status bar, and without these values the header logo sat on top of the
+// clock (November 2026). globals.css pads the header and the page by them; on
+// a computer they are 0.
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover",
 };
 
 // Runs before first paint so the page never flashes the wrong theme: the

@@ -68,10 +68,13 @@ const INP: React.CSSProperties = {
   outline: "none", width: "100%", boxSizing: "border-box",
 };
 
+// On a phone each size steps up one (third → half, half → full row) through
+// the .form-field rules in globals.css, so a time or a link has room to show.
 function Field({ label, children, half, third }: { label: string; children: React.ReactNode; half?: boolean; third?: boolean }) {
   const w = third ? "calc(33.33% - 7px)" : half ? "calc(50% - 5px)" : "100%";
+  const size = third ? "form-field--third" : half ? "form-field--half" : "form-field--full";
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 4, width: w, minWidth: 0, flexShrink: 0 }}>
+    <div className={`form-field ${size}`} style={{ display: "flex", flexDirection: "column", gap: 4, width: w, minWidth: 0, flexShrink: 0 }}>
       <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: .8 }}>{label}</label>
       {children}
     </div>
@@ -152,8 +155,13 @@ function parseTimeInput(raw: string): string | null {
   return `${h - 12}:${pad2(min)} PM`;
 }
 
-function TimePicker({ value, onChange, placeholder = "Pick a time" }: {
-  value: string; onChange: (v: string) => void; placeholder?: string;
+// Phones (November 2026, Linda: start times were hard to see and edit): the
+// .time-picker rules in globals.css give the field 16px text (so iOS does not
+// zoom the page when it is tapped), bigger clear / clock buttons and a larger
+// wheel. alignRight opens the wheel toward the left, for a field on the right
+// half of the row, so it stays on screen.
+function TimePicker({ value, onChange, placeholder = "Pick a time", alignRight = false }: {
+  value: string; onChange: (v: string) => void; placeholder?: string; alignRight?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   // Editable text mirrors `value`; committed on blur/Enter (or reverted).
@@ -229,9 +237,10 @@ function TimePicker({ value, onChange, placeholder = "Pick a time" }: {
   });
 
   return (
-    <div ref={ref} style={{ position: "relative", width: "100%" }}>
-      <div style={{ ...INP, display: "flex", alignItems: "center", justifyContent: "space-between", padding: 0, paddingRight: 8 }}>
+    <div ref={ref} className="time-picker" style={{ position: "relative", width: "100%" }}>
+      <div className="time-picker-box" style={{ ...INP, display: "flex", alignItems: "center", justifyContent: "space-between", padding: 0, paddingRight: 8 }}>
         <input
+          className="time-picker-input"
           value={text}
           placeholder={placeholder}
           onChange={e => setText(e.target.value)}
@@ -240,45 +249,47 @@ function TimePicker({ value, onChange, placeholder = "Pick a time" }: {
             if (e.key === "Escape") { setText(value); setOpen(false); }
           }}
           onBlur={() => { if (!open) commitText(); }}
-          style={{ flex: 1, minWidth: 0, border: "none", outline: "none", background: "transparent", fontSize: 13, fontFamily: "inherit", color: "var(--text)", padding: "7px 11px" }}
+          // boxShadow none: the outer box is the field; the global field shadow
+          // drew a second box edge inside it, between the time and the buttons.
+          style={{ flex: 1, minWidth: 0, border: "none", outline: "none", background: "transparent", boxShadow: "none", fontSize: 13, fontFamily: "inherit", color: "var(--text)", padding: "7px 11px" }}
         />
         <span style={{ display: "inline-flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
           {(text || value) && (
-            <button type="button" title="Clear time"
+            <button type="button" title="Clear time" className="time-picker-btn"
               onClick={() => { setText(""); onChange(""); setOpen(false); }}
               style={{ background: "none", border: "none", cursor: "pointer", padding: 2, display: "flex", color: "var(--muted-2)" }}>
               <XIcon size={13} />
             </button>
           )}
-          <button type="button" title="Pick from clock" onClick={() => (open ? setOpen(false) : openWheel())}
+          <button type="button" title="Pick from clock" className="time-picker-btn" onClick={() => (open ? setOpen(false) : openWheel())}
             style={{ background: "none", border: "none", cursor: "pointer", padding: 2, display: "flex" }}>
             <Clock size={14} style={{ color: open ? "var(--ink)" : "var(--muted-2)" }} />
           </button>
         </span>
       </div>
       {open && (
-        <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 500, background: "var(--surface)", borderRadius: 12, boxShadow: "0 8px 32px rgba(0,0,0,.18)", border: "1.5px solid var(--border)", padding: 12, width: 210 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 8, textAlign: "center", fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em" }}>
+        <div className="time-wheel" style={{ position: "absolute", top: "calc(100% + 6px)", ...(alignRight ? { right: 0 } : { left: 0 }), zIndex: 500, background: "var(--surface)", borderRadius: 12, boxShadow: "0 8px 32px rgba(0,0,0,.18)", border: "1.5px solid var(--border)", padding: 12, width: 210 }}>
+          <div className="time-wheel-readout" style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)", marginBottom: 8, textAlign: "center", fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em" }}>
             {draft.h}:{pad2(draft.m)} {draft.ap}
           </div>
           <div style={{ display: "flex", gap: 4 }}>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 10, color: "var(--muted-2)", textAlign: "center", marginBottom: 3 }}>Hour</div>
-              <div ref={hourRef} style={col}>{hours.map(hr => <button key={hr} type="button" style={btn(hr === draft.h)} onClick={() => setDraft(d => ({ ...d, h: hr }))}>{hr}</button>)}</div>
+              <div ref={hourRef} className="time-wheel-col" style={col}>{hours.map(hr => <button key={hr} type="button" className="time-wheel-opt" style={btn(hr === draft.h)} onClick={() => setDraft(d => ({ ...d, h: hr }))}>{hr}</button>)}</div>
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 10, color: "var(--muted-2)", textAlign: "center", marginBottom: 3 }}>Min</div>
-              <div ref={minRef} style={col}>{mins.map(mn => <button key={mn} type="button" style={btn(mn === draft.m)} onClick={() => setDraft(d => ({ ...d, m: mn }))}>{pad2(mn)}</button>)}</div>
+              <div ref={minRef} className="time-wheel-col" style={col}>{mins.map(mn => <button key={mn} type="button" className="time-wheel-opt" style={btn(mn === draft.m)} onClick={() => setDraft(d => ({ ...d, m: mn }))}>{pad2(mn)}</button>)}</div>
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 10, color: "var(--muted-2)", textAlign: "center", marginBottom: 3 }}>AM/PM</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4, paddingTop: 4 }}>
-                {["AM", "PM"].map(a => <button key={a} type="button" style={{ ...btn(a === draft.ap), padding: "8px 0" }} onClick={() => setDraft(d => ({ ...d, ap: a }))}>{a}</button>)}
+                {["AM", "PM"].map(a => <button key={a} type="button" className="time-wheel-opt" style={{ ...btn(a === draft.ap), padding: "8px 0" }} onClick={() => setDraft(d => ({ ...d, ap: a }))}>{a}</button>)}
               </div>
             </div>
           </div>
           <div style={{ borderTop: "1px solid var(--surface-3)", marginTop: 8, paddingTop: 7, textAlign: "center" }}>
-            <button type="button" onClick={done} style={{ background: BRAND.navy, color: "#fff", border: "none", borderRadius: 7, padding: "5px 20px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Done</button>
+            <button type="button" className="time-wheel-done" onClick={done} style={{ background: BRAND.navy, color: "#fff", border: "none", borderRadius: 7, padding: "5px 20px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>Done</button>
           </div>
         </div>
       )}
@@ -296,8 +307,10 @@ function Modal({ title, onClose, children, wide }: {
     return () => document.removeEventListener("keydown", handler);
   }, [onClose]);
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "40px 16px", overflowY: "auto" }}>
-      <div style={{ background: "var(--surface)", borderRadius: 16, padding: 24, width: "100%", maxWidth: wide ? 680 : 420, boxShadow: "0 20px 60px rgba(0,0,0,.2)" }}>
+    // .app-modal / .app-modal-panel: tighter margins on a phone (globals.css),
+    // so the form inside gets the width instead of the padding.
+    <div className="app-modal" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "40px 16px", overflowY: "auto" }}>
+      <div className="app-modal-panel" style={{ background: "var(--surface)", borderRadius: 16, padding: 24, width: "100%", maxWidth: wide ? 680 : 420, boxShadow: "0 20px 60px rgba(0,0,0,.2)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <span style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", fontSize: 16, fontWeight: 400, color: "var(--ink)" }}>{title}</span>
           <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted-2)", padding: 4 }}><I n="x" s={16} /></button>
@@ -732,7 +745,7 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
   });
 
   return (
-    <div style={{ padding: 16, background: "var(--surface-2)", borderTop: "1.5px solid var(--border)" }} onClick={e => e.stopPropagation()}>
+    <div className="item-form" style={{ padding: 16, background: "var(--surface-2)", borderTop: "1.5px solid var(--border)" }} onClick={e => e.stopPropagation()}>
       {/* Title row with Save / Cancel at the TOP as well as the bottom, so a
           long form never needs a scroll to save (August 2026 request). */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
@@ -919,7 +932,7 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
           <TimePicker value={form.time} onChange={v => f({ time: v })} />
         </Field>
         <Field label="End Time (Optional)" third>
-          <TimePicker value={form.end_time} onChange={v => f({ end_time: v })} placeholder="Add end time" />
+          <TimePicker value={form.end_time} onChange={v => f({ end_time: v })} placeholder="Add end time" alignRight />
         </Field>
         <Field label="Title">
           <Inp value={form.title} onChange={e => f({ title: e.target.value })} placeholder="Museum, flight, restaurant..." autoFocus={!isEdit} />
@@ -1251,16 +1264,21 @@ function ItemRow({ item, groups, personaLabels, onEdit, onRemove, onDuplicate, o
   const noteShared = noteAud.personas.length > 0;
 
   return (
+    // On a phone (.item-row rules in globals.css) the time, icon and buttons
+    // share the top line and the title and notes take the full width below,
+    // instead of a narrow column between them (November 2026, Linda).
     <div
       data-item-id={item.id}
+      className="item-row"
       style={{ padding: "14px 16px", borderBottom: "1px solid var(--surface-2)", background: striped ? "var(--row-alt)" : "var(--surface)", borderTop: isDragOver ? `2px solid ${BRAND.blue}` : "2px solid transparent" }}
       onClick={e => e.stopPropagation()}
       onDragOver={dragProps?.onDragOver}
       onDrop={dragProps?.onDrop}
     >
-      <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+      <div className="item-row-main" style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
         {dragProps && (
           <div
+            className="item-row-grip"
             draggable
             onDragStart={dragProps.onDragStart}
             onDragEnd={dragProps.onDragEnd}
@@ -1272,7 +1290,7 @@ function ItemRow({ item, groups, personaLabels, onEdit, onRemove, onDuplicate, o
         )}
         {/* Times: bold, navy like the title, and a step larger so they catch
             the eye first (August 2026 request). */}
-        <div style={{ width: 64, fontSize: 13, fontWeight: 700, color: "var(--ink)", flexShrink: 0, paddingTop: 5, textAlign: "right", lineHeight: 1.35 }}>
+        <div className="item-row-time" style={{ width: 64, fontSize: 13, fontWeight: 700, color: "var(--ink)", flexShrink: 0, paddingTop: 5, textAlign: "right", lineHeight: 1.35 }}>
           {item.time || (item.end_time ? "" : <span style={{ color: "var(--muted-3)" }}>-</span>)}
           {item.end_time && <div style={{ fontSize: 12 }}>– {item.end_time}</div>}
         </div>
@@ -1286,7 +1304,7 @@ function ItemRow({ item, groups, personaLabels, onEdit, onRemove, onDuplicate, o
           onChange={hex => onSaveIconColor(hex)}
           size={32}
         />
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="item-row-body" style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", marginBottom: 3 }}>
             <span style={{ fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>{item.title}</span>
             {/* The leading TypeDot icon conveys the item type; no redundant
@@ -1430,7 +1448,7 @@ function ItemRow({ item, groups, personaLabels, onEdit, onRemove, onDuplicate, o
 
         </div>
 
-        <div style={{ display: "flex", gap: 2, flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end", maxWidth: 64 }}>
+        <div className="item-row-actions" style={{ display: "flex", gap: 2, flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end", maxWidth: 64 }}>
           <ActionButton title="Edit item" onClick={onEdit}>
             <I n="edit" s={14} />
           </ActionButton>

@@ -25,7 +25,9 @@ export default function SaveStatusBar({ saving, note = "Changes on this page sav
   }, [justSaved]);
 
   return (
-    <div style={{ position: "sticky", top: 0, zIndex: 20, display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", background: "var(--surface)", border: "1.5px solid var(--border-soft)", borderRadius: 10, fontSize: 12, color: "var(--muted)", boxShadow: "var(--shadow)" }}>
+    // Sticks just below the iPhone status bar when the app runs from the Home
+    // Screen (the inset is 0 everywhere else).
+    <div style={{ position: "sticky", top: "env(safe-area-inset-top, 0px)", zIndex: 20, display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", background: "var(--surface)", border: "1.5px solid var(--border-soft)", borderRadius: 10, fontSize: 12, color: "var(--muted)", boxShadow: "var(--shadow)" }}>
       {saving ? (
         <>
           <Loader2 size={14} style={{ color: "var(--muted-2)", animation: "it-spin 1s linear infinite" }} />

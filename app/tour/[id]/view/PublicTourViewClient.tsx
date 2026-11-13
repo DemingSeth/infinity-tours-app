@@ -84,7 +84,9 @@ export default function PublicTourViewClient({ tourId, tourName, tourDestination
 
   if (unlocked) {
     return (
-      <div style={{ minHeight: "100vh", background: "var(--page)", padding: "24px 16px" }}>
+      // Top padding clears the iPhone status bar if the link was saved to the
+      // Home Screen (safe-area inset; 0 in a normal browser tab).
+      <div style={{ minHeight: "100vh", background: "var(--page)", padding: "calc(24px + env(safe-area-inset-top, 0px)) 16px 24px" }}>
         {/* Viewer's light / dark switch, tucked above the itinerary. */}
         <div style={{ maxWidth: 680, margin: "0 auto 8px", display: "flex", justifyContent: "flex-end" }}>
           <ThemeToggle onNavy={false} />
