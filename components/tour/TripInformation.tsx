@@ -1,9 +1,11 @@
 "use client";
 
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronRight, Pencil, Paperclip, Upload, X, Link as LinkIcon, Plus, ImagePlus, Map, ArrowUp, ArrowDown, GripVertical } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import MapFileThumb from "@/components/shared/MapFileThumb";
+import FlightGroups from "@/components/tour/FlightGroups";
+import { hidesPhones, withoutPhones } from "@/lib/tripInfoDisplay";
 import { printableUrl } from "@/components/tour/itemConfirmation";
 import { BRAND, formatFullDate, showTripSection, confirmationsVisibleTo, customRowVisibleTo, activePersonaKeys, personaLabel } from "@/lib/helpers";
 import type { TripInfo, Role, PersonnelRow } from "@/lib/types";
@@ -209,7 +211,11 @@ function PersonListEditor({ people, onChange, namePlaceholder, contactPlaceholde
   );
 }
 
-export default function TripInformation({ info, isHost = false, tourId, viewerRole, viewerPersona, initiallyCollapsed = false, onSaveTour, onSaveHostPhone, print = false }: TripInformationProps) {
+export default function TripInformation({ info: rawInfo, isHost = false, tourId, viewerRole, viewerPersona, initiallyCollapsed = false, onSaveTour, onSaveHostPhone, print = false }: TripInformationProps) {
+  // Students never see phone numbers here (tour host, bus, or typed into the
+  // text boxes). November 2026, requested by Jenn Ainge.
+  const noPhones = hidesPhones({ isHost, viewerPersona, viewerRole });
+  const info = useMemo(() => (noPhones ? withoutPhones(rawInfo) : rawInfo), [noPhones, rawInfo]);
   // Expanded by default; minimized from the second tour day onward (never in print).
   const [open, setOpen] = useState(print ? true : !initiallyCollapsed);
   const [editing, setEditing] = useState(false);
@@ -765,13 +771,16 @@ export default function TripInformation({ info, isHost = false, tourId, viewerRo
           <textarea ref={el => { fieldRefs.current.flight = el; }} style={textareaStyle} value={form.flightOverride}
             placeholder={"e.g.\nDelta 1642 · SLC → JFK · 8:05 AM\nDelta 2210 · JFK → SLC · 6:40 PM"}
             onChange={e => setForm(f => ({ ...f, flightOverride: e.target.value }))} />
+          <div style={{ fontSize: 11, color: "var(--muted-2)", marginTop: 2 }}>
+            Several flights? Start each one with a color, like 🔴 Red Flight or 🔵 Blue Flight, and travelers can open just their own.
+          </div>
           {overrideHint}
           {renderConf("flight", "Flight Confirmation")}
         </div>
       ) : (
         <>
           {flightOverride ? (
-            <div style={{ whiteSpace: "pre-wrap" }}>{flightOverride}</div>
+            <FlightGroups text={flightOverride} tourId={tourId} print={print} />
           ) : info.hasFlight ? (
             <>
               <div>{dash(info.flightName)}</div>
