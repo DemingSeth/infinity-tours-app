@@ -140,8 +140,11 @@ drafted answer in your report, because the person needs a reply from Seth.
 1. Work in a clone of `DemingSeth/infinity-tours-app` on a new branch
    `auto/<short-slug>` from the latest `main`. Run `npm ci`.
 2. Make the smallest correct fix. Match the surrounding code's style.
-3. Verify locally: `npx tsc --noEmit`, `npx eslint <changed files>` (the repo
-   has pre-existing lint problems; add none), and `npm run build`. For
+3. Verify locally: `npx tsc --noEmit` and `npx eslint <changed files>` (the
+   repo has pre-existing lint problems; compare the count with `main` and add
+   none). `npm run build` cannot finish in the sandbox because it downloads
+   Google Fonts; the Vercel status on the branch (step 5) is the build check.
+   For
    behavior bugs, reproduce first (a minimal page driven by Playwright,
    `executablePath: "/opt/pw-browsers/chromium"`) and show it fails before the
    fix and passes after.
