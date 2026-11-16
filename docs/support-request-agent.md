@@ -54,7 +54,7 @@ where company_id = '3e968d54-7f31-4fbd-8849-d56cb8376c8d'
 ```
 
 For each, find its pull request in `DemingSeth/infinity-tours-app` (the PR
-body contains `Request: <request id>`).
+body contains `Request: <request id>`; one PR can carry several requests).
 
 - Merged, and the Vercel status on `main` is `success`: mark it completed
   (SQL below), with a plain one or two sentence response for the person who
@@ -66,10 +66,11 @@ body contains `Request: <request id>`).
 ```sql
 update client_requests
 set status = 'completed',
-    work_category = '<bug_fix | minor_change>',
-    actual_hours = <your honest estimate, e.g. 0.25>,
-    billable_hours = 0,
-    billing_month = date_trunc('month', now())::date,
+    -- Keep hours and category already logged (Seth logs some by hand).
+    work_category = coalesce(work_category, '<bug_fix | minor_change>'),
+    actual_hours = coalesce(actual_hours, <your honest estimate, e.g. 0.25>),
+    billable_hours = coalesce(billable_hours, 0),
+    billing_month = coalesce(billing_month, date_trunc('month', now())::date),
     reviewed_at = now(),
     response = '<what was fixed, for the person who asked> Included in the monthly retainer.'
 where id = '<request id>' and status = 'acknowledged';
