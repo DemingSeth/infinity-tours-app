@@ -124,6 +124,11 @@ function GroupsConfig({ tour, isOwner, onTourChange }: {
       <p style={{ fontSize: 12, color: "var(--muted)", margin: "0 0 14px", lineHeight: 1.6 }}>
         For tours with several departments traveling together (band, choir, drama, orchestra). Add the groups here, then mark any itinerary item with the group it applies to. Items with no group show for everyone. Viewers get a group filter on the shared itinerary, and Share Links can open to one group.
       </p>
+      {isOwner && groups.length > 0 && (
+        <p style={{ fontSize: 12, color: "var(--muted)", margin: "-6px 0 14px", lineHeight: 1.6 }}>
+          To rename a group, double-click its name. Renaming keeps it on every item it is already on.
+        </p>
+      )}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
         {groups.length === 0 && <span style={{ fontSize: 12, color: "var(--muted-2)" }}>No groups yet. Single-group tours do not need any.</span>}
         {groups.map(g => (
