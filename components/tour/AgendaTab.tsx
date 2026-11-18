@@ -724,6 +724,8 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
   onMoveTargetChange?: (dayId: string) => void;
 }) {
   const f = (v: Partial<ItemFormState>) => setForm(p => ({ ...p, ...v }));
+  // Tags pointing at a group that no longer exists in Settings.
+  const removedGroupTags = form.group_tags.filter(id => !groups.some(g => g.id === id));
   // For NEW items, recompute the smart defaults when type/travel changes:
   // per-persona visibility, and the student-feedback default (on for Activities).
   // Either default can still be overridden by the host afterward.
@@ -896,7 +898,7 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
 
       {/* Multi-group tours: limit this item to one or more groups. No group
           selected = everyone on the tour. */}
-      {groups.length > 0 && (
+      {(groups.length > 0 || removedGroupTags.length > 0) && (
         <div style={{ marginBottom: 14 }}>
           <label style={{ fontSize: 11, fontWeight: 700, color: "var(--muted-2)", textTransform: "uppercase", letterSpacing: .8, display: "block", marginBottom: 6 }}>
             Group
@@ -912,6 +914,15 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
                 </button>
               );
             })}
+            {/* November 2026 (Amy): a group deleted in Settings stays on the
+                items it was on. Show it here so it can be taken off. */}
+            {removedGroupTags.map(id => (
+              <button key={id} type="button" title="This group was removed in Settings. Click to take it off this item."
+                onClick={() => f({ group_tags: form.group_tags.filter(t => t !== id) })}
+                style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 11px", borderRadius: 20, border: "2px dashed var(--border)", background: "var(--surface)", color: "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>
+                <Tag size={12} />Removed group<XIcon size={12} strokeWidth={3} />
+              </button>
+            ))}
           </div>
         </div>
       )}
@@ -1315,9 +1326,15 @@ function ItemRow({ item, groups, personaLabels, onEdit, onRemove, onDuplicate, o
                 {item.custom_type_label}
               </span>
             )}
-            {(item.group_tags ?? []).map(g => (
+            {(item.group_tags ?? []).map(g => groups.some(x => x.id === g) ? (
               <span key={g} style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, color: BRAND.blue, background: BRAND.blue + "18", borderRadius: 5, padding: "1px 7px" }}>
                 <Tag size={9} />{groupName(groups, g)}
+              </span>
+            ) : (
+              // A group deleted in Settings: say so instead of showing its id.
+              // Edit the item to take it off.
+              <span key={g} title="This group was removed in Settings. Edit the item to take it off." style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, fontWeight: 700, color: "var(--muted)", border: "1px dashed var(--border)", borderRadius: 5, padding: "0 6px" }}>
+                <Tag size={9} />Removed group
               </span>
             ))}
             {/* Attached confirmations show only as compact links here; all
