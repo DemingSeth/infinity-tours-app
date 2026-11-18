@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { BRAND, orderAgendaItems, orderAgendaDays, resolveIconColor, isItemConfirmed } from "@/lib/helpers";
 import TypeDot from "@/components/shared/TypeDot";
 import ItemConfirmationControl, { ItemStatusChecks } from "@/components/tour/itemConfirmation";
@@ -12,6 +13,17 @@ interface Props {
   isOwner: boolean;
 }
 
+// November 2026 (Amy): a toggle to hide items marked "No confirmation needed"
+// so a long list shows only what is confirmed or still outstanding. The choice
+// is remembered in this browser; storage can throw (private mode), so every
+// access is guarded and a failure just means the toggle starts off.
+const HIDE_NOT_REQUIRED_KEY = "it-confirmations-hide-not-required";
+
+function isHiddenWhenFiltered(item: AgendaItemWithFeedback): boolean {
+  // Same rule as the "No Confirmation Needed" count above the list.
+  return !isItemConfirmed(item) && !!item.confirmation_not_required;
+}
+
 export default function ConfirmationsTab({ tourId, days: daysProp, onDaysChange, isOwner }: Props) {
   // Same day ordering and numbering the itinerary uses.
   const days = orderAgendaDays(daysProp);
@@ -20,6 +32,20 @@ export default function ConfirmationsTab({ tourId, days: daysProp, onDaysChange,
   const notRequired = allItems.filter(i => !isItemConfirmed(i) && i.confirmation_not_required).length;
   // Only genuinely outstanding items — excludes those marked "no confirmation required".
   const unconfirmed = allItems.length - confirmed - notRequired;
+
+  // This tab only mounts after a click (the tour page opens on Itinerary), so
+  // reading storage in the initializer cannot cause a hydration mismatch.
+  const [hideNotRequired, setHideNotRequired] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try { return window.localStorage.getItem(HIDE_NOT_REQUIRED_KEY) === "1"; } catch { return false; }
+  });
+  function toggleHideNotRequired(next: boolean) {
+    setHideNotRequired(next);
+    try {
+      if (next) window.localStorage.setItem(HIDE_NOT_REQUIRED_KEY, "1");
+      else window.localStorage.removeItem(HIDE_NOT_REQUIRED_KEY);
+    } catch { /* storage unavailable */ }
+  }
 
   function patchItem(itemId: string, patch: Partial<AgendaItemWithFeedback>) {
     onDaysChange(days.map(d => ({
@@ -54,7 +80,19 @@ export default function ConfirmationsTab({ tourId, days: daysProp, onDaysChange,
         </div>
       </div>
 
-      {days.map((day, dayIdx) => (
+      {notRequired > 0 && (
+        <label style={{ alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 600, color: "var(--muted)", cursor: "pointer" }}>
+          <input type="checkbox" checked={hideNotRequired} onChange={e => toggleHideNotRequired(e.target.checked)}
+            style={{ accentColor: BRAND.navy, width: 14, height: 14, cursor: "pointer" }} />
+          Hide items that need no confirmation ({notRequired})
+        </label>
+      )}
+
+      {days.map((day, dayIdx) => {
+        const visibleItems = hideNotRequired
+          ? orderAgendaItems(day.agenda_items).filter(i => !isHiddenWhenFiltered(i))
+          : orderAgendaItems(day.agenda_items);
+        return (
         <div key={day.id} style={{ background: "var(--surface)", border: "1.5px solid var(--border-soft)", borderRadius: 12, overflow: "hidden" }}>
           <div style={{ background: BRAND.navy, padding: "9px 16px", display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontFamily: "'Fjalla One',Georgia,sans-serif", letterSpacing: "0.03em", color: "#fff", fontWeight: 400, fontSize: 14 }}>Day {dayIdx + 1}</span>
@@ -63,8 +101,10 @@ export default function ConfirmationsTab({ tourId, days: daysProp, onDaysChange,
           </div>
           {day.agenda_items.length === 0 ? (
             <div style={{ color: "var(--muted-3)", fontSize: 12, padding: "12px 16px" }}>No items</div>
+          ) : visibleItems.length === 0 ? (
+            <div style={{ color: "var(--muted-3)", fontSize: 12, padding: "12px 16px" }}>All items on this day need no confirmation</div>
           ) : (
-            orderAgendaItems(day.agenda_items).map((item, idx) => (
+            visibleItems.map((item, idx) => (
               <ConfirmationRow
                 key={item.id}
                 tourId={tourId}
@@ -77,7 +117,8 @@ export default function ConfirmationsTab({ tourId, days: daysProp, onDaysChange,
             ))
           )}
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
