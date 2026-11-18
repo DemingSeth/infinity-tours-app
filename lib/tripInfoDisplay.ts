@@ -50,6 +50,8 @@ export function withoutPhones(info: TripInfo): TripInfo {
     ...info,
     tourHostPhone: null,
     tourHosts: (info.tourHosts ?? []).map(h => ({ ...h, contact: "" })),
+    teachers: (info.teachers ?? []).map(t => ({ ...t, phone: null })),
+    consultants: (info.consultants ?? []).map(c => ({ ...c, phone: null })),
     busContactPhone: null,
     busDriverPhone: null,
     participantsOverride: stripPhones(info.participantsOverride),
