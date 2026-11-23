@@ -184,15 +184,6 @@ export const SUBTYPES_BY_TYPE: Record<string, readonly { value: string; label: s
   general: GENERAL_SUBTYPES,
 };
 
-// An item counts as an "Activity" if its type is the Activity type or it carries
-// an Activity sub-type. Drives the default for the per-item student-feedback toggle.
-// Accepts either a single sub-type (legacy) or the multi-select array.
-export function isActivityType(type: string | null | undefined, activitySubtypes?: string | string[] | null): boolean {
-  if (type === "activity") return true;
-  const arr = Array.isArray(activitySubtypes) ? activitySubtypes : activitySubtypes ? [activitySubtypes] : [];
-  return arr.some(s => ACTIVITY_SUBTYPES.some(a => a.value === s));
-}
-
 // Meal-money option list (multi-select). "group" carries no amount; the others
 // each take a dollar amount. Order here drives the editor button order.
 export const MEAL_MONEY_TYPES = [

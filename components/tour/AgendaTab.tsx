@@ -9,7 +9,7 @@ import {
   isDayInPast, initialCollapsedDays, parseAgendaDate, formatAgendaDate, suggestNextDate, agendaDayDateLabel,
   toDateInput, fmt$, buildTripInfo, orderAgendaItems, timeInsertIndex,
   orderedActivitySubtypes, expandStateName, tripInfoStartsCollapsed, itemMatchesGroup, groupName, resolveIconColor,
-  activePersonaKeys, personaLabel, personaColors, getPersona, defaultPersonaVisibility, isActivityType, generateAccessCode,
+  activePersonaKeys, personaLabel, personaColors, getPersona, defaultPersonaVisibility, generateAccessCode,
   INTERNAL_NOTE_PERSONAS, noteAudience, internalNoteLabel, tourHostNames,
   orderAgendaDays, agendaDaysAreDated,
   MEAL_MONEY_TYPES, mealMoneyHasAmount, mealMoneyLabel, paymentStatus, PAYMENT_LABEL, hasPaymentInfo,
@@ -485,7 +485,9 @@ const BLANK: ItemFormState = {
   cost: "", cost_paid: false, deposit_paid: false, pay_at_venue: false, confirmed: false, confirmation_not_required: false, driver_note: "", internal_note: "",
   internal_note_audience: { hosts: [], personas: [] },
   meal_money: [], persona_visibility: defaultPersonaVisibility("activity", []),
-  feedback_enabled: isActivityType("activity", []), image_urls: [], image_sizes: {}, driver_map_urls: [], icon_color: null,
+  // Student feedback starts OFF on every new item; the host ticks it on the
+  // items they want rated (November 2026, Amy).
+  feedback_enabled: false, image_urls: [], image_sizes: {}, driver_map_urls: [], icon_color: null,
   elevate_url: "", group_tags: [], custom_type_label: "",
 };
 
@@ -739,9 +741,6 @@ function ItemForm({ form, setForm, onSave, onCancel, isEdit, saving, tourId, ite
     }
     if (!isEdit && ("type" in v || "travel_methods" in v)) {
       next.persona_visibility = defaultPersonaVisibility(next.type, next.travel_methods);
-    }
-    if (!isEdit && "type" in v) {
-      next.feedback_enabled = isActivityType(next.type, next.activity_subtypes);
     }
     return next;
   });
@@ -1738,7 +1737,7 @@ export default function AgendaTab({ tour, days: daysProp, members, isOwner, onDa
       internal_note_audience: noteAudience(item.internal_note_audience),
       meal_money: mealMoneyToForm(item),
       persona_visibility: item.persona_visibility ?? defaultPersonaVisibility(item.type, item.travel_methods ?? (item.travel_method ? [item.travel_method] : [])),
-      feedback_enabled: item.feedback_enabled ?? isActivityType(item.type, item.activity_subtypes ?? item.activity_subtype),
+      feedback_enabled: item.feedback_enabled ?? false,
       image_urls: item.image_urls || [],
       image_sizes: item.image_sizes ?? {},
       driver_map_urls: item.driver_map_urls || [],
