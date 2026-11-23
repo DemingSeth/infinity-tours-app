@@ -405,7 +405,7 @@ export interface AgendaItemRow {
   // expected). Not implemented yet; the data model already supports it.
   confirmation_not_required: boolean;
   // When true, students/guests see the per-item feedback control on the shared
-  // itinerary. Defaults on for Activity items (see isActivityType); host-overridable.
+  // itinerary. Off unless the host ticks it (new items start off, November 2026).
   feedback_enabled: boolean;
   created_at: string;
 }
